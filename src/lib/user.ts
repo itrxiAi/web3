@@ -286,6 +286,7 @@ export async function getUserMinLevel(address: string) {
 }
 
 export async function updateUserMinLevel(address: string, minLevel: number) {
+  await cleanUserLevel(address)
   const user = await prisma.user_info.update({
     where: { address },
     data: { min_level: minLevel }
