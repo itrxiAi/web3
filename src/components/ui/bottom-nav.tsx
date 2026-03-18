@@ -33,12 +33,12 @@ export default function BottomNav() {
       href: "/",
       label: "home",
     },
-    // {
-    //   icon: "/images/v2/tabbar/task.png",
-    //   iconActive: "/images/v2/tabbar/task-s.png",
-    //   href: "/node",
-    //   label: "node",
-    // },
+    {
+      icon: "/images/v2/tabbar/task.png",
+      iconActive: "/images/v2/tabbar/task-s.png",
+      href: "/node",
+      label: "node",
+    },
     {
       icon: "/images/v2/tabbar/earn.png",
       iconActive: "/images/v2/tabbar/earn-s.png",
