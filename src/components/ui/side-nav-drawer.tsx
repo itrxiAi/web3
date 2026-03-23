@@ -1,6 +1,6 @@
 "use client";
-
-import React, { useEffect } from "react";
+// 左侧导航抽屉
+import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
@@ -99,7 +99,7 @@ const iconByKey: Record<string, string> = {
 
 function ChevronRight() {
   return (
-    <svg className="h-4 w-4 shrink-0 text-white/35" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
+    <svg className="h-5 w-5 shrink-0 text-white/35" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
       <path
         fillRule="evenodd"
         d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
@@ -120,9 +120,25 @@ export default function SideNavDrawer({
 }) {
   const t = useTranslations("nav_drawer");
   const tQr = useTranslations("qr_code");
+  const [mountedOpen, setMountedOpen] = useState(open);
+  const [closing, setClosing] = useState(false);
 
   useEffect(() => {
-    if (!open) return;
+    if (open) {
+      setMountedOpen(true);
+      setClosing(false);
+      return;
+    }
+    if (!mountedOpen) return;
+    setClosing(true);
+    const t = window.setTimeout(() => {
+      setMountedOpen(false);
+    }, 260);
+    return () => window.clearTimeout(t);
+  }, [open]);
+
+  useEffect(() => {
+    if (!mountedOpen) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     const onKey = (e: KeyboardEvent) => {
@@ -133,23 +149,62 @@ export default function SideNavDrawer({
       document.body.style.overflow = prev;
       window.removeEventListener("keydown", onKey);
     };
-  }, [open, onClose]);
+  }, [mountedOpen, onClose]);
 
-  if (!open) return null;
+  if (!mountedOpen) return null;
 
   return (
     <div className="fixed inset-0 z-[100] flex" role="dialog" aria-modal="true" aria-label={t("open_menu")}>
+      <style>{`
+        @keyframes xwechat_drawer_fade_in {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes xwechat_drawer_fade_out {
+          from { opacity: 1; }
+          to { opacity: 0; }
+        }
+        @keyframes xwechat_drawer_slide_in {
+          from { transform: translateX(-18px); opacity: 0.001; }
+          to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes xwechat_drawer_slide_out {
+          from { transform: translateX(0); opacity: 1; }
+          to { transform: translateX(-18px); opacity: 0.001; }
+        }
+      `}</style>
       <button
         type="button"
         className="absolute inset-0 bg-black/65 backdrop-blur-[2px]"
         onClick={onClose}
         aria-label={t("close_menu")}
+        style={{
+          animation: closing ? "xwechat_drawer_fade_out 200ms ease-in forwards" : "xwechat_drawer_fade_in 220ms ease-out forwards",
+        }}
       />
 
       <aside
         className="relative flex h-full w-[min(100%,360px)] max-w-[85vw] flex-col bg-[#0b0c10] shadow-2xl"
-        style={{ boxShadow: "8px 0 32px rgba(0,0,0,0.5)" }}
+        style={{
+          boxShadow: "8px 0 32px rgba(0,0,0,0.5)",
+          animation: closing ? "xwechat_drawer_slide_out 240ms ease-in forwards" : "xwechat_drawer_slide_in 260ms ease-out forwards",
+        }}
       >
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label={t("close_menu")}
+          className="absolute right-4 top-4 z-10 flex h-10 w-10 items-center justify-center rounded-xl bg-black/30 text-white/90 transition hover:bg-black/45"
+        >
+          <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
+            <path
+              fillRule="evenodd"
+              d="M12.707 15.707a1 1 0 01-1.414 0l-4.5-4.5a1 1 0 010-1.414l4.5-4.5a1 1 0 011.414 1.414L8.914 10l3.793 3.793a1 1 0 010 1.414z"
+              clipRule="evenodd"
+            />
+          </svg>
+        </button>
+
         <div
           className="relative shrink-0 overflow-hidden px-6 pb-8 pt-10"
           style={{

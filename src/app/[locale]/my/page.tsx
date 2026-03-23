@@ -1,3 +1,4 @@
+//个人中心
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -110,21 +111,23 @@ function MyContent() {
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
   };
 
+  // Invitation link URL used for copy action
+  const inviteUrl = address ? `www.harmony.Link${address}` : "";
+
   const handleCopy = () => {
-    if (address) {
-      navigator.clipboard
-        .writeText(address)
-        .then(() => {
-          setShowCopiedNotification(true);
-          // Auto-hide notification after 2 seconds
-          setTimeout(() => {
-            setShowCopiedNotification(false);
-          }, 2000);
-        })
-        .catch((err) => {
-          console.error("Failed to copy: ", err);
-        });
-    }
+    if (!inviteUrl) return;
+    navigator.clipboard
+      .writeText(inviteUrl)
+      .then(() => {
+        setShowCopiedNotification(true);
+        // Auto-hide notification after 2 seconds
+        setTimeout(() => {
+          setShowCopiedNotification(false);
+        }, 2000);
+      })
+      .catch((err) => {
+        console.error("Failed to copy: ", err);
+      });
   };
 
   const fetchUserInfo = async () => {
@@ -491,6 +494,55 @@ function MyContent() {
     },
   ];
 
+  function BenefitCircleIcon({ iconKey, label }: { iconKey: string; label: string }) {
+    return (
+      <div className="flex flex-col items-center gap-2">
+        <div
+          style={{
+            width: 56,
+            height: 56,
+            borderRadius: "50%",
+            border: "1.5px solid rgba(255,255,255,0.6)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "rgba(255,255,255,0.04)",
+          }}
+        >
+          {iconKey === "activate_tier" && (
+            <svg width="27" height="27" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.4">
+              <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17.3l-6.2 4 2.4-7.4L2 9.4h7.6z" strokeLinejoin="round" />
+            </svg>
+          )}
+          {iconKey === "verifier_identity" && (
+            <svg width="27" height="27" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.4">
+              <circle cx="10.5" cy="10.5" r="6.5" />
+              <path d="M15.5 15.5l4.5 4.5" strokeLinecap="round" />
+            </svg>
+          )}
+          {iconKey === "trading_dividends" && (
+            <svg width="27" height="27" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.4">
+              <circle cx="12" cy="12" r="9" />
+              <path d="M12 7.5v9M9.5 9.5C9.5 8.7 10.6 8 12 8s2.5.7 2.5 1.7-.9 1.7-2.5 2c-1.6.3-2.5 1-2.5 2s1.1 1.8 2.5 1.8 2.5-.8 2.5-1.8" strokeLinecap="round" />
+            </svg>
+          )}
+          {iconKey === "team_level_t2" && (
+            <span style={{ fontFamily: "Arial, sans-serif", fontWeight: 700, fontSize: 15, color: "white", letterSpacing: "0.02em" }}>
+              T2
+            </span>
+          )}
+          {iconKey === "ad_revenue" && (
+            <svg width="27" height="27" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.4">
+              <path d="M4 20h16M8 20v-7M12 20V5M16 20v-4" strokeLinecap="round" strokeLinejoin="round" />
+              <circle cx="12" cy="5" r="1.3" fill="white" stroke="none" />
+            </svg>
+          )}
+        </div>
+        <p className="text-xs text-white text-center leading-tight">{label}</p>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-full">
       {/* Main content area */}
@@ -520,7 +572,7 @@ function MyContent() {
               }}
             />
 
-            <div className="relative flex gap-6">
+              <div className="relative flex gap-6">
               {/* Left: Avatar with glow effect */}
               <div className="flex-shrink-0 flex justify-center">
                 <div
@@ -566,83 +618,60 @@ function MyContent() {
               </div>
 
               {/* Right: User Info */}
-              <div className="flex-1 flex flex-col justify-center space-y-4">
+              <div className="flex-1 min-w-0 flex flex-col justify-center space-y-3">
                 {/* Wallet Address */}
-                <div>
-                  <p className="text-xs mb-1" style={{ color: "rgba(255, 255, 255, 0.6)" }}>
-                    {t("my_address") || "钱包地址"}
-                  </p>
-                  <div className="flex items-center gap-3">
-                    <span className="text-sm font-mono text-white font-bold tracking-wider">
-                      {address ? address : "0x088888888888888888888888"}
-                    </span>
-                    <button
-                      onClick={handleCopy}
-                      className="p-1 rounded"
-                      style={{
-                        background: "rgba(255, 255, 255, 0.1)",
-                        border: "1px solid rgba(255, 255, 255, 0.2)",
-                      }}
-                    >
-                      <svg
-                        className="w-4 h-4 text-white"
-                        fill="currentColor"
-                        viewBox="0 0 20 20"
-                      >
-                        <path d="M8 3a1 1 0 011-1h2a1 1 0 011 1v1H8V3z" />
-                        <path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2h-1V2a2 2 0 00-2-2H8a2 2 0 00-2 2v1H6z" />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
+                <span className="text-xs font-mono text-white font-bold tracking-wider break-all overflow-wrap:anywhere leading-relaxed w-full">
+                  {address ? address.toUpperCase() : "0X088888888888888888888888"}
+                </span>
 
-                {/* Identity */}
-                <div>
-                  <p className="text-xs mb-1" style={{ color: "rgba(255, 255, 255, 0.6)" }}>
-                    {t("identity") || "身份"}
-                  </p>
-                  <p className="text-sm text-white">
-                    {userInfo?.type == UserType.GALAXY ? 
-                      (userInfo?.interest_active ? t("activated") : t("unactivated")) : ""
-                    }
-                    {roleTypes.find((item) => item.type === userInfo?.type)
-                      ?.label || tUserType(UserType.NORMAL)}
-                  </p>
-                </div>
+                {/* Identity inline */}
+                <p className="text-sm text-white">
+                  <span style={{ color: "rgba(255, 255, 255, 0.6)" }}>
+                    {t("identity") || "身份"}：
+                  </span>
+                  {userInfo?.type === UserType.GALAXY
+                    ? (userInfo?.interest_active ? t("activated") : t("unactivated")) + "/"
+                    : ""}
+                  {roleTypes.find((item) => item.type === userInfo?.type)?.label || tUserType(UserType.NORMAL)}
+                </p>
 
-                {/* Invite Link */}
-                <div>
-                  <p className="text-xs mb-1" style={{ color: "rgba(255, 255, 255, 0.6)" }}>
-                    {t("my_recommender") || "邀请链接"}
-                  </p>
-                  <div
-                    className="flex items-center gap-3 cursor-pointer p-2 rounded"
-                    style={{ background: "rgba(255, 255, 255, 0.05)" }}
+                {/* Invite Link inline (copy only) */}
+                <div className="flex items-center gap-1 min-w-0">
+                  <span
+                    className="text-xs shrink-0"
+                    style={{ color: "rgba(255, 255, 255, 0.6)" }}
+                  >
+                    {t("my_recommender") || "邀请链接"}：
+                  </span>
+                  <span className="text-xs text-white truncate min-w-0 flex-1">
+                    www.harmony.Link{address ? formatAddress(address) : "0X088...888"}
+                  </span>
+                  <button
+                    type="button"
                     onClick={() => {
                       if (!address) {
                         triggerWalletConnect();
                         return;
                       }
-                      if (userInfo?.superior_referral_code) {
-                        handleCopy();
-                        return;
-                      }
-                      setRecommenderError("");
-                      setShowRecommenderModal(true);
+                      handleCopy();
+                    }}
+                    className="p-1 rounded shrink-0 ml-1"
+                    aria-label="Copy invitation link"
+                    style={{
+                      background: "rgba(255, 255, 255, 0.1)",
+                      border: "1px solid rgba(255, 255, 255, 0.2)",
                     }}
                   >
-                    <span className="text-xs text-white">
-                      www.harmony.Link{address ? formatAddress(address).replace("...", "") : "X088..."}
-                    </span>
                     <svg
-                      className="w-4 h-4 text-white flex-shrink-0"
+                      className="w-3.5 h-3.5 text-white"
                       fill="currentColor"
                       viewBox="0 0 20 20"
+                      aria-hidden
                     >
                       <path d="M8 3a1 1 0 011-1h2a1 1 0 011 1v1H8V3z" />
                       <path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2h-1V2a2 2 0 00-2-2H8a2 2 0 00-2 2v1H6z" />
                     </svg>
-                  </div>
+                  </button>
                 </div>
               </div>
             </div>
@@ -650,70 +679,35 @@ function MyContent() {
 
           {/* My Benefits Section */}
           <div className="mb-8">
-            <h2 className="text-lg font-bold mb-4 text-white">
-              {t("my_benefits") || "我的权益"}
-            </h2>
+            <div
+              className="rounded-2xl p-5"
+              style={{
+                background:
+                  "linear-gradient(145deg, rgba(185, 35, 70, 0.92) 0%, rgba(120, 20, 145, 0.85) 50%, rgba(22, 10, 45, 0.97) 100%)",
+                border: "1px solid rgba(190, 80, 120, 0.3)",
+                boxShadow: "0 6px 30px rgba(160, 30, 80, 0.35)",
+              }}
+            >
+              {/* Section header */}
+              <div className="flex items-center mb-5">
+                <div className="w-[3px] h-5 rounded-full bg-teal-400 mr-2" />
+                <h2 className="text-sm font-bold text-white">
+                  {t("my_benefits") || "我的权益"}
+                </h2>
+              </div>
 
-            {/* Grid Layout: 2 columns on first row */}
-            <div className="grid grid-cols-2 gap-4 mb-4">
-              {benefitsData.slice(0, 2).map((benefit) => (
-                <div
-                  key={benefit.key}
-                  className="rounded-xl p-4 flex flex-col items-center justify-center text-center"
-                  style={{
-                    background: "linear-gradient(135deg, #E91E63 0%, #C2185B 100%)",
-                    minHeight: "120px",
-                    boxShadow: "0 4px 15px rgba(233, 30, 99, 0.3)",
-                  }}
-                >
-                  <p className="text-4xl mb-2 font-bold" style={{ color: "#fff" }}>
-                    {benefit.icon}
-                  </p>
-                  <p className="text-xs font-semibold text-white leading-tight">
-                    {benefit.label}
-                  </p>
-                </div>
-              ))}
-            </div>
+              {/* Row 1: 3 items */}
+              <div className="flex justify-around mb-5">
+                {benefitsData.slice(0, 3).map((benefit) => (
+                  <BenefitCircleIcon key={benefit.key} iconKey={benefit.key} label={benefit.label} />
+                ))}
+              </div>
 
-            {/* Grid Layout: 2 columns on second row */}
-            <div className="grid grid-cols-2 gap-4 mb-4">
-              {benefitsData.slice(2, 4).map((benefit) => (
-                <div
-                  key={benefit.key}
-                  className="rounded-xl p-4 flex flex-col items-center justify-center text-center"
-                  style={{
-                    background: "linear-gradient(135deg, #E91E63 0%, #9C27B0 100%)",
-                    minHeight: "120px",
-                    boxShadow: "0 4px 15px rgba(233, 30, 99, 0.3)",
-                  }}
-                >
-                  <p className="text-4xl mb-2 font-bold" style={{ color: "#fff" }}>
-                    {benefit.icon}
-                  </p>
-                  <p className="text-xs font-semibold text-white leading-tight">
-                    {benefit.label}
-                  </p>
-                </div>
-              ))}
-            </div>
-
-            {/* Grid Layout: 1 column on third row */}
-            <div className="flex gap-4">
-              <div
-                className="flex-1 rounded-xl p-4 flex flex-col items-center justify-center text-center"
-                style={{
-                  background: "linear-gradient(135deg, #FF1744 0%, #C2185B 100%)",
-                  minHeight: "120px",
-                  boxShadow: "0 4px 15px rgba(233, 30, 99, 0.3)",
-                }}
-              >
-                <p className="text-4xl mb-2 font-bold" style={{ color: "#fff" }}>
-                  {benefitsData[4].icon}
-                </p>
-                <p className="text-xs font-semibold text-white leading-tight">
-                  {benefitsData[4].label}
-                </p>
+              {/* Row 2: 2 items centered */}
+              <div className="flex justify-around mx-auto" style={{ width: "66%" }}>
+                {benefitsData.slice(3).map((benefit) => (
+                  <BenefitCircleIcon key={benefit.key} iconKey={benefit.key} label={benefit.label} />
+                ))}
               </div>
             </div>
           </div>
@@ -730,63 +724,6 @@ function MyContent() {
             <p className="text-xs leading-relaxed" style={{ color: "rgba(255, 255, 255, 0.7)" }}>
               HarmonyLink APP 正式上线前3天将面向参与早期认购用户开放，正式上线前隐于内容创造期，每位用户每天日发布11条视频内容，内容不可包含政治立场、黄、赌、毒等内容，也不可包含有其它平台LOGO的内容、内容可搬运抖音、Facebook等平台内容，内容质量越好，上线后获得的点赞、评论等收益越高，请用好您手里的特权！
             </p>
-          </div>
-
-          {/* Menu Items Section */}
-          <div className="mb-4">
-            {[
-              {
-                key: "invite_records",
-                label: t("invite_records") || "邀请记录",
-                href: "/my/invites",
-              },
-              {
-                key: "my_community",
-                label: t("my_community") || "我的社区",
-                href: "/my/community",
-              },
-              { key: "my_minting", label: t("my_minting") || "我的铸造", href: "/my/burning" },
-              {
-                key: "my_withdrawals",
-                label: t("my_withdrawals") || "我的提现",
-                href: "/my/withdrawals",
-              },
-              {
-                key: "announcements",
-                label: t("announcements") || "公告",
-                href: "/my/proclaim",
-              },
-            ].map((item) => (
-              <Link href={item.href} key={item.key}>
-                <div
-                  className="flex justify-between items-center py-3 border-b"
-                  style={{
-                    borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
-                  }}
-                >
-                  <span className="text-sm text-white">{item.label}</span>
-                  <svg
-                    className="w-4 h-4 text-blue-400"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                </div>
-              </Link>
-            ))}
-          </div>
-
-          {/* Version */}
-          <div className="flex justify-between items-center py-3">
-            <span className="text-xs text-white">
-              {t("version_number") || "版本号"}
-            </span>
-            <span className="text-[#3B82F6] font-semibold text-xs">{version}</span>
           </div>
 
           {/* Copied Notification Modal */}
