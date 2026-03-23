@@ -5,7 +5,6 @@ import gridIcon from "@/public/images/grid-icon.svg";
 import Logo from "./logo";
 import { randomReferralCode } from "@/utils/auth";
 import { useTranslations } from "next-intl";
-import html2canvas from "html2canvas";
 import { useAppKitAccount } from "@reown/appkit/react";
 import { UserType } from "@prisma/client";
 
@@ -93,6 +92,10 @@ export function QRCodeModal({
 
   // Set QR code size based on screen width
   useEffect(() => {
+    // Only bind resize listener when modal is actually open.
+    // This avoids unnecessary work during normal page navigation.
+    if (!isOpen) return;
+
     const handleResize = () => {
       const width = window.innerWidth;
       if (width < 360) {
@@ -107,7 +110,7 @@ export function QRCodeModal({
     handleResize(); // Set initial size
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
-  }, []);
+  }, [isOpen]);
 
   // Close modal when clicking outside
   useEffect(() => {
@@ -143,6 +146,9 @@ export function QRCodeModal({
     }
 
     try {
+      // Lazily load html2canvas to reduce initial JS cost on route transitions.
+      const { default: html2canvas } = await import("html2canvas");
+
       // 使用更准确的WebView检测
       if (isInWebView()) {
         setShowScreenshotTip(true);

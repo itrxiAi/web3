@@ -23,7 +23,7 @@ export default function ClientLayout({
       duration: 600,
       easing: 'ease-out-sine',
     })
-  })
+  }, [])
 
   // 单例：避免每次 layout 重渲染时 new QueryClient，导致缓存丢失与额外开销
   const [queryClient] = useState(() => new QueryClient())

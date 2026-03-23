@@ -9,7 +9,7 @@ export default function HomePage() {
     <div className="min-h-screen bg-[#050608] text-white">
       <main>
         <Suspense fallback={<LoadingSpinner />}>
-          <HarmonyLanding />
+          {/* <HarmonyLanding /> */}
         </Suspense>
       </main>
     </div>

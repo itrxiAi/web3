@@ -24,6 +24,7 @@ const MyConnectButton: React.FC<Props> = ({ size, className }) => {
   const t = useTranslations("wallet");
   const [mounted, setMounted] = useState(false);
   const searchParams = useSearchParams();
+  const refParam = searchParams.get("ref");
 
   // Only show the wallet button after mounting to avoid hydration errors
   useEffect(() => {
@@ -48,7 +49,6 @@ const MyConnectButton: React.FC<Props> = ({ size, className }) => {
       }
 
       // If no existing data, call user creation API（带上 URL ?ref= 以便绑定上级）
-      const refParam = searchParams.get("ref");
       fetch("/api/user/init", {
         method: "POST",
         headers: {
@@ -76,7 +76,7 @@ const MyConnectButton: React.FC<Props> = ({ size, className }) => {
           console.error("Error creating user:", error);
         });
     }
-  }, [address, isConnected, searchParams]);
+  }, [address, isConnected, refParam]);
 
   // Function to handle wallet modal opening
   /* const openWalletModal = useCallback(() => {
