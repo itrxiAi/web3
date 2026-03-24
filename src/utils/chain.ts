@@ -1,10 +1,10 @@
 import { Connection, PublicKey, LAMPORTS_PER_SOL, Transaction, Keypair, VersionedTransaction, TransactionMessage, TransactionConfirmationStrategy, BlockheightBasedTransactionConfirmationStrategy, BaseTransactionConfirmationStrategy, ComputeBudgetProgram } from '@solana/web3.js';
 import { bsc } from 'viem/chains';
-import { MEMO_PROGRAM_ID, GROUP_TYPE, COMMUNITY_TYPE, MembershipType, NORMAL_TYPE, DEV_ENV, MAX_TRANSACTION_TIMEOUT_MS } from '@/constants';
-import { TokenType, TxFlowStatus } from '@prisma/client';
+import { MEMO_PROGRAM_ID, GROUP_TYPE, COMMUNITY_TYPE, MembershipType, NORMAL_TYPE, DEV_ENV, MAX_TRANSACTION_TIMEOUT_MS, EQUITY_BASE_TYPE, EQUITY_PLUS_TYPE, EQUITY_PREMIUM_TYPE } from '@/constants';
+import { EquityType, TokenType, TxFlowStatus } from '@prisma/client';
 import decimal from 'decimal.js';
 import prisma from '@/lib/prisma';
-import { getCommunityPriceDisplay, getCommunityPriceTransfer, getGroupPriceDisplay, getGroupPriceTransfer, getHotWalletAddress, getHotWalletKeypair, getBurningAddress } from '@/lib/config';
+import { getCommunityPriceDisplay, getCommunityPriceTransfer, getGroupPriceDisplay, getGroupPriceTransfer, getHotWalletAddress, getHotWalletKeypair, getBurningAddress, getEquityBasePriceDisplay, getEquityPlusPriceDisplay, getEquityPremiumPriceDisplay } from '@/lib/config';
 import { getCurrentPrice } from './lbank';
 import { truncateNumber } from './common';
 // Ethereum imports
@@ -285,7 +285,7 @@ export async function verifyChainTransfer(txHash: string, tokenType: TokenType):
  * @param txHash Ethereum transaction hash
  * @returns Verification result
  */
-export async function verifyTokenTransfer(txHash: string): Promise<{
+export async function verifyTokenTransfer(txHash: string, equity: Boolean = false): Promise<{
   isValid: boolean;
   error?: string;
   fromAddress?: string;
@@ -348,25 +348,56 @@ export async function verifyTokenTransfer(txHash: string): Promise<{
     let type: MembershipType | undefined;
 
     // Verify amount matches type (using same logic as Solana)
-    if (amountDecimal.equals(await getGroupPriceDisplay())) { // Compare decimal to decimal
-      return {
-        isValid: true,
-        fromAddress,
-        referralCode,
-        type: GROUP_TYPE,
-        amount
-      };
+    if (!equity) {
+      if (amountDecimal.equals(await getGroupPriceDisplay())) { // Compare decimal to decimal
+        return {
+          isValid: true,
+          fromAddress,
+          referralCode,
+          type: GROUP_TYPE,
+          amount
+        };
+      }
+
+      if (amountDecimal.equals(await getCommunityPriceDisplay())) { // Convert to USDT decimals
+        return {
+          isValid: true,
+          fromAddress,
+          referralCode,
+          type: COMMUNITY_TYPE,
+          amount
+        };
+      }
+    } else {
+      if (amountDecimal.equals(await getEquityBasePriceDisplay())) { // Compare decimal to decimal
+        return {
+          isValid: true,
+          fromAddress,
+          referralCode,
+          type: EQUITY_BASE_TYPE,
+          amount
+        };
+      }
+      if (amountDecimal.equals(await getEquityPlusPriceDisplay())) { // Compare decimal to decimal
+        return {
+          isValid: true,
+          fromAddress,
+          referralCode,
+          type: EQUITY_PLUS_TYPE,
+          amount
+        };
+      }
+      if (amountDecimal.equals(await getEquityPremiumPriceDisplay())) { // Compare decimal to decimal
+        return {
+          isValid: true,
+          fromAddress,
+          referralCode,
+          type: EQUITY_PREMIUM_TYPE,
+          amount
+        };
+      }
     }
 
-    if (amountDecimal.equals(await getCommunityPriceDisplay())) { // Convert to USDT decimals
-      return {
-        isValid: true,
-        fromAddress,
-        referralCode,
-        type: COMMUNITY_TYPE,
-        amount
-      };
-    }
 
     return {
       isValid: false,

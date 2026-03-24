@@ -13,7 +13,11 @@ export const MEMO_PROGRAM_ID = new PublicKey('MemoSq4gqABAXKb96qnH8TysNcWxMyWCqX
 export const GROUP_TYPE = 'GROUP' as const;
 export const COMMUNITY_TYPE = 'COMMUNITY' as const;
 export const NORMAL_TYPE = 'NORMAL' as const;
-export type MembershipType = typeof GROUP_TYPE | typeof COMMUNITY_TYPE | typeof NORMAL_TYPE;
+export const EQUITY_BASE_TYPE = 'BASE' as const;
+export const EQUITY_PLUS_TYPE = 'PLUS' as const;
+export const EQUITY_PREMIUM_TYPE = 'PREMIUM' as const;
+
+export type MembershipType = typeof GROUP_TYPE | typeof COMMUNITY_TYPE | typeof NORMAL_TYPE | typeof EQUITY_BASE_TYPE | typeof EQUITY_PLUS_TYPE | typeof EQUITY_PREMIUM_TYPE;
 
 // environment
 export const DEV_ENV = 'development';

@@ -4,6 +4,7 @@ import { processOutTx } from "@/tasks/out";
 import { processLockTx } from "@/tasks/lock";
 import { processMiningTx } from "@/tasks/mining";
 import { auditionOutBatch } from "@/lib/balance";
+import { processEquityTx } from "./equity";
 
 
 /**
@@ -47,6 +48,7 @@ export async function handleTxConfirmBatch() {
     }
 
     await processLockTx(tx);
+    await processEquityTx(tx);
     await processOutTx(tx);
     await processMiningTx(tx);
 
@@ -69,6 +71,7 @@ export async function manualTxConfirm(txHash: string) {
   }
 
   await processLockTx(tx);
+  await processEquityTx(tx);
   await processOutTx(tx);
   await processMiningTx(tx);
 

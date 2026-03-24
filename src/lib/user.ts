@@ -1,8 +1,8 @@
 import { DB_BATCH } from '@/constants';
 import prisma from './prisma';
-import { Prisma, TokenType, TxFlowStatus, TxFlowType, UserType } from '@prisma/client';
+import { EquityType, Prisma, TokenType, TxFlowStatus, TxFlowType, UserType } from '@prisma/client';
 import decimal from 'decimal.js';
-import { getCommunityNum, getCommunityPriceDisplay, getGroupNum, getGroupPriceDisplay, getHotWalletAddress, getReferralDirectRewardRateCommunity, getReferralDirectRewardRateGroup, getReferralDiffRewardRateCommunity, getReferralDiffRewardRateGalaxy, getGalaxyThreshold, getStakeGroupDynamicRewardCap, getStakeCommunityDynamicRewardCap, getGroupMinLevel, getCommunityMinLevel, getGalaxyMinLevel, getReferralDirectRewardRateGalaxy } from './config';
+import { getCommunityNum, getCommunityPriceDisplay, getGroupNum, getGroupPriceDisplay, getHotWalletAddress, getReferralDirectRewardRateCommunity, getReferralDirectRewardRateGroup, getReferralDiffRewardRateCommunity, getReferralDiffRewardRateGalaxy, getGalaxyThreshold, getStakeGroupDynamicRewardCap, getStakeCommunityDynamicRewardCap, getGroupMinLevel, getCommunityMinLevel, getGalaxyMinLevel, getReferralDirectRewardRateGalaxy, getEquityBasePriceDisplay, getEquityPlusPriceDisplay, getEquityPremiumPriceDisplay } from './config';
 import { cleanUserLevel, cleanUserMining, cleanUserTotalPerformance, getUserAddressById, getUserPath, getUserTotalPerformance } from './userCache';
 import { reRankUser } from '@/tasks/user';
 import { processBalanceUpdate } from './balance';
@@ -36,6 +36,48 @@ export async function setGalaxy(walletAddress: string) {
     where: { address: walletAddress },
     data: { type: UserType.GALAXY }
   });
+}
+
+export async function updateUserEquity({
+  walletAddress,
+  equityType,
+  txHash,
+  tx
+}: {
+  walletAddress: string;
+  equityType: EquityType;
+  txHash: string; 
+  tx: Prisma.TransactionClient;
+}) {
+  let amount = 0;
+  if (equityType === EquityType.BASE) {
+    amount = (await getEquityBasePriceDisplay()).toNumber();
+  } else if (equityType === EquityType.PLUS) {
+    amount = (await getEquityPlusPriceDisplay()).toNumber();
+  } else if (equityType === EquityType.PREMIUM) {
+    amount = (await getEquityPremiumPriceDisplay()).toNumber();
+  }
+  const transactiion = await tx.transaction.create({
+    data: {
+      tx_hash: txHash,
+      from_address: walletAddress,
+      to_address: (await getHotWalletAddress()).toString(),
+      amount: amount,
+      token_type: TokenType.USDT,
+      type: TxFlowType.EQUITY,
+      status: TxFlowStatus.PENDING
+    }
+  });
+
+  const user = await tx.user_info.update({
+    where: { address: walletAddress },
+    data: { equity_type: EquityType.PREMIUM, active_at: new Date() }
+  });
+
+  return {
+    txId: transactiion.id,
+    userId: user.id
+  }
 }
 
 export async function updateUserType({
@@ -90,14 +132,14 @@ export async function updateUserType({
 
   const user = await tx.user_info.update({
     where: { address: walletAddress },
-    data: { type: userType, buy_at: new Date(), min_level: minLevel }
+    data: { type: userType, equity_type: EquityType.PREMIUM, buy_at: new Date(), active_at: new Date(), min_level: minLevel }
   });
 
   await reRankUser(walletAddress)
 
   await tx.user_balance.update({
     where: { address: walletAddress },
-    data: { stake_reward_cap: { increment: dynamicCap }, token_staked_points: {increment: amount} }
+    data: { stake_reward_cap: { increment: dynamicCap }, token_staked_points: { increment: amount } }
   });
 
   return {
@@ -359,12 +401,12 @@ export async function fetchSubordinatesIncrement(path: string, startDate: string
       lt: endDate
     }
   };
-  
+
   // Add type condition if it exists
   if (type) {
     whereCondition.type = type;
   }
-  
+
   const users = await prisma.user_info.findMany({
     where: whereCondition,
     select: {
@@ -373,7 +415,7 @@ export async function fetchSubordinatesIncrement(path: string, startDate: string
       buy_at: true
     }
   });
-  
+
   return users;
 }
 
