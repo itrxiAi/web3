@@ -17,6 +17,12 @@ enum UserType {
   GALAXY
 }
 
+enum EquityType {
+  BASE
+  PLUS
+  PREMIUM
+}
+
 enum TxFlowType {
   IN
   OUT
@@ -37,6 +43,7 @@ enum TxFlowType {
   SECURITY_FUND
   CLAIM
   LOCK
+  EQUITY
   AIRDROP
   FLASH_SWAP
   FEE_DIVIDEND
@@ -64,12 +71,14 @@ model user_info {
   min_level     Int?     @default(0) // User min level
   nonce         String?  // For wallet signature verification
   type          UserType?
+  equity_type   EquityType?
   superior      String?  // Superior's Solana wallet address
   path          String?  // Materialized path storing the hierarchy path
   last_activity DateTime? // Last time user performed a point-earning action
   created_at    DateTime @default(now())
   updated_at    DateTime @updatedAt
   buy_at        DateTime?
+  active_at     DateTime?
   balance       user_balance?
   referral_code String? @unique
   depth         Int     @default(0) // Depth in the hierarchy
