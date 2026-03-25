@@ -1,9 +1,9 @@
 import { TxFlowStatus, TxFlowType } from "@prisma/client";
 import prisma from "@/lib/prisma";
-import { processOutTx } from "@/tasks/out";
+//import { processOutTx } from "@/tasks/out";
 import { processLockTx } from "@/tasks/lock";
-import { processMiningTx } from "@/tasks/mining";
-import { auditionOutBatch } from "@/lib/balance";
+//import { processMiningTx } from "@/tasks/mining";
+//import { auditionOutBatch } from "@/lib/balance";
 import { processEquityTx } from "./equity";
 
 
@@ -11,7 +11,7 @@ import { processEquityTx } from "./equity";
  * handleInOutPointsBatch
  */
 export async function handleTxSendingBatch() {
-  await auditionOutBatch();
+  //await auditionOutBatch();
 }
 
 /**
@@ -23,13 +23,13 @@ export async function handleTxConfirmBatch() {
   const txs = await prisma.transaction.findMany({
     where: {
       type: {
-        in: [TxFlowType.OUT, TxFlowType.LOCK, TxFlowType.ASSEMBLE, TxFlowType.STAKE, TxFlowType.NODE_DIFF_REWARD, TxFlowType.BURNING]
+        in: [TxFlowType.PURCHASE, TxFlowType.DEPOSIT, TxFlowType.EQUITY, TxFlowType.WITHDRAW]
       },
       status: TxFlowStatus.PENDING,
-      tx_hash: {
+      txHash: {
         not: ''
       },
-      created_at: {
+      createdAt: {
         gte: new Date(Date.now() - 24 * 60 * 60 * 1000),
         lte: new Date(Date.now() - 10 * 1000) // Wait 10 seconds to ensure transaction is finalized
       }
@@ -43,14 +43,14 @@ export async function handleTxConfirmBatch() {
 
   console.log(`Processing ${txs.length} transactions...`);
   for (const tx of txs) {
-    if (!tx.tx_hash) {
+    if (!tx.txHash) {
       continue;
     }
 
     await processLockTx(tx);
     await processEquityTx(tx);
-    await processOutTx(tx);
-    await processMiningTx(tx);
+    // await processOutTx(tx);
+    // await processMiningTx(tx);
 
   }
 }
@@ -62,7 +62,7 @@ export async function handleTxConfirmBatch() {
 export async function manualTxConfirm(txHash: string) {
   const tx = await prisma.transaction.findFirst({
     where: {
-      tx_hash: txHash
+      txHash: txHash
     }
   });
 
@@ -72,8 +72,8 @@ export async function manualTxConfirm(txHash: string) {
 
   await processLockTx(tx);
   await processEquityTx(tx);
-  await processOutTx(tx);
-  await processMiningTx(tx);
+  // await processOutTx(tx);
+  // await processMiningTx(tx);
 
 }
 

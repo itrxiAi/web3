@@ -75,7 +75,7 @@ function InviteDetailsModal({
         body: JSON.stringify({
           walletAddress: invite.user,
           isDirect: false,
-          nodeType: UserType.GROUP,
+          nodeType: UserType.COMMUNITY,
         }),
       })
         .then((response) => response.json())

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { validateBearerToken } from '@/utils/auth';
-import { auditionOutPassed, auditionOutRefused } from '@/lib/balance';
+//import { auditionOutPassed, auditionOutRefused } from '@/lib/balance';
 
 export async function POST(req: NextRequest) {
 
@@ -22,21 +22,21 @@ export async function POST(req: NextRequest) {
             );
         }
         
-        if (!pass) {
-            await auditionOutRefused(txIdNumber);
-            return NextResponse.json({
-                status: 'success',
-                message: ''
-            });
-        } else {
-            const txHash = await auditionOutPassed(txIdNumber);
-            if (txHash) {
-                return NextResponse.json({
-                    status: 'success',
-                    message: `${txHash}`
-                });
-            }
-        }
+        // if (!pass) {
+        //     await auditionOutRefused(txIdNumber);
+        //     return NextResponse.json({
+        //         status: 'success',
+        //         message: ''
+        //     });
+        // } else {
+        //     const txHash = await auditionOutPassed(txIdNumber);
+        //     if (txHash) {
+        //         return NextResponse.json({
+        //             status: 'success',
+        //             message: `${txHash}`
+        //         });
+        //     }
+        // }
     } catch (error) {
         console.error('Transaction auditing error:', error);
         return NextResponse.json(

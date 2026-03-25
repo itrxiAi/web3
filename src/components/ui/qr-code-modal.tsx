@@ -444,9 +444,9 @@ export function QRCodeModal({
           </div>
 
           {/* Warning */}
-          {userType !== UserType.GROUP &&
+          {userType !== UserType.COMMUNITY &&
             userType !== UserType.COMMUNITY &&
-            userType !== UserType.GALAXY && (
+            userType !== UserType.COMMUNITY && (
               <div className="text-center text-sm text-[#FF3E3E] mb-1 mt-2">
                 {t("warning")}
               </div>

@@ -73,12 +73,12 @@ function MyContent() {
       icon: "/images/v2/my/COMMUNITY-node.png",
     },
     {
-      type: UserType.GALAXY,
+      type: UserType.COMMUNITY,
       label: tUserType("GALAXY"),
       icon: "/images/v2/my/GALAXY-node.png",
     },
     {
-      type: UserType.GROUP,
+      type: UserType.COMMUNITY,
       label: tUserType("GROUP"),
       icon: "/images/v2/my/GROUP-node.png",
     },
@@ -315,9 +315,9 @@ function MyContent() {
       }
 
       const info = {
-        operationType: TxFlowType.FLASH_SWAP,
+        operationType: TxFlowType.DEPOSIT,
         amount: points,
-        tokenType: TokenType.TXT,
+        tokenType: TokenType.HAK,
         walletAddress: address,
         description: "",
         timestamp: Date.now(),
@@ -357,7 +357,7 @@ function MyContent() {
 
       const info = {
         operationType:
-          transferMode === "cashout" ? TxFlowType.OUT : TxFlowType.TRANSFER,
+          transferMode === "cashout" ? TxFlowType.WITHDRAW : TxFlowType.WITHDRAW,
         amount: points,
         tokenType: cashOutTokenType,
         walletAddress: address,
@@ -570,7 +570,7 @@ function MyContent() {
                   <span style={{ color: "rgba(255, 255, 255, 0.6)" }}>
                     {t("identity") || "身份"}：
                   </span>
-                  {userInfo?.type === UserType.GALAXY
+                  {userInfo?.type === UserType.COMMUNITY
                     ? (userInfo?.interest_active ? t("activated") : t("unactivated")) + "/"
                     : ""}
                   {roleTypes.find((item) => item.type === userInfo?.type)?.label || tUserType(UserType.NORMAL)}
@@ -787,12 +787,12 @@ function MyContent() {
                         USDT
                       </div>
                       <div
-                        className={`p-3 cursor-pointer hover:bg-blue-500/20 text-white ${cashOutTokenType === TokenType.TXT
+                        className={`p-3 cursor-pointer hover:bg-blue-500/20 text-white ${cashOutTokenType === TokenType.HAK
                             ? "bg-blue-500/20"
                             : ""
                           }`}
                         onClick={() => {
-                          setCashOutTokenType(TokenType.TXT);
+                          setCashOutTokenType(TokenType.HAK);
                           setCashOutAmount("0.00");
                           setShowTokenTypeDropdown(false);
                         }}
@@ -928,7 +928,7 @@ function MyContent() {
                           className="text-white text-xs"
                           style={{ color: "rgba(255, 255, 255, 0.6)" }}
                         >
-                          {cashOutTokenType === TokenType.TXT
+                          {cashOutTokenType === TokenType.HAK
                             ? `${minCashOutAmountToken} TXT(Fee: ~${withdrawTokenFeeRatio * 100
                             }%)`
                             : `${minCashOutAmountUsdt} USDT(Fee: ~${withdrawTokenFeeRatio * 100
@@ -972,7 +972,7 @@ function MyContent() {
                       if (isWithdrawing) return;
 
                       let minAmount =
-                        cashOutTokenType === TokenType.TXT
+                        cashOutTokenType === TokenType.HAK
                           ? minCashOutAmountToken
                           : minCashOutAmountUsdt;
                       if (transferMode === "internal") {

@@ -1,7 +1,7 @@
 import { MAX_TIMESTAMP_GAP_MS } from "@/constants";
 import prisma from "@/lib/prisma";
 import decimal from "decimal.js";
-import { getDirectSubordinatesWithBalance, getUserMinLevel, isActive, updateUserLevel } from "./user";
+//import { getDirectSubordinatesWithBalance, getUserMinLevel, isActive, updateUserLevel } from "./user";
 import { getLevelByPerformance } from "./config";
 import { deleteKey, getValue, setWithExpiry } from "./redis";
 
@@ -42,8 +42,8 @@ export async function getUserType(address: string) {
     }
 
     // If not in cache, query from database
-    const user = await prisma.user_info.findUnique({
-        where: { address },
+    const user = await prisma.user.findUnique({
+        where: { walletAddress: address },
         select: { type: true }
     });
 
@@ -72,8 +72,8 @@ export async function getUserSuperior(address: string) {
     }
 
     // If not in cache, query from database
-    const user = await prisma.user_info.findUnique({
-        where: { address },
+    const user = await prisma.user.findUnique({
+        where: { walletAddress: address },
         select: { superior: true }
     });
 
@@ -100,34 +100,34 @@ export async function cleanUserLevel(address: string) {
  * Get user level from cache or database
  * @param address User wallet address
  */
-export async function getUserLevel(address: string) {
-    // Check cache first with a specific key for user addresses
-    const userLevel = await getValue(`${USER_LEVEL_KEY}:${address}`);
+// export async function getUserLevel(address: string) {
+//     // Check cache first with a specific key for user addresses
+//     const userLevel = await getValue(`${USER_LEVEL_KEY}:${address}`);
 
-    if (userLevel) {
-        try {
-            return Number(userLevel);
-        } catch (error) {
-            console.warn(`Cannot convert cached user level to number for ${address}:`, error);
-            // Fallback to database query
-        }
-    }
+//     if (userLevel) {
+//         try {
+//             return Number(userLevel);
+//         } catch (error) {
+//             console.warn(`Cannot convert cached user level to number for ${address}:`, error);
+//             // Fallback to database query
+//         }
+//     }
 
-    // If not in cache, query from database
-    const performance = await getUserPartialPerformance(address);
-    let newLevel = await getLevelByPerformance(performance.partialAmount);
-    const minLevel = await getUserMinLevel(address);
-    if (minLevel && newLevel < minLevel) {
-        newLevel = minLevel;
-    }
-    console.log(`[getUserLevel] ${address} level: ${newLevel}, partialAmount: ${performance.partialAmount}`)
-    await updateUserLevel(address, newLevel)
+//     // If not in cache, query from database
+//     //const performance = await getUserPartialPerformance(address);
+//     let newLevel = await getLevelByPerformance(performance.partialAmount);
+//     //const minLevel = await getUserMinLevel(address);
+//     // if (minLevel && newLevel < minLevel) {
+//     //     newLevel = minLevel;
+//     // }
+//     console.log(`[getUserLevel] ${address} level: ${newLevel}, partialAmount: ${performance.partialAmount}`)
+//     //await updateUserLevel(address, newLevel)
 
-    // Store in cache
-    await setWithExpiry(`${USER_LEVEL_KEY}:${address}`, `${newLevel}`, MINING_DATA_CACHE_DURATION);
+//     // Store in cache
+//     await setWithExpiry(`${USER_LEVEL_KEY}:${address}`, `${newLevel}`, MINING_DATA_CACHE_DURATION);
 
-    return newLevel;
-}
+//     return newLevel;
+// }
 
 /**
  * Get user path from cache or database
@@ -142,8 +142,8 @@ export async function getUserPath(address: string) {
     }
 
     // If not in cache, query from database
-    const user = await prisma.user_info.findUnique({
-        where: { address },
+    const user = await prisma.user.findUnique({
+        where: { walletAddress: address },
         select: { path: true, superior: true }
     });
 
@@ -172,7 +172,7 @@ export async function getUserDepth(address: string) {
  * Get user address by ID from cache or database
  * @param id User ID
  */
-export async function getUserAddressById(id: number) {
+export async function getUserAddressById(id: string) {
     // Check cache first with a specific key for user addresses
     const cachedAddress = await getValue(`${USER_ID_KEY}:${id}`);
 
@@ -181,9 +181,9 @@ export async function getUserAddressById(id: number) {
     }
 
     // If not in cache, query from database
-    const user = await prisma.user_info.findUnique({
+    const user = await prisma.user.findUnique({
         where: { id },
-        select: { address: true }
+        select: { walletAddress: true }
     });
 
     if (!user) {
@@ -191,38 +191,38 @@ export async function getUserAddressById(id: number) {
     }
 
     // Store in cache
-    await setWithExpiry(`${USER_ID_KEY}:${id}`, user.address, USER_DATA_CACHE_DURATION);
+    await setWithExpiry(`${USER_ID_KEY}:${id}`, user.walletAddress, USER_DATA_CACHE_DURATION);
 
-    return user.address;
+    return user.walletAddress;
 }
 
 /**
  * getUserTotalPerformanceDb
  * @param address 
  */
-export async function getUserMiningDb(address: string) {
+// export async function getUserMiningDb(address: string) {
 
-    // Use Prisma's aggregate to sum staked points in a single query
-    const miningPoint = await prisma.user_balance.findUnique({
-        where: {
-            address: address
-        },
-        select: {
-            token_staked_points: true,
-            stake_reward_cap: true,
-        }
-    });
+//     // Use Prisma's aggregate to sum staked points in a single query
+//     const miningPoint = await prisma.user_balance.findUnique({
+//         where: {
+//             address: address
+//         },
+//         select: {
+//             token_staked_points: true,
+//             stake_reward_cap: true,
+//         }
+//     });
 
-    let staking = new decimal(0)
-    if (!miningPoint || miningPoint.token_staked_points.lte(new decimal(0)) || miningPoint.stake_reward_cap.lte(new decimal(0))) {
-        staking = new decimal(0)
-    } else {
-        staking = miningPoint.token_staked_points
-    }
+//     let staking = new decimal(0)
+//     if (!miningPoint || miningPoint.token_staked_points.lte(new decimal(0)) || miningPoint.stake_reward_cap.lte(new decimal(0))) {
+//         staking = new decimal(0)
+//     } else {
+//         staking = miningPoint.token_staked_points
+//     }
 
-    await setUserMining(address, staking)
-    return staking
-}
+//     await setUserMining(address, staking)
+//     return staking
+// }
 
 async function setUserMining(address: string, amount: decimal) {
     try {
@@ -253,24 +253,24 @@ export async function cleanUserMining(address: string) {
  * getUserTotalPerformance
  * @param address 
  */
-export async function getUserMining(address: string) {
-    // Retrieve the cached mining amount for the given address
-    const cachedAmount = await getValue(`${USER_MINING_KEY}:${address}`);
+// export async function getUserMining(address: string) {
+//     // Retrieve the cached mining amount for the given address
+//     const cachedAmount = await getValue(`${USER_MINING_KEY}:${address}`);
 
-    // If there's a cached amount, try to convert it to decimal
-    if (cachedAmount) {
-        try {
-            return new decimal(cachedAmount);
-        } catch (error) {
-            // If conversion fails, fetch from database
-            console.warn(`Failed to convert cached performance for ${address}:`, error);
-        }
-    }
+//     // If there's a cached amount, try to convert it to decimal
+//     if (cachedAmount) {
+//         try {
+//             return new decimal(cachedAmount);
+//         } catch (error) {
+//             // If conversion fails, fetch from database
+//             console.warn(`Failed to convert cached performance for ${address}:`, error);
+//         }
+//     }
 
-    // If no cached amount, fetch the mining data from the database
-    const totalAmount = await getUserMiningDb(address);
-    return totalAmount;
-}
+//     // If no cached amount, fetch the mining data from the database
+//     const totalAmount = await getUserMiningDb(address);
+//     return totalAmount;
+// }
 
 /**
  * getUserTotalPerformanceDb
@@ -389,20 +389,20 @@ export async function getUserTotalPerformance(
         await setWithExpiry(computingKey, "1", 60 * 1000); // 60 seconds timeout
         
         // If no cached amount, fetch the mining data recurrently
-        const subordinates = await getDirectSubordinatesWithBalance(address);
+        //const subordinates = await getDirectSubordinatesWithBalance(address);
         let totalAmount = new decimal(0);
         
         // Process each subordinate
-        for (const subordinate of subordinates) {
-            if (isActive(subordinate) && subordinate.balance) {
-                totalAmount = totalAmount.add(subordinate.balance.token_staked_points);
-            }
-            const subPerformance = await getUserTotalPerformance(
-                subordinate.address,
-                depth + 1
-            );
-            totalAmount = totalAmount.add(subPerformance);
-        }
+        // for (const subordinate of subordinates) {
+        //     if (isActive(subordinate) && subordinate.balance) {
+        //         totalAmount = totalAmount.add(subordinate.balance.token_staked_points);
+        //     }
+        //     const subPerformance = await getUserTotalPerformance(
+        //         subordinate.address,
+        //         depth + 1
+        //     );
+        //     totalAmount = totalAmount.add(subPerformance);
+        // }
         
         // Cache the result
         await setUserTotalPerformance(address, totalAmount);
@@ -424,57 +424,57 @@ interface UserPartialPerformance {
  * getUserPartialPerformance
  * @param address 
  */
-export async function getUserPartialPerformance(address: string): Promise<UserPartialPerformance> {
-    const subordinates = await getDirectSubordinatesWithBalance(address)
-    // Query their performance for each subordinate    
-    // Use Promise.all to concurrently fetch performance for each subordinate
-    const subordinatePerformances = await Promise.all(
-        subordinates.map(async (sub) => {
-            const performance = await getUserTotalPerformance(sub.address);
-            return {
-                ...sub,
-                performanceIncludeSelf: (isActive(sub) && sub.balance) ? performance.add(sub.balance.token_staked_points) : performance
-            };
-        })
-    );
+// export async function getUserPartialPerformance(address: string): Promise<UserPartialPerformance> {
+//     //const subordinates = await getDirectSubordinatesWithBalance(address)
+//     // Query their performance for each subordinate    
+//     // Use Promise.all to concurrently fetch performance for each subordinate
+//     // const subordinatePerformances = await Promise.all(
+//     //     subordinates.map(async (sub) => {
+//     //         const performance = await getUserTotalPerformance(sub.address);
+//     //         return {
+//     //             ...sub,
+//     //             performanceIncludeSelf: (isActive(sub) && sub.balance) ? performance.add(sub.balance.token_staked_points) : performance
+//     //         };
+//     //     })
+//     // );
 
-    // Find the maximum performance and its corresponding user ID
-    const { maxAmount, maxUserId } = subordinatePerformances.reduce(
-        (acc, subPerformance) => {
-            if (subPerformance.performanceIncludeSelf.gt(acc.maxAmount)) {
-                return {
-                    maxAmount: subPerformance.performanceIncludeSelf,
-                    maxUserId: subPerformance.id
-                };
-            }
-            return acc;
-        },
-        {
-            maxAmount: new decimal(0),
-            maxUserId: null as number | null
-        }
-    );
+//     // Find the maximum performance and its corresponding user ID
+//     const { maxAmount, maxUserId } = subordinatePerformances.reduce(
+//         (acc, subPerformance) => {
+//             if (subPerformance.performanceIncludeSelf.gt(acc.maxAmount)) {
+//                 return {
+//                     maxAmount: subPerformance.performanceIncludeSelf,
+//                     maxUserId: subPerformance.id
+//                 };
+//             }
+//             return acc;
+//         },
+//         {
+//             maxAmount: new decimal(0),
+//             maxUserId: null as number | null
+//         }
+//     );
 
-    // Calculate total partial performance by summing all except the max
-    const partialAmount = subordinatePerformances.reduce(
-        (sum, subPerformance) => {
-            if(subPerformance.id === maxUserId) {
-                return sum
-            }
-            sum = sum.add(subPerformance.performanceIncludeSelf)
-            /* if (isActive(subPerformance) && subPerformance.balance) {
-                sum = sum.add(subPerformance.balance?.token_staked_points)
-            } */
-            return sum
-        },
-        new decimal(0)
-    );
+//     // Calculate total partial performance by summing all except the max
+//     const partialAmount = subordinatePerformances.reduce(
+//         (sum, subPerformance) => {
+//             if(subPerformance.id === maxUserId) {
+//                 return sum
+//             }
+//             sum = sum.add(subPerformance.performanceIncludeSelf)
+//             /* if (isActive(subPerformance) && subPerformance.balance) {
+//                 sum = sum.add(subPerformance.balance?.token_staked_points)
+//             } */
+//             return sum
+//         },
+//         new decimal(0)
+//     );
 
 
 
-    return {
-        partialAmount,
-        maxUserId,
-        maxAmount
-    };
-}
+//     return {
+//         partialAmount,
+//         maxUserId,
+//         maxAmount
+//     };
+// }

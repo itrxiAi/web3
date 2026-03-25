@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Verify the transaction hash on blockchain
-    const transferResult = await verifyChainTransfer(txHash, existingTransaction.token_type);
+    const transferResult = await verifyChainTransfer(txHash, existingTransaction.tokenType);
     
     if (!transferResult.success) {
       return NextResponse.json(
@@ -65,8 +65,8 @@ export async function POST(req: NextRequest) {
     }
 
     // Verify the transaction details match our records
-    const expectedFromAddress = existingTransaction.from_address?.toLowerCase();
-    const expectedToAddress = existingTransaction.to_address?.toLowerCase();
+    const expectedFromAddress = existingTransaction.fromAddress?.toLowerCase();
+    const expectedToAddress = existingTransaction.toAddress?.toLowerCase();
     const actualFromAddress = transferResult.fromAddress?.toLowerCase();
     const actualToAddress = transferResult.toAddress?.toLowerCase();
 
@@ -105,9 +105,9 @@ export async function POST(req: NextRequest) {
     const updatedTransaction = await prisma.transaction.update({
       where: { id: txId },
       data: {
-        tx_hash: txHash.trim(),
+        txHash: txHash.trim(),
         status: TxFlowStatus.CONFIRMED,
-        updated_at: new Date()
+        updatedAt: new Date()
       }
     });
 

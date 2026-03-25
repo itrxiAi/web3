@@ -7,9 +7,9 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { address, referralCode } = body;
 
-    const exist = await prisma.user_info.findUnique({
-        where: { address: address.toLowerCase() },
-        select: { address: true, type: true, level: true }
+    const exist = await prisma.user.findUnique({
+        where: { walletAddress: address.toLowerCase() },
+        select: { walletAddress: true, type: true}
     });
 
     if (exist) {
@@ -19,31 +19,23 @@ export async function POST(request: Request) {
         })
     }
 
-    let superior: { address: string, path: string | null } | null = null;
+    let superior: { walletAddress: string, path: string | null } | null = null;
     if (referralCode) {
-        superior = await prisma.user_info.findUnique({
-            where: { referral_code: referralCode },
-            select: { address: true, path: true }
+        superior = await prisma.user.findUnique({
+            where: { referralCode: referralCode },
+            select: { walletAddress: true, path: true}
         });
     }
 
 
     try {
         await prisma.$transaction(async (tx) => {
-            const user = await tx.user_info.create({
+            const user = await tx.user.create({
                 data: {
-                    address: address.toLowerCase(),
-                    superior: superior?.address || null,
-                    referral_code: randomReferralCode(address.toLowerCase()),
-                    last_activity: new Date(),
-                    balance: {
-                        create: {
-                            usdt_points: 0,
-                            token_points: 0,
-                            token_locked_points: 0,
-                            token_staked_points: 0
-                        }
-                    }
+                    walletAddress: address.toLowerCase(),
+                    superior: superior?.walletAddress || null,
+                    referralCode: randomReferralCode(address.toLowerCase()),
+                    //last_activity: new Date(),
                 }
             });
 

@@ -151,7 +151,7 @@ function StakingContent(): React.ReactElement {
             TxFlowStatus.CONFIRMED,
             TxFlowStatus.FAILED,
           ],
-          flowTypeArr: [TxFlowType.STAKE],
+          flowTypeArr: [TxFlowType.DEPOSIT],
           take: 500, // Adjust based on your needs
         }),
       });
@@ -291,7 +291,7 @@ function StakingContent(): React.ReactElement {
         crypto.getRandomValues(randomBytes);
         txSig = bs58.encode(randomBytes);
       } else {
-        txSig = await transferTokens(points, TokenType.TXT);
+        txSig = await transferTokens(points, TokenType.HAK);
       }
 
       console.log("Staking transaction signature:", txSig);
@@ -310,7 +310,7 @@ function StakingContent(): React.ReactElement {
           txHash: txSig,
           dev_address: address.toString(),
           dev_amount: points,
-          tokenType: TokenType.TXT,
+          tokenType: TokenType.HAK,
         }),
       });
 

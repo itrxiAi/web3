@@ -25,7 +25,7 @@ async function getAuditingWithdrawals() {
   try {
     // Build where clause for auditing OUT transactions
     const whereClause: any = {
-      type: TxFlowType.OUT, // Only get withdrawal transactions
+      type: TxFlowType.WITHDRAW, // Only get withdrawal transactions
       status: TxFlowStatus.AUDITING, // Only get auditing transactions
     };
 
@@ -33,7 +33,7 @@ async function getAuditingWithdrawals() {
     const withdrawals = await prisma.transaction.findMany({
       where: whereClause,
       orderBy: {
-        created_at: 'asc', // Order by created_at ascending
+        createdAt: 'asc', // Order by created_at ascending
       },
     });
 

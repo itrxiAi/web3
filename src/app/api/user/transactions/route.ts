@@ -34,7 +34,7 @@ export async function POST(request: Request) {
   const txFlows = await prisma.transaction.findMany({
     where: whereClause,
     orderBy: {
-      updated_at: 'desc'
+      updatedAt: 'desc'
     },
     take: take ? Number(take) : undefined,
     skip: cursor ? Number(cursor) : 0

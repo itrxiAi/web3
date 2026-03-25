@@ -61,7 +61,7 @@ export default function MyEarningsPage() {
         },
         body: JSON.stringify({
           address: address,
-          flowTypeArr: [TxFlowType.OUT],
+          flowTypeArr: [TxFlowType.WITHDRAW],
           cursor: (currentPage - 1) * pageSize,
           take: pageSize,
         }),

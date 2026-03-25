@@ -158,23 +158,25 @@ const TOKEN_PRICE = "TOKEN_PRICE";
 
 // Get config value
 export async function getConfig(key: string): Promise<string | null> {
-    if (configCache.has(key)) {
-        return configCache.get(key) || null;
-    }
+    return configCache.get(key) || null;
+    // if (configCache.has(key)) {
+    //     return configCache.get(key) || null;
+    // }
 
-    try {
-        const config = await prisma.config.findUnique({
-            where: { key }
-        });
-        if (config) {
-            configCache.set(key, config.value);
-            return config.value;
-        }
-        return null;
-    } catch (error) {
-        console.error('Error getting config:', error);
-        throw error;
-    }
+
+    // try {
+    //     const config = await prisma.config.findUnique({
+    //         where: { key }
+    //     });
+    //     if (config) {
+    //         configCache.set(key, config.value);
+    //         return config.value;
+    //     }
+    //     return null;
+    // } catch (error) {
+    //     console.error('Error getting config:', error);
+    //     throw error;
+    // }
 }
 
 export async function refreshCache() {

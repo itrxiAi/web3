@@ -119,7 +119,7 @@ const EarningsCard: React.FC<EarningsCardProps> = ({
           )}
           <span className="text-white text-xs">
             {t("to_claim")} : {toClaim}{" "}
-            {type === TokenType.USDT ? TokenType.USDT : TokenType.TXT}
+            {type === TokenType.USDT ? TokenType.USDT : TokenType.HAK}
           </span>
         </div>
       </div>
@@ -129,11 +129,11 @@ const EarningsCard: React.FC<EarningsCardProps> = ({
       >
         <span className="text-xs">
           {t("total")} : {amount}{" "}
-          {type === TokenType.USDT ? TokenType.USDT : TokenType.TXT}
+          {type === TokenType.USDT ? TokenType.USDT : TokenType.HAK}
         </span>
         <span className="text-xs ">
           {t("claimed")} : {claimed}{" "}
-          {type === TokenType.USDT ? TokenType.USDT : TokenType.TXT}
+          {type === TokenType.USDT ? TokenType.USDT : TokenType.HAK}
         </span>
       </div>
     </BorderCustom>
@@ -218,15 +218,15 @@ function EarningsContent() {
           address: address,
           status: [TxFlowStatus.CONFIRMED, TxFlowStatus.PENDING],
           flowTypeArr: [
-            TxFlowType.NODE_REWARD,
-            TxFlowType.NODE_DIFF_REWARD,
-            TxFlowType.FEE_DIVIDEND,
-            TxFlowType.STAKE_STATIC_REWARD,
-            TxFlowType.STAKE_STATIC_DIRECT_REWARD,
-            TxFlowType.STAKE_DYNAMIC_REWARD,
-            TxFlowType.STAKE_DYNAMIC_NODE_REWARD,
-            TxFlowType.STAKE_DYNAMIC_INCUBATION_REWARD,
-            TxFlowType.STAKE_DYNAMIC_NODE_INCUBATION_REWARD,
+            // TxFlowType.NODE_REWARD,
+            // TxFlowType.NODE_DIFF_REWARD,
+            // TxFlowType.FEE_DIVIDEND,
+            // TxFlowType.STAKE_STATIC_REWARD,
+            // TxFlowType.STAKE_STATIC_DIRECT_REWARD,
+            // TxFlowType.STAKE_DYNAMIC_REWARD,
+            // TxFlowType.STAKE_DYNAMIC_NODE_REWARD,
+            // TxFlowType.STAKE_DYNAMIC_INCUBATION_REWARD,
+            // TxFlowType.STAKE_DYNAMIC_NODE_INCUBATION_REWARD,
           ],
           cursor: (pageToUse - 1) * sizeToUse,
           take: sizeToUse,
@@ -410,7 +410,7 @@ function EarningsContent() {
 
       // Prepare claim info
       const info = {
-        operationType: TxFlowType.CLAIM,
+        operationType: TxFlowType.EQUITY,
         amount: 0, // The backend will determine the actual amount
         walletAddress: address,
         timestamp: Date.now(),
@@ -475,9 +475,7 @@ function EarningsContent() {
           {earningsData && (
             <>
               <div className=" overflow-hidden mb-2 text-12px">
-                {(userType === UserType.GROUP ||
-                  userType === UserType.COMMUNITY ||
-                  userType === UserType.GALAXY) && (
+                {(userType === UserType.COMMUNITY) && (
                   <>
                     <EarningsCard
                       title={tTxType("NODE_REWARD")}
@@ -529,7 +527,7 @@ function EarningsContent() {
                       claimed={truncateDecimals(
                         earningsData.dividendEarningsToken.claimed
                       )}
-                      type={TokenType.TXT}
+                      type={TokenType.HAK}
                     />
                   </>
                 )}
@@ -543,7 +541,7 @@ function EarningsContent() {
                   claimed={truncateDecimals(
                     earningsData.miningEarnings.claimed
                   )}
-                  type={TokenType.TXT}
+                  type={TokenType.HAK}
                 />
 
                 <EarningsCard
@@ -557,7 +555,7 @@ function EarningsContent() {
                   claimed={truncateDecimals(
                     earningsData.communityEarnings.claimed
                   )}
-                  type={TokenType.TXT}
+                  type={TokenType.HAK}
                 />
 
                 <EarningsCard
@@ -571,7 +569,7 @@ function EarningsContent() {
                   claimed={truncateDecimals(
                     earningsData.incubationEarnings.claimed
                   )}
-                  type={TokenType.TXT}
+                  type={TokenType.HAK}
                 />
 
                 {/* {isSpecial && (

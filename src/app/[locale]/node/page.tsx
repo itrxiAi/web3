@@ -53,7 +53,7 @@ const NodeCard: React.FC<NodeCardProps> = ({
   const { address } = useAppKitAccount();
 
   // 根据节点类型确定显示信息
-  const isGroupNode = nodeType === UserType.GROUP;
+  const isGroupNode = nodeType === UserType.COMMUNITY;
   const nodeTitle = isGroupNode ? t("node_info_text.GROUP.title") : t("node_info_text.COMMUNITY.title");
   const titleFormat = isGroupNode ? t("node_info_text.GROUP.title_format") : t("node_info_text.COMMUNITY.title_format");
 
@@ -367,7 +367,7 @@ const ConnectedNodeDetails: React.FC<ConnectedNodeDetailsProps> = ({
         body: JSON.stringify({
           walletAddress: address.toString(),
           isDirect: true,
-          nodeType: UserType.GROUP,
+          nodeType: UserType.COMMUNITY,
         }),
       });
       const directGroupData = (await directGroupResponse.json()).data;
@@ -396,7 +396,7 @@ const ConnectedNodeDetails: React.FC<ConnectedNodeDetailsProps> = ({
         body: JSON.stringify({
           walletAddress: address.toString(),
           isDirect: false,
-          nodeType: UserType.GROUP,
+          nodeType: UserType.COMMUNITY,
         }),
       });
       const indirectGroupData = (await indirectGroupResponse.json()).data;
@@ -491,9 +491,9 @@ const ConnectedNodeDetails: React.FC<ConnectedNodeDetailsProps> = ({
   const formattedDate = activationDate || "2025-05-01";
 
   // 根据节点类型确定显示信息
-  const isGroupNode = userType === UserType.GROUP;
+  const isGroupNode = userType === UserType.COMMUNITY;
   const isCommunityNode = userType === UserType.COMMUNITY;
-  const isGalaxyNode = userType === UserType.GALAXY;
+  const isGalaxyNode = userType === UserType.COMMUNITY;
 
   // 节点标题和状态
   const nodeTitle = isGroupNode
@@ -586,7 +586,7 @@ const ConnectedNodeDetails: React.FC<ConnectedNodeDetailsProps> = ({
                     <div className="w-1 h-1 bg-[#3B82F6] mr-2 rounded-full"></div>
                     <span
                       className={`text-xs ${
-                        userType === UserType.GROUP
+                        userType === UserType.COMMUNITY
                           ? "text-white"
                           : "text-[#60A5FA]"
                       }`}
@@ -1025,7 +1025,7 @@ function NodeContent() {
   const hasNode =
     userInfo?.type === GROUP_TYPE ||
     userInfo?.type === COMMUNITY_TYPE ||
-    userInfo?.type === UserType.GALAXY;
+    userInfo?.type === UserType.COMMUNITY;
 
   if (!nodeData) {
     return <LoadingSpinner />;

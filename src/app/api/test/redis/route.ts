@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
 /**
  * Handle GET requests for userCache functions
  */
-async function handleGetRequest(funcName: string, userAddress?: string, id?: number) {
+async function handleGetRequest(funcName: string, userAddress?: string, id?: string) {
     // If userAddress is not provided and all is not true, return error
     if (!userAddress && !id) {
         return NextResponse.json(
@@ -70,9 +70,9 @@ async function handleGetRequest(funcName: string, userAddress?: string, id?: num
                 const type = await userCache.getUserType(userAddress!);
                 return NextResponse.json({ success: true, data: { type } });
 
-            case 'userLevel':
-                const level = await userCache.getUserLevel(userAddress!);
-                return NextResponse.json({ success: true, data: { level } });
+            // case 'userLevel':
+            //     const level = await userCache.getUserLevel(userAddress!);
+            //     return NextResponse.json({ success: true, data: { level } });
 
             case 'userPath':
                 const path = await userCache.getUserPath(userAddress!);
@@ -82,9 +82,9 @@ async function handleGetRequest(funcName: string, userAddress?: string, id?: num
                 const superior = await userCache.getUserSuperior(userAddress!);
                 return NextResponse.json({ success: true, data: { superior } });
 
-            case 'userMining':
-                const mining = await userCache.getUserMining(userAddress!);
-                return NextResponse.json({ success: true, data: { mining: mining.toString() } });
+            // case 'userMining':
+            //     const mining = await userCache.getUserMining(userAddress!);
+            //     return NextResponse.json({ success: true, data: { mining: mining.toString() } });
 
             case 'userTotalPerformance':
                 const performance = await userCache.getUserTotalPerformance(userAddress!);

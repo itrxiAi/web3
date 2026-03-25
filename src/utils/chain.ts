@@ -11,7 +11,7 @@ import { truncateNumber } from './common';
 import { createPublicClient, http, parseUnits, formatUnits, getContract, decodeEventLog, createWalletClient } from 'viem';
 import { mainnet, sepolia } from 'viem/chains';
 import { getPrice } from './bitget';
-import { getTokenPrice } from '@/lib/tokenPriceCandle';
+//import { getTokenPrice } from '@/lib/tokenPriceCandle';
 
 
 export const SOLANA_RPC_URL = process.env.PRIVATE_SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com';
@@ -70,27 +70,27 @@ const sepoliaClient = createPublicClient({
   transport: http()
 });
 
-export async function mockVerifyTokenMining(address: string, amount: decimal, tokenType: TokenType) {
-  let usdtAmount = amount;
-  let tokenAmount = amount;
-  const price = await getTokenPrice()
-  if (tokenType == TokenType.TXT) {
-    usdtAmount = amount.mul(new decimal(price));
-  }
-  if (tokenType == TokenType.USDT) {
-    tokenAmount = amount.div(new decimal(price));
-  }
+// export async function mockVerifyTokenMining(address: string, amount: decimal, tokenType: TokenType) {
+//   let usdtAmount = amount;
+//   let tokenAmount = amount;
+//   const price = await getTokenPrice()
+//   if (tokenType == TokenType.TXT) {
+//     usdtAmount = amount.mul(new decimal(price));
+//   }
+//   if (tokenType == TokenType.USDT) {
+//     tokenAmount = amount.div(new decimal(price));
+//   }
 
-  return {
-    isValid: true,
-    fromAddress: address,
-    amount: amount.toDecimalPlaces(2, decimal.ROUND_DOWN),
-    tokenAmount: tokenAmount.toDecimalPlaces(2, decimal.ROUND_DOWN),
-    usdtAmount: usdtAmount.toDecimalPlaces(2, decimal.ROUND_DOWN),
-    tokenPrice: price,
-    error: undefined
-  };
-}
+//   return {
+//     isValid: true,
+//     fromAddress: address,
+//     amount: amount.toDecimalPlaces(2, decimal.ROUND_DOWN),
+//     tokenAmount: tokenAmount.toDecimalPlaces(2, decimal.ROUND_DOWN),
+//     usdtAmount: usdtAmount.toDecimalPlaces(2, decimal.ROUND_DOWN),
+//     tokenPrice: price,
+//     error: undefined
+//   };
+// }
 
 /**
  * 
@@ -117,7 +117,7 @@ export async function verifyTokenMining(txHash: string, tokenType: TokenType): P
     // Check if transaction already exists in database
     const existingTx = await prisma.transaction.findFirst({
       where: {
-        tx_hash: txHash
+        txHash: txHash
       }
     });
 
@@ -154,8 +154,8 @@ export async function verifyTokenMining(txHash: string, tokenType: TokenType): P
 
     let usdtAmount = amountDecimal;
     let tokenAmount = amountDecimal;
-    const price = await getTokenPrice()
-    if (tokenType == TokenType.TXT) {
+    const price = 1//await getTokenPrice()
+    if (tokenType == TokenType.HAK) {
       usdtAmount = amountDecimal.mul(new decimal(price));
     }
     if (tokenType == TokenType.USDT) {
@@ -168,7 +168,7 @@ export async function verifyTokenMining(txHash: string, tokenType: TokenType): P
       amount: amountDecimal.toDecimalPlaces(2, decimal.ROUND_DOWN),
       tokenAmount: tokenAmount.toDecimalPlaces(2, decimal.ROUND_DOWN),
       usdtAmount: usdtAmount.toDecimalPlaces(2, decimal.ROUND_DOWN),
-      tokenPrice: price
+      //tokenPrice: price
     };
   } catch (error) {
     console.error('Error verifying transaction:', error);
@@ -223,7 +223,7 @@ export async function verifyChainTransfer(txHash: string, tokenType: TokenType):
       error: 'Transaction failed'
     };
   }
-  const tokenAddress = tokenType === TokenType.TXT ? TOKEN_ADDRESS : USDT_TOKEN_ADDRESS;
+  const tokenAddress = tokenType === TokenType.HAK ? TOKEN_ADDRESS : USDT_TOKEN_ADDRESS;
 
   // Find USDT transfer event
   const transferEvent = receipt.logs.find(log => {
@@ -297,7 +297,7 @@ export async function verifyTokenTransfer(txHash: string, equity: boolean = fals
   // Check if transaction already exists in database
   const existingTx = await prisma.transaction.findFirst({
     where: {
-      tx_hash: txHash
+      txHash: txHash
     }
   });
 
@@ -550,7 +550,7 @@ export async function outTransferTokens(
     const wallet = await getHotWalletKeypair();
 
     // Get token contract address based on token type
-    const tokenAddress = tokenType === TokenType.TXT ? TOKEN_ADDRESS : USDT_TOKEN_ADDRESS;
+    const tokenAddress = tokenType === TokenType.HAK ? TOKEN_ADDRESS : USDT_TOKEN_ADDRESS;
 
     // Create wallet client for sending transaction
 

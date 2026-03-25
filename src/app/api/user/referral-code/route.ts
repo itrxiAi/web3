@@ -3,7 +3,7 @@ import prisma from '@/lib/prisma';
 import { getWithdrawInnerFee, getWithdrawTokenFeeRatio } from '@/lib/config';
 import decimal from 'decimal.js';
 import { ErrorCode } from '@/lib/errors';
-import { getUserLevel } from '@/lib/userCache';
+//import { getUserLevel } from '@/lib/userCache';
 import { getActivePercent } from '@/lib/user';
 import { UserType } from '@prisma/client';
 import { randomReferralCode } from '@/utils/auth';

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { calculateAllStaticRewards, handleStaticDynamicRewardBatch, updateDynamicRewards } from '@/tasks/reward';
+//import { calculateAllStaticRewards, handleStaticDynamicRewardBatch, updateDynamicRewards } from '@/tasks/reward';
 import { initCronJobs, settlement } from '@/tasks';
-import { reRankAllUsers } from '@/tasks/user';
+//import { reRankAllUsers } from '@/tasks/user';
 import { validateBearerToken } from '@/utils/auth';
 
 // Initialize cron jobs once when this module is loaded
@@ -35,14 +35,14 @@ export async function POST(req: NextRequest) {
                 });
             case 'reRankAllUsers':
                 console.log('manual task reRankAllUsers', utcYear, utcMonth, utcDay);
-                await reRankAllUsers(utcYear, utcMonth, utcDay);
+                //await reRankAllUsers(utcYear, utcMonth, utcDay);
                 return NextResponse.json({
                     status: 'success',
                     message: 'Re-ranking completed'
                 });
             case 'calculateAllStaticRewards':
                 console.log('manual task calculateAllStaticRewards', utcYear, utcMonth, utcDay);
-                await calculateAllStaticRewards(utcYear, utcMonth, utcDay);
+                //await calculateAllStaticRewards(utcYear, utcMonth, utcDay);
                 return NextResponse.json({
                     status: 'success',
                     message: 'Static rewards calculation completed'
@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
 
             case 'updateDynamicRewards':
                 console.log('manual task updateAllSuperiorDynamicRewards', utcYear, utcMonth, utcDay);
-                await updateDynamicRewards(utcYear, utcMonth, utcDay);
+                //await updateDynamicRewards(utcYear, utcMonth, utcDay);
                 return NextResponse.json({
                     status: 'success',
                     message: 'Superior dynamic rewards update completed'

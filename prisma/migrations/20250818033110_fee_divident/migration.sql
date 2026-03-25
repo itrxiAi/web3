@@ -1,2 +1,0 @@
--- AlterEnum
-ALTER TYPE "TxFlowType" ADD VALUE 'FEE_DIVIDEND';

@@ -31,13 +31,13 @@ export async function POST(req: NextRequest) {
       if (nodeType) {
         whereCondition.type = nodeType;
       }
-      count = await prisma.user_info.count({
+      count = await prisma.user.count({
         where: whereCondition
       });
     } else {
-      const user = await prisma.user_info.findUnique({
+      const user = await prisma.user.findUnique({
         where: {
-          address: lowerCaseAddress
+          walletAddress: lowerCaseAddress
         },
         select: {
           path: true
@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
         whereCondition.type = nodeType;
       }
 
-      count = await prisma.user_info.count({
+      count = await prisma.user.count({
         where: whereCondition
       });
     }

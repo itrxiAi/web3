@@ -65,7 +65,7 @@ export default function MyStakePage() {
             TxFlowStatus.CONFIRMED,
             TxFlowStatus.FAILED,
           ],
-          flowTypeArr: [TxFlowType.STAKE],
+          flowTypeArr: [TxFlowType.DEPOSIT],
           take: 100, // Adjust based on your needs
         }),
       });

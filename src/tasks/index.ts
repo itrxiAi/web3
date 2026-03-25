@@ -1,17 +1,16 @@
 import cron from 'node-cron';
-import { reRankAllUsers } from '@/tasks/user';
-import { calculateAllStaticRewards, cleanPerformanceHistory, handleDividendRewardBatch, handleDynamicRewardCap, updateDynamicRewards } from './reward';
+//import { reRankAllUsers } from '@/tasks/user';
+//import { calculateAllStaticRewards, cleanPerformanceHistory, handleDividendRewardBatch, handleDynamicRewardCap, updateDynamicRewards } from './reward';
 import { handleTxConfirmBatch, handleTxSendingBatch } from '@/tasks/transactions';
 import '@/utils/logger';
 import { getAirdropCron, getSettlementCron, getTransactionConfirmCron } from '@/lib/config';
 import prisma from '@/lib/prisma';
 import { getSettlementStatus, setSettlementStatus } from '@/lib/taskCache';
 import { TASK_COMPLETED, TASK_RUNNING } from '@/constants';
-import { processTokenPrice } from './tokenPrice';
+//import { processTokenPrice } from './tokenPrice';
 
 // Use a global variable to track initialization across all instances
 declare global {
-  // Using var is required for mutable globals in TypeScript
   var cronJobsInitialized: boolean;
   var settlementRunning: boolean;
 }
@@ -44,7 +43,7 @@ export async function initCronJobs() {
     try {
       await handleTxConfirmBatch();
       //await handleTxSendingBatch();
-      await processTokenPrice();
+      //await processTokenPrice();
     } catch (error) {
       console.error(`Error running transaction processor: ${error}`);
     }
@@ -93,15 +92,15 @@ export async function settlement(utcYear?: number, utcMonth?: number, utcDay?: n
   }
   await setSettlementStatus(year, month, day, TASK_RUNNING);
   console.log(`settlement started at ${new Date()}, settlement date: ${year}-${month}-${day}`);
-  await handleDividendRewardBatch(year, month, day);
+  //await handleDividendRewardBatch(year, month, day);
   //await handleDynamicRewardCap(year, month, day);
   // Temporarily disabled
 
-  await reRankAllUsers(year, month, day);
+  //await reRankAllUsers(year, month, day);
   // should be enabled later
-  await calculateAllStaticRewards(year, month, day);
-  await updateDynamicRewards(year, month, day);
-  await cleanPerformanceHistory();
+  // await calculateAllStaticRewards(year, month, day);
+  // await updateDynamicRewards(year, month, day);
+  // await cleanPerformanceHistory();
   await setSettlementStatus(year, month, day, TASK_COMPLETED);
   console.log(`settlement completed at ${new Date()}`)
 

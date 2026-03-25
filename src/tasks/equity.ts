@@ -1,35 +1,35 @@
-import { TokenType, transaction, TxFlowStatus, TxFlowType } from "@prisma/client";
+import { TokenType, Transaction, TxFlowStatus, TxFlowType } from "@prisma/client";
 import { isTransactionFinalized } from "@/utils/chain";
 import prisma from "@/lib/prisma";
-import { cleanUserMiningLevelPerformanceCache, updateSuperiorNodeReward } from "@/lib/user";
-import { processBalanceUpdate } from "@/lib/balance";
+//import { cleanUserMiningLevelPerformanceCache, updateSuperiorNodeReward } from "@/lib/user";
+//import { processBalanceUpdate } from "@/lib/balance";
 
-export async function processEquityTx(tx: transaction) {
-  if (!tx || tx.status !== TxFlowStatus.PENDING || tx.type !== TxFlowType.EQUITY || !tx.tx_hash) {
+export async function processEquityTx(tx: Transaction) {
+  if (!tx || tx.status !== TxFlowStatus.PENDING || tx.type !== TxFlowType.EQUITY || !tx.txHash) {
     return;
   }
 
-  const { status, fee, error } = await isTransactionFinalized(tx.tx_hash, tx.created_at.getTime());
+  const { status, fee, error } = await isTransactionFinalized(tx.txHash, tx.createdAt.getTime());
 
-  console.debug('Processing equity transaction:', tx.tx_hash, { status, fee, error });
+  console.debug('Processing equity transaction:', tx.txHash, { status, fee, error });
   if (status === TxFlowStatus.PENDING) {
     return;
   }
 
-  const user = await prisma.user_info.findUnique({
+  const user = await prisma.user.findUnique({
     where: {
-      address: tx.from_address
+      walletAddress: tx.fromAddress
     },
     select: {
       superior: true,
-      equity_type: true,
+      equityType: true,
       path: true
     }
   });
 
 
   if (!user) {
-    console.error('User not found:', tx.from_address);
+    console.error('User not found:', tx.fromAddress);
     return;
   }
 
@@ -44,16 +44,16 @@ export async function processEquityTx(tx: transaction) {
         where: { id: tx.id },
         data: {
           status: status,
-          tx_fee: fee,
+          txFee: fee,
           description: JSON.stringify({ "error": error })
         }
       });
-      await prisma.user_info.update({
+      await prisma.user.update({
         where: {
-          address: tx.from_address.toLowerCase()
+          walletAddress: tx.fromAddress.toLowerCase()
         },
         data: {
-          equity_type: null
+          equityType: null
         }
       });
       return
@@ -68,7 +68,7 @@ export async function processEquityTx(tx: transaction) {
         where: { id: tx.id },
         data: {
           status: status,
-          tx_fee: fee,
+          txFee: fee,
         }
       });
     }

@@ -34,7 +34,7 @@ export async function generateOperationHash(
   }
 ): Promise<string> {
   const { operationType, amount, walletAddress, timestamp, description, tokenType } = params;
-  const data = `${timestamp}:${operationType}:${amount}:${walletAddress}:${description || ''}:${tokenType || TokenType.TXT}`;
+  const data = `${timestamp}:${operationType}:${amount}:${walletAddress}:${description || ''}:${tokenType || TokenType.HAK}`;
   const hash = crypto.createHash('sha256').update(data).digest();
   return bs58.encode(new Uint8Array(hash));
 }
@@ -66,32 +66,32 @@ export async function verifySignature(
   }
 }
 
-export async function isInBlacklist(address: string) {
-  const user = await prisma.user_info.findUnique({
-    where: { address },
-    select: { blacklist: true }
-  });
+// export async function isInBlacklist(address: string) {
+//   const user = await prisma.user.findUnique({
+//     where: { address },
+//     select: { blacklist: true }
+//   });
 
-  return user?.blacklist === true;
-}
+//   return user?.blacklist === true;
+// }
 
 /**
  * Set ban status
  * @param address 
  * @returns 
  */
-export async function setBanStatus(address: string, ban: boolean): Promise<boolean> {
-  try {
-    await prisma.user_info.update({
-      where: { address },
-      data: { blacklist: ban ? true : null }
-    });
-    return true;
-  } catch (error) {
-    console.log(`Ban user error: ${error}`);
-    return false;
-  }
-}
+// export async function setBanStatus(address: string, ban: boolean): Promise<boolean> {
+//   try {
+//     await prisma.user_info.update({
+//       where: { address },
+//       data: { blacklist: ban ? true : null }
+//     });
+//     return true;
+//   } catch (error) {
+//     console.log(`Ban user error: ${error}`);
+//     return false;
+//   }
+// }
 
 export function validateBearerToken(req: NextRequest): NextResponse | null {
   const authHeader = req.headers.get('Authorization');

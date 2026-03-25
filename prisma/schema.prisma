@@ -1,8 +1,12 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+
 }
 
 datasource db {
@@ -10,44 +14,24 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum UserType {
-  NORMAL
-  GROUP
-  COMMUNITY
-  GALAXY
+enum Gender {
+  MALE
+  FEMALE
+  UNKNOWN
 }
 
-enum EquityType {
-  BASE
-  PLUS
-  PREMIUM
+enum Language {
+  EN
+  ZH
+  JP
+  KR
 }
 
 enum TxFlowType {
-  IN
-  OUT
-  TRANSFER
-  ASSEMBLE
-  NODE_REWARD
-  NODE_DIFF_REWARD
-  STAKE
-  BURNING
-  UNSTAKE
-  STAKE_STATIC_REWARD
-  STAKE_STATIC_DIRECT_REWARD
-  STAKE_DYNAMIC_REWARD
-  STAKE_DYNAMIC_INCUBATION_REWARD
-  STAKE_DYNAMIC_NODE_REWARD
-  STAKE_DYNAMIC_NODE_INCUBATION_REWARD
-  MARKET_EXPENSE
-  SECURITY_FUND
-  CLAIM
-  LOCK
+  DEPOSIT
+  WITHDRAW
+  PURCHASE
   EQUITY
-  AIRDROP
-  FLASH_SWAP
-  FEE_DIVIDEND
-  FEE_DIVIDEND_TOKEN
 }
 
 enum TxFlowStatus {
@@ -61,151 +45,225 @@ enum TxFlowStatus {
 
 enum TokenType {
   USDT
-  TXT
+  HAK
 }
 
-model user_info {
-  id            Int      @id @default(autoincrement()) // Auto-incrementing primary key
-  address       String   @unique // Solana wallet address
-  level         Int      @default(0) // User level
-  min_level     Int?     @default(0) // User min level
-  nonce         String?  // For wallet signature verification
+enum UserType {
+  NORMAL
+  COMMUNITY
+}
+
+enum EquityType {
+  BASE
+  PLUS
+  PREMIUM
+}
+
+model User {
+  id            String    @id @default(cuid())
+  walletAddress String    @unique @db.VarChar(255) @map("wallet_address")
+  username      String?    @unique @db.VarChar(255)
+  displayName   String?    @db.VarChar(255) @map("display_name")
+  gender        Gender?
+  bio           String?   @db.VarChar(255)
+  email         String?   @db.VarChar(255)
+  phoneNumber   String?   @db.VarChar(255) @map("phone_number")
+  darkMode      Boolean   @default(false) @map("dark_mode")
+  language      Language  @default(EN)
+  portraitUrl   String?   @db.VarChar(255) @map("portrait_url")
+  avatarUrl     String?   @db.VarChar(255) @map("avatar_url")
+  backgroundUrl String?   @db.VarChar(255) @map("background_url")
   type          UserType?
-  equity_type   EquityType?
-  superior      String?  // Superior's Solana wallet address
   path          String?  // Materialized path storing the hierarchy path
-  last_activity DateTime? // Last time user performed a point-earning action
-  created_at    DateTime @default(now())
-  updated_at    DateTime @updatedAt
-  buy_at        DateTime?
-  active_at     DateTime?
-  balance       user_balance?
-  referral_code String? @unique
-  depth         Int     @default(0) // Depth in the hierarchy
-  blacklist     Boolean?
-  leader    String? // Galaxy leader
-  interest_active  Boolean?
+  equityType    EquityType? @map("equity_type")
+  superior      String?   @db.VarChar(255)// Superior's Solana wallet address
+  referralCode String?   @db.VarChar(255) @map("referral_code") @unique
+  purchaseAt    DateTime?
+  equityActivedAt      DateTime?
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
 
-  @@index([superior])
-  @@index([level])
-  @@index([depth])
-  @@index([path])
+  @@index([walletAddress])
+  @@index([username])
+  @@index([email])
+  @@index([phoneNumber])
+  @@map("user")
 }
 
-model user_balance {
-  address              String   @id // Solana wallet address
-  usdt_points         Decimal      @default(0) // USDT points balance
-  token_points        Decimal      @default(0) // token points balance
-  token_locked_points Decimal      @default(0) // Locked token points
-  token_staked_points Decimal      @default(0) // Staked token points
-  stake_reward_cap    Decimal      @default(0) // Stake reward cap
-  stake_dynamic_reward_cap    Decimal      @default(0) // Staked token points
-  created_at          DateTime @default(now())
-  updated_at          DateTime @updatedAt
-  user                user_info @relation(fields: [address], references: [address])
+model UserStatistic {
+  id            String    @id @default(cuid())
+  userId        String    @map("user_id")
+  postCount     Int       @default(0) @map("post_count")
+  followerCount Int       @default(0) @map("follower_count")
+  followingCount Int       @default(0) @map("following_count")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@map("user_statistic")
 }
 
-model tx_flow {
-  id            Int           @id @default(autoincrement())
-  user_address  String
-  to_address    String       @default("")
-  amount        Decimal
+enum LinkedPlatform {
+  DISCORD
+  X
+  TELEGRAM
+  INSTAGRAM
+}
+
+model UserLinkedAccount {
+  id            String    @id @default(cuid())
+  userId        String    @map("user_id")
+  linkedPlatform LinkedPlatform    @map("linked_platform")
+  account String    @map("account")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@map("user_linked_account")
+}
+
+model Post {
+  id            String    @id @default(cuid())
+  rePostId      String?   @map("re_post_id")
+  userId        String    @map("user_id")
+  title         String?   @db.VarChar(255)
+  content       String?   @db.VarChar(10000)
+  published     Boolean   @default(false)
+  mediaUrls     String[]  @map("media_urls")
+  mentionedUserIds String[] @map("mentioned_user_ids")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  deletedAt     DateTime? @map("deleted_at")
+
+  @@index([userId])
+
+  @@map("post")
+}
+
+model PostStatistic {
+  postId        String    @id @map("post_id")
+  viewCount     Int       @default(0) @map("view_count")
+  likeCount     Int       @default(0) @map("like_count")
+  commentCount  Int       @default(0) @map("comment_count")
+  repostCount   Int       @default(0) @map("repost_count")
+
+  @@index([postId])
+
+  @@map("post_statistic")
+}
+
+model Comment {
+  id              String    @id @default(cuid())
+  postId          String    @map("post_id")
+  userId          String    @map("user_id")
+  replyUserId     String?   @map("reply_user_id")
+  content         String    @db.VarChar(10000)
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  deletedAt       DateTime? @map("deleted_at")
+
+  @@index([postId])
+  @@index([userId])
+  @@index([replyUserId])
+
+  @@map("comment")
+}
+
+model CommentStatistic {
+  commentId       String    @id @map("comment_id")
+  viewCount       Int       @default(0) @map("view_count")
+  likeCount       Int       @default(0) @map("like_count")
+  repostCount     Int       @default(0) @map("repost_count")
+
+  @@index([commentId])
+
+  @@map("comment_statistic")
+}
+
+model PostLike {
+  id              String    @id @default(cuid())
+  postId          String    @map("post_id")
+  userId          String    @map("user_id")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  deletedAt       DateTime? @map("deleted_at")
+
+  @@index([userId])
+  @@index([postId])
+  @@map("post_like")
+}
+
+model CommentLike {
+  id              String    @id @default(cuid())
+  commentId       String    @map("comment_id")
+  userId          String    @map("user_id")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  deletedAt       DateTime? @map("deleted_at")
+
+  @@index([userId])
+  @@index([commentId])
+  @@map("comment_like")
+}
+
+model Follow {
+  id              String    @id @default(cuid())
+  userId          String    @map("user_id")
+  followingUserId String    @map("following_user_id")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  deletedAt       DateTime? @map("deleted_at")
+
+  @@index([userId])
+  @@index([followingUserId])
+  @@map("follow")
+}
+
+enum NotificationType {
+  MENTIONED
+  COMMENT
+  FOLLOW
+}
+
+model Notification {
+  id              String    @id @default(cuid())
+  userId          String    @map("user_id")
+  resourceId      String    @map("resource_id")
+  notificationType NotificationType    @map("notification_type")
+  readAt          DateTime? @map("read_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  deletedAt       DateTime? @map("deleted_at")
+
+  @@index([userId])
+  @@map("notification")
+}
+
+model Message {
+  id              String    @id @default(cuid())
+  sendUserId      String    @map("send_user_id")
+  receiveUserId   String    @map("receive_user_id")
+  content         String    @db.VarChar(10000)
+  createdAt       DateTime  @default(now()) @map("created_at")
+  deletedAt       DateTime? @map("deleted_at")
+
+  @@index([sendUserId])
+  @@index([receiveUserId])
+  @@map("message")
+}
+
+model Transaction {
+  id            String    @id @default(cuid())
+  txHash        String?    @map("tx_hash")
+  fromAddress   String     @map("from_address")
+  toAddress     String     @map("to_address")
   type          TxFlowType
-  token_type    TokenType    // Type of token (USDT or TXT) @default(TXT)
-  tx_hash       String?      
-  status        TxFlowStatus @default(PENDING)
-  description   String?      // Optional description of the transaction
-  created_at    DateTime     @default(now())
-  updated_at    DateTime     @updatedAt
-  executed_at   DateTime     @default(now())
-
-  @@index([user_address])
-  @@index([type])
-  @@index([status])
-}
-
-model transaction {
-  id            Int              @id @default(autoincrement())
-  tx_hash       String?          
-  from_address  String
-  to_address    String
-  type          TxFlowType
-  token_type    TokenType    // Type of token (USDT or TXT) @default(TXT)
+  tokenType     TokenType  @map("token_type") // Type of token (USDT or TXT) @default(TXT)
   amount        Decimal
-  amount_fee    Decimal?
-  tx_fee        Decimal?
+  amountFee     Decimal?    @map("amount_fee")
+  txFee         Decimal?    @map("tx_fee")
   status        TxFlowStatus @default(PENDING)
   description   String?      // Optional description of the transaction
   error         String?
-  created_at    DateTime     @default(now())
-  updated_at    DateTime     @updatedAt
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
 }
 
-model schedule_process {
-  key   String @id @unique
-  value String
 
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
-}
-
-model config {
-  key   String @id @unique
-  value String
-
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
-}
-
-model proclaim {
-  id            Int           @id @default(autoincrement())
-  index         Int
-  locale        String
-  title         String
-  content       String @db.Text
-  picture       String       @default("")
-  display       Boolean
-  created_at    DateTime     @default(now())
-  updated_at    DateTime     @updatedAt
-}
-
-model performance_history {
-  id                  Int           @id @default(autoincrement())
-  address             String
-  performance         Decimal      @default(0)
-  token_staked_points   Decimal      @default(0)
-  token_dynamic_reward  Decimal     @default(0)
-  subordinates_num    Int @default(0)
-  year                Int
-  month               Int
-  day                 Int
-  created_at          DateTime     @default(now())
-  updated_at          DateTime     @updatedAt
-
-  @@unique([address, year, month, day])
-}
-
-enum TimeInterval {
-  FIVE_MIN
-  FIFTEEN_MIN
-  THIRTY_MIN
-  ONE_HOUR
-  ONE_DAY
-  ONE_WEEK
-}
-
-model token_price_candle {
-  id            Int           @id @default(autoincrement())
-  interval      TimeInterval  // Time interval (5min, 15min, 30min, 1hour, 1day, 1week)
-  open_price    Decimal       // Opening price for this candle
-  close_price   Decimal       // Closing price for this candle
-  high_price    Decimal       // Highest price during this candle
-  low_price     Decimal       // Lowest price during this candle
-  volume        Decimal       @default(0) // Trading volume (can be mock data)
-  timestamp     DateTime      // Start time of this candle
-  created_at    DateTime      @default(now())
-  updated_at    DateTime      @updatedAt
-
-  @@unique([interval, timestamp]) // Ensure no duplicate candles for the same interval and timestamp
-  @@index([interval, timestamp])  // Index for efficient querying by interval and time
-}
+  

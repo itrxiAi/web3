@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { setBanStatus, validateBearerToken } from '@/utils/auth';
+//import { setBanStatus, validateBearerToken } from '@/utils/auth';
 import { setGalaxy } from '@/lib/user';
 import { getSpecialAddress } from '@/lib/config';
 
