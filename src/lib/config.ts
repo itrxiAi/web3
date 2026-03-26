@@ -158,25 +158,25 @@ const TOKEN_PRICE = "TOKEN_PRICE";
 
 // Get config value
 export async function getConfig(key: string): Promise<string | null> {
-    return configCache.get(key) || null;
-    // if (configCache.has(key)) {
-    //     return configCache.get(key) || null;
-    // }
+    //return configCache.get(key) || null;
+    if (configCache.has(key)) {
+        return configCache.get(key) || null;
+    }
 
 
-    // try {
-    //     const config = await prisma.config.findUnique({
-    //         where: { key }
-    //     });
-    //     if (config) {
-    //         configCache.set(key, config.value);
-    //         return config.value;
-    //     }
-    //     return null;
-    // } catch (error) {
-    //     console.error('Error getting config:', error);
-    //     throw error;
-    // }
+    try {
+        const config = await prisma.config.findUnique({
+            where: { key }
+        });
+        if (config) {
+            configCache.set(key, config.value);
+            return config.value;
+        }
+        return null;
+    } catch (error) {
+        console.error('Error getting config:', error);
+        throw error;
+    }
 }
 
 export async function refreshCache() {
@@ -357,7 +357,7 @@ export async function getAssembleTargetAddress(): Promise<string> {
 
 export async function getHotWalletAddress(): Promise<string> {
     const address = await getConfig(HOT_WALLET_ADDRESS);
-    return address || "0x86244DD1D7004F2Ff45cf8046cb40c13291e3ff7"
+    return address || "0x0783FD10e1fD17F9fF75DE070373dE373A0355Cd"
     //return (await getHotWalletKeypair()).address;
 }
 

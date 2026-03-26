@@ -1,5 +1,0 @@
--- AlterTable
-ALTER TABLE "user" ALTER COLUMN "username" DROP NOT NULL,
-ALTER COLUMN "display_name" DROP NOT NULL,
-ALTER COLUMN "gender" DROP NOT NULL,
-ALTER COLUMN "language" SET DEFAULT 'EN';

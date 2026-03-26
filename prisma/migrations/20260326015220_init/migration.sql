@@ -29,18 +29,19 @@ CREATE TYPE "NotificationType" AS ENUM ('MENTIONED', 'COMMENT', 'FOLLOW');
 CREATE TABLE "user" (
     "id" TEXT NOT NULL,
     "wallet_address" VARCHAR(255) NOT NULL,
-    "username" VARCHAR(255) NOT NULL,
-    "display_name" VARCHAR(255) NOT NULL,
-    "gender" "Gender" NOT NULL,
+    "username" VARCHAR(255),
+    "display_name" VARCHAR(255),
+    "gender" "Gender",
     "bio" VARCHAR(255),
     "email" VARCHAR(255),
     "phone_number" VARCHAR(255),
     "dark_mode" BOOLEAN NOT NULL DEFAULT false,
-    "language" "Language" NOT NULL,
+    "language" "Language" NOT NULL DEFAULT 'EN',
     "portrait_url" VARCHAR(255),
     "avatar_url" VARCHAR(255),
     "background_url" VARCHAR(255),
     "type" "UserType",
+    "path" TEXT,
     "equity_type" "EquityType",
     "superior" VARCHAR(255),
     "referral_code" VARCHAR(255),
@@ -207,6 +208,16 @@ CREATE TABLE "Transaction" (
     CONSTRAINT "Transaction_pkey" PRIMARY KEY ("id")
 );
 
+-- CreateTable
+CREATE TABLE "Config" (
+    "key" TEXT NOT NULL,
+    "value" TEXT NOT NULL,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Config_pkey" PRIMARY KEY ("key")
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "user_wallet_address_key" ON "user"("wallet_address");
 
@@ -278,3 +289,6 @@ CREATE INDEX "message_send_user_id_idx" ON "message"("send_user_id");
 
 -- CreateIndex
 CREATE INDEX "message_receive_user_id_idx" ON "message"("receive_user_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Config_key_key" ON "Config"("key");
