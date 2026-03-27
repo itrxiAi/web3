@@ -8,7 +8,7 @@ import { useSearchParams, usePathname } from "next/navigation";
 import { routing } from "@/i18n/routing";
 
 function formatHeaderId(address: string | undefined) {
-  if (!address) return "0X0888......888888";
+  if (!address) return "";
   const raw = address.startsWith("0x") ? address : `0x${address}`;
   const up = raw.toUpperCase();
   if (up.length <= 16) return up;
@@ -42,10 +42,11 @@ function useIsHomePage(): boolean {
 export default function Header() {
   const isHome = useIsHomePage();
   const [sideMenuOpen, setSideMenuOpen] = useState(false);
-  const { address } = useAppKitAccount();
+  const { address, isConnected } = useAppKitAccount();
   const { open: openWallet } = useAppKit();
-  const t = useTranslations();
   const tNav = useTranslations("nav_drawer");
+  const tWallet = useTranslations("wallet");
+  const walletConnected = Boolean(isConnected && address);
   const searchParams = useSearchParams();
   const refFromUrl = searchParams.get("ref");
   const [showRecommenderModal, setShowRecommenderModal] = useState(false);
@@ -116,15 +117,19 @@ export default function Header() {
               <button
                 type="button"
                 onClick={() => openWallet()}
-                className="max-w-[min(100%,11rem)] truncate font-mono text-[11px] font-medium tracking-tight text-white sm:max-w-[14rem] sm:text-xs"
+                className={
+                  walletConnected
+                    ? "max-w-[min(100%,11rem)] truncate font-mono text-[11px] font-medium tracking-tight text-white sm:max-w-[14rem] sm:text-xs"
+                    : "rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-[#005d54] shadow-sm transition hover:bg-white/95"
+                }
               >
-                {formatHeaderId(address)}
+                {walletConnected ? formatHeaderId(address) : tWallet("connect_wallet")}
               </button>
             </div>
           </div>
         ) : (
-          /* ── Other pages: transparent, only menu icon ── */
-          <div className="flex h-14 items-center">
+          /* ── Other pages: menu + wallet / connect ── */
+          <div className="flex h-14 items-center justify-between gap-2">
             <button
               type="button"
               onClick={() => setSideMenuOpen(true)}
@@ -144,6 +149,17 @@ export default function Header() {
                 <line x1="4" y1="12" x2="20" y2="12" />
                 <line x1="4" y1="18" x2="20" y2="18" />
               </svg>
+            </button>
+            <button
+              type="button"
+              onClick={() => openWallet()}
+              className={
+                walletConnected
+                  ? "max-w-[min(100%,11rem)] truncate font-mono text-[11px] font-medium tracking-tight text-white sm:max-w-[14rem] sm:text-xs"
+                  : "shrink-0 rounded-full bg-white/15 px-3 py-1.5 text-xs font-medium text-white backdrop-blur-sm transition hover:bg-white/25"
+              }
+            >
+              {walletConnected ? formatHeaderId(address) : tWallet("connect_wallet")}
             </button>
           </div>
         )}

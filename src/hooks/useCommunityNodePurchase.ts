@@ -30,6 +30,90 @@ export interface EnvShape {
   hotWalletAddress: string;
 }
 
+/** 接口失败或仅返回 communityNode 时用于展示与认购金额计算（与 config 默认价对齐） */
+const USDT_DECIMAL = Number(process.env.NEXT_PUBLIC_USDT_DECIMAL ?? 6);
+
+export const FALLBACK_NODE_DATA: NodesDataShape = {
+  groupNode: {
+    price_display: 500,
+    price_transfer: 500 * 10 ** USDT_DECIMAL,
+    maxNum: 2000,
+    leftNum: 2000,
+    referralReward: 0.1,
+    minLevel: 1,
+    incubationReward: 0,
+    dynamicRewardCap: 1000,
+    dynamicRewardCapIncrement: 10,
+    dividendReward: 0.01,
+  },
+  communityNode: {
+    price_display: 2000,
+    price_transfer: 2000 * 10 ** USDT_DECIMAL,
+    maxNum: 200,
+    leftNum: 200,
+    referralReward: 0.1,
+    minLevel: 1,
+    incubationReward: 0,
+    dynamicRewardCap: 4000,
+    dynamicRewardCapIncrement: 50,
+    dividendReward: 0.01,
+  },
+};
+
+function coerceNumber(v: unknown, fallback: number): number {
+  if (typeof v === "number" && Number.isFinite(v)) return v;
+  if (typeof v === "string") {
+    const n = parseFloat(v);
+    if (Number.isFinite(n)) return n;
+  }
+  return fallback;
+}
+
+/** 将接口 JSON 规范为 NodesDataShape；缺 groupNode 时用本地默认补全 */
+function normalizeNodesPayload(raw: unknown): NodesDataShape | null {
+  if (!raw || typeof raw !== "object") return null;
+  const data = raw as Record<string, unknown>;
+  const c = data.communityNode as Record<string, unknown> | undefined;
+  if (!c) return null;
+
+  const communityNode: NodeDataShape = {
+    price_display: coerceNumber(c.price_display, FALLBACK_NODE_DATA.communityNode.price_display),
+    price_transfer: coerceNumber(c.price_transfer, FALLBACK_NODE_DATA.communityNode.price_transfer),
+    maxNum: coerceNumber(c.maxNum, FALLBACK_NODE_DATA.communityNode.maxNum),
+    leftNum: coerceNumber(c.leftNum, FALLBACK_NODE_DATA.communityNode.leftNum),
+    referralReward: coerceNumber(c.referralReward, FALLBACK_NODE_DATA.communityNode.referralReward),
+    minLevel: coerceNumber(c.minLevel, FALLBACK_NODE_DATA.communityNode.minLevel),
+    incubationReward: coerceNumber(c.incubationReward, FALLBACK_NODE_DATA.communityNode.incubationReward),
+    dynamicRewardCap: coerceNumber(c.dynamicRewardCap, FALLBACK_NODE_DATA.communityNode.dynamicRewardCap),
+    dynamicRewardCapIncrement: coerceNumber(
+      c.dynamicRewardCapIncrement,
+      FALLBACK_NODE_DATA.communityNode.dynamicRewardCapIncrement
+    ),
+    dividendReward: coerceNumber(c.dividendReward, FALLBACK_NODE_DATA.communityNode.dividendReward),
+  };
+
+  const g = data.groupNode as Record<string, unknown> | undefined;
+  const groupNode: NodeDataShape = g
+    ? {
+        price_display: coerceNumber(g.price_display, FALLBACK_NODE_DATA.groupNode.price_display),
+        price_transfer: coerceNumber(g.price_transfer, FALLBACK_NODE_DATA.groupNode.price_transfer),
+        maxNum: coerceNumber(g.maxNum, FALLBACK_NODE_DATA.groupNode.maxNum),
+        leftNum: coerceNumber(g.leftNum, FALLBACK_NODE_DATA.groupNode.leftNum),
+        referralReward: coerceNumber(g.referralReward, FALLBACK_NODE_DATA.groupNode.referralReward),
+        minLevel: coerceNumber(g.minLevel, FALLBACK_NODE_DATA.groupNode.minLevel),
+        incubationReward: coerceNumber(g.incubationReward, FALLBACK_NODE_DATA.groupNode.incubationReward),
+        dynamicRewardCap: coerceNumber(g.dynamicRewardCap, FALLBACK_NODE_DATA.groupNode.dynamicRewardCap),
+        dynamicRewardCapIncrement: coerceNumber(
+          g.dynamicRewardCapIncrement,
+          FALLBACK_NODE_DATA.groupNode.dynamicRewardCapIncrement
+        ),
+        dividendReward: coerceNumber(g.dividendReward, FALLBACK_NODE_DATA.groupNode.dividendReward),
+      }
+    : { ...FALLBACK_NODE_DATA.groupNode };
+
+  return { groupNode, communityNode };
+}
+
 const usdtAbi = [
   {
     name: "transfer",
@@ -86,9 +170,16 @@ export function useCommunityNodePurchase(options?: CommunityPurchaseOptions) {
           headers: { "Content-Type": "application/json" },
         });
         const data = await response.json();
-        if (!cancelled) setNodeData(data);
+        if (cancelled) return;
+        if (!response.ok) {
+          setNodeData(FALLBACK_NODE_DATA);
+          return;
+        }
+        const normalized = normalizeNodesPayload(data);
+        setNodeData(normalized ?? FALLBACK_NODE_DATA);
       } catch (e) {
         console.error("Error fetching node data:", e);
+        if (!cancelled) setNodeData(FALLBACK_NODE_DATA);
       }
     };
     fetchEnv();

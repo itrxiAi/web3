@@ -3,15 +3,14 @@ import createNextIntlPlugin from "next-intl/plugin";
 
 const nextConfig: NextConfig = {
   /* config options here */
+  // 避免 Next.js 误判 workspace root（例如误选到用户目录下的 lockfile），导致追踪/监听范围过大进而拖慢 dev 热更新
+  outputFileTracingRoot: __dirname,
   transpilePackages: ["@reown/appkit", "@reown/appkit-adapter-wagmi"],
   // Reown / WalletConnect：避免服务端打包 pino 等导致 vendor-chunks 引用异常
   serverExternalPackages: ["pino-pretty", "lokijs", "encoding"],
   images: {
     domains: ["localhost"],
     dangerouslyAllowSVG: true,
-  },
-  security: {
-    dangerouslyAllowHTML: true,
   },
   webpack: (config, { isServer }) => {
     config.resolve.fallback = {

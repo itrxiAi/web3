@@ -4,7 +4,6 @@ import React, { Suspense, useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import LoadingSpinnerWithText from "@/components/LoadingSpinnerWithText";
-import decimal from "decimal.js";
 import { COMMUNITY_TYPE, GROUP_TYPE } from "@/constants";
 import { formatDate } from "@/utils/dateUtils";
 import Image from "next/image";
@@ -20,6 +19,7 @@ import { NodeConfirmModal } from "@/components/NodeConfirmModal";
 import { RecommenderAlertModal } from "@/components/RecommenderAlertModal";
 import { TokenType, TxFlowStatus, UserType } from "@prisma/client";
 import { truncateDecimals } from "@/utils/common";
+import decimal from "decimal.js";
 import BorderCustom from "@/components/ui/border-custom";
 
 // Node Card Component
@@ -974,6 +974,7 @@ const NodeMarket: React.FC<NodeMarketProps> = ({
 };
 
 function NodeContent() {
+  const t = useTranslations("node");
   const { address } = useAppKitAccount();
   const [userInfo, setUserInfo] = useState<{
     type: string | null;
@@ -985,7 +986,6 @@ function NodeContent() {
     active_percent: number | null;
     interest_active?: boolean;
   } | null>(null);
-  const t = useTranslations("node");
 
   const fetchUserInfo = async () => {
     try {
@@ -998,7 +998,10 @@ function NodeContent() {
         `/api/user/info?address=${address.toString()}`
       );
       const data = await response.json();
-      console.log("🚀 ~ ConnectedNodeDetails ~ data:", data);
+      if (!response.ok || data?.error) {
+        setUserInfo(null);
+        return;
+      }
       setUserInfo(data);
     } catch (error) {
       console.error("Error fetching user info:", error);
@@ -1033,7 +1036,7 @@ function NodeContent() {
 
   // Calculate rewards for the connected node details
   const referralReward =
-    hasNode && userInfo.type === COMMUNITY_TYPE
+    hasNode && userInfo?.type === COMMUNITY_TYPE
       ? `${new decimal(nodeData.communityNode.referralReward)
           .mul(100)
           .toString()}% USDT`
@@ -1042,7 +1045,7 @@ function NodeContent() {
           .toString()}% USDT`;
 
   const dividendsReward =
-    hasNode && userInfo.type === COMMUNITY_TYPE
+    hasNode && userInfo?.type === COMMUNITY_TYPE
       ? `${new decimal(0.1).mul(100).toString()}% ${t("total_fee")}`
       : `${new decimal(0.1).mul(100).toString()}% ${t("total_fee")}`;
 
@@ -1086,7 +1089,7 @@ function NodeContent() {
         type="error"
         message={txErrorMessage}
       />
-      {hasNode ? (
+      {hasNode && userInfo ? (
         <ConnectedNodeDetails
           referralCode={userInfo.referral_code || ""}
           activationDate={formatDate(new Date(userInfo.buy_at || ""))}

@@ -514,7 +514,7 @@ function MyContent() {
           }}
         >
           {iconSrc && (
-            <Image src={iconSrc} alt={label} width={24} height={24} className="w-full h-full object-contain" />
+            <Image src={iconSrc} alt={label} width={26} height={26} className=" object-contain" />
           )}
         </div>
         <p className="text-xs text-white text-center leading-tight">{label}</p>
@@ -562,7 +562,7 @@ function MyContent() {
               <div className="flex-1 min-w-0 flex flex-col justify-center space-y-3">
                 {/* Wallet Address */}
                 <span className="text-xs font-mono text-white font-bold tracking-wider break-all overflow-wrap:anywhere leading-relaxed w-full">
-                  {address ? address.toUpperCase() : "0X088888888888888888888888"}
+                  {address ? address.toUpperCase() : "--"}
                 </span>
 
                 {/* Identity inline */}
@@ -570,10 +570,16 @@ function MyContent() {
                   <span style={{ color: "rgba(255, 255, 255, 0.6)" }}>
                     {t("identity") || "身份"}：
                   </span>
-                  {userInfo?.type === UserType.COMMUNITY
-                    ? (userInfo?.interest_active ? t("activated") : t("unactivated")) + "/"
-                    : ""}
-                  {roleTypes.find((item) => item.type === userInfo?.type)?.label || tUserType(UserType.NORMAL)}
+                  {address ? (
+                    <>
+                      {userInfo?.type === UserType.COMMUNITY
+                        ? (userInfo?.interest_active ? t("activated") : t("unactivated")) + "/"
+                        : ""}
+                      {roleTypes.find((item) => item.type === userInfo?.type)?.label || tUserType(UserType.NORMAL)}
+                    </>
+                  ) : (
+                    "--"
+                  )}
                 </p>
 
                 {/* Invite Link inline (copy only) */}
@@ -585,7 +591,7 @@ function MyContent() {
                     {t("my_recommender") || "邀请链接"}：
                   </span>
                   <span className="text-xs text-white truncate min-w-0 flex-1">
-                    www.harmony.Link{address ? formatAddress(address) : "0X088...888"}
+                    {address ? `www.harmony.Link${formatAddress(address)}` : "--"}
                   </span>
                   <button
                     type="button"
@@ -598,20 +604,15 @@ function MyContent() {
                     }}
                     className="p-1 rounded shrink-0 ml-1"
                     aria-label="Copy invitation link"
-                    style={{
-                      background: "rgba(255, 255, 255, 0.1)",
-                      border: "1px solid rgba(255, 255, 255, 0.2)",
-                    }}
+                  
                   >
-                    <svg
-                      className="w-3.5 h-3.5 text-white"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                      aria-hidden
-                    >
-                      <path d="M8 3a1 1 0 011-1h2a1 1 0 011 1v1H8V3z" />
-                      <path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2h-1V2a2 2 0 00-2-2H8a2 2 0 00-2 2v1H6z" />
-                    </svg>
+                  <Image
+                  src="/imgs/my/copy.png"
+                  alt="Logo"
+                  width={20}
+                  height={20}
+                  className="object-contain"
+                />
                   </button>
                 </div>
               </div>
@@ -657,11 +658,11 @@ function MyContent() {
             <h3 className="text-center text-sm font-semibold mb-3 text-white">
               {t("tips") || "温馨提示"}
             </h3>
-            <p className="text-xs leading-relaxed" style={{ color: "rgba(255, 255, 255, 0.7)" }}>
+            <p className="text-xs leading-relaxed" style={{ color: "white" }}>
               参与早期认购的用户请注意保管好认购钱包的私钥，并确保账户安全。HarmonyLink APP上线后，只需导入认购户的私钥到APP中即可获得早期认购的全部权益及收益！
             </p>
             <br />
-            <p className="text-xs leading-relaxed" style={{ color: "rgba(255, 255, 255, 0.7)" }}>
+            <p className="text-xs leading-relaxed" style={{ color: "white" }}>
               HarmonyLink APP 正式上线前3天将面向参与早期认购用户开放，正式上线前隐于内容创造期，每位用户每天日发布11条视频内容，内容不可包含政治立场、黄、赌、毒等内容，也不可包含有其它平台LOGO的内容、内容可搬运抖音、Facebook等平台内容，内容质量越好，上线后获得的点赞、评论等收益越高，请用好您手里的特权！
             </p>
           </div>
