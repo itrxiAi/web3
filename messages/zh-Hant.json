@@ -158,6 +158,21 @@
     "section4_p3": "工具價值係數全維度超越模式價值（係數比3.1: 1）",
     "section4_p4": "通過 <b>認知鴻溝摺疊技術——AI助教系統</b> 降低87%學習成本，真正構建全民可驗證參與的Web3價值互聯網基座，重塑區塊鏈社會認知基礎設施。"
   },
+  "history_page": {
+    "title": "歷史記錄",
+    "col_amount": "數量(USDT)",
+    "col_time": "時間",
+    "col_hash": "哈希值",
+    "col_purpose": "用途",
+    "purpose_account_activation": "賬戶激活",
+    "purpose_EQUITY": "權益認購",
+    "copy_hash": "複製哈希",
+    "connect_wallet": "請先連接錢包以查看歷史記錄",
+    "loading": "載入中…",
+    "empty": "暫無記錄",
+    "error_load": "載入失敗，請稍後重試",
+    "load_more": "載入更多"
+  },
   "subscribe_page": {
     "title": "早期共識認購",
     "intro": "早期共識者是指早期HarmonyLink基礎內容的創造者、提供者，也是HarmonyLink的首批受益者；為了能夠在HarmonyLink APP面向全球上線後，第一時間呈現給用戶更豐富的內容，且使平台更具可玩性，參與了HarmonyLink早期共識認購的用戶在 APP正式面向全球開放前即可提前參與並發布內容，即 APP 開放日，所有用戶觀看、點讚、評論的所有視頻內容均屬於參與早期共識認購用戶所發布的內容；為了使平台上線後呈現的內容更豐富，我們鼓勵用戶參與其中，同時也為參與早期共識認購的用戶量身定做以下權益：",
@@ -172,6 +187,24 @@
     "cta": "立即認購",
     "footer_1": "* 認購完成後請前往菜單欄中的「個人中心」查看個人權益；所有權益顯示後方可退出；",
     "footer_2": "平台建議認購時請使用新建立的錢包，以免因為過度授權而造成的不必要損失！"
+  },
+  "equity_activation_page": {
+    "title": "賬戶激活",
+    "intro": "HarmonyLink 用戶在該頁面選擇不同的權益包激活賬戶；「激活」是指用戶完成鏈上身份創建並觸發價值交互的過程，在 HarmonyLink 中，激活用戶=鏈上地址創建（主權身份）+ 交互燃料注入（最低 Gas 費）+ 關鍵動作閉環，屬於平台正式權益的獲得者。\n\n不同權益包所包含的權益不同且都具有 50 天的時效性，時效期內，「激活」用戶可享受權益包內的所有權益，超出時效期的要獲得對應權益需再次在本頁面「激活」。",
+    "table_col_option": "權益包選項",
+    "table_col_benefits": "權益包權益（每日）",
+    "row_benefit_base": "每日可發影片 1 則、按讚 3、留言 1、留言按讚 10；基礎互動與發布權益（以 App 為準）。",
+    "row_benefit_plus": "每日可發影片 5 則、按讚 17、留言 7、留言按讚 50；更高互動權益（以 App 為準）。",
+    "row_benefit_premium": "每日可發影片 11 則、按讚 35、留言 15、留言按讚 120；完整權益包（以 App 為準）。",
+    "table_footer": "* 直播按讚等互動有機會獲得 HAK 等獎勵，規則以平台公告為準。",
+    "select_hint": "請選擇要激活的權益包並支付對應的 USDT",
+    "confirm_line": "您選擇的是 {amount} USDT 的權益包，請點擊下方「發起支付」完成支付以激活您的賬戶",
+    "referral_label": "推薦碼（可選）",
+    "referral_placeholder": "若有推薦碼請填寫，或透過邀請連結自動帶入",
+    "cta_pay": "發起支付",
+    "paying": "處理中…",
+    "history_link": "歷史記錄",
+    "disclaimer": "* 請仔細閱讀權益說明；支付成功後權益包不可升級或退款；權益僅限每日產生數據的行為，具體以平台規則為準。"
   },
   "download_page": {
     "title": "下載與文檔",
@@ -193,7 +226,8 @@
     "download_app": "下載HarmonyLink APP",
     "download_business_plan": "HarmonyLink商業計劃書下載",
     "download_whitepaper": "HarmonyLink白皮書下載",
-    "account_activation": "賬戶激活"
+    "account_activation": "賬戶激活",
+    "history_records": "歷史記錄"
   },
   "user_type": {
     "NORMAL": "未激活节点",

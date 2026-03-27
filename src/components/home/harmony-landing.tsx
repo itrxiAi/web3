@@ -4,7 +4,9 @@ import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { Link, useRouter } from "@/i18n/navigation";
-import logo from "@/public/images/v2/logo.png";
+
+const HOME_LOGO_SRC = "/imgs/home/logo.png";
+const HOME_HERO_BG = "/imgs/home/home1.png";
 
 interface Proclamation {
   index: number;
@@ -39,7 +41,7 @@ function EcosystemOrbit() {
       </svg>
       <div className="absolute inset-0 flex items-center justify-center">
         <div className="relative h-16 w-16 overflow-hidden rounded-full bg-black/40 p-2 ring-1 ring-white/20">
-          <Image src={logo} alt="" fill className="object-contain p-1" sizes="64px" />
+          <Image src={HOME_LOGO_SRC} alt="" fill className="object-contain p-1" sizes="64px" />
         </div>
       </div>
       {dots.map((d, i) => (
@@ -114,26 +116,30 @@ export default function HarmonyLanding() {
 
   return (
     <div className="flex flex-col bg-[#050608] text-white">
-      {/* Hero */}
-      <section className="relative min-h-[56vh] overflow-hidden pb-8 pt-24">
+      {/* Hero：首张背景图 + 居中 Logo（顶部渐变在项目 Header 中） */}
+      <section className="relative min-h-[56vh] overflow-hidden pb-8 pt-16">
         <div
-          className="absolute inset-0 bg-cover bg-center opacity-40"
-          style={{
-            backgroundImage:
-              "linear-gradient(180deg, rgba(5,8,12,0.2) 0%, rgba(5,8,12,0.92) 85%), radial-gradient(ellipse at 50% 0%, rgba(45,212,191,0.15), transparent 55%), radial-gradient(ellipse at 80% 40%, rgba(249,115,22,0.12), transparent 45%)",
-          }}
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          style={{ backgroundImage: `url(${HOME_HERO_BG})` }}
         />
-        <div className="pointer-events-none absolute -left-20 top-10 h-64 w-64 rounded-full bg-teal-500/20 blur-3xl" />
-        <div className="pointer-events-none absolute -right-16 bottom-0 h-72 w-72 rounded-full bg-fuchsia-600/15 blur-3xl" />
+        <div
+          className="absolute inset-0 bg-gradient-to-b from-black/35 via-black/25 to-black/80"
+          aria-hidden
+        />
 
         <div className="relative z-10 mx-auto flex max-w-3xl flex-col items-center px-4 pt-6 text-center">
-          <h1
-            className="bg-gradient-to-r from-cyan-300 via-fuchsia-400 to-orange-400 bg-clip-text text-4xl font-black tracking-tight text-transparent sm:text-5xl md:text-6xl"
-            style={{ lineHeight: 1.1 }}
-          >
-            HARMONY LINK
-          </h1>
-          <p className="mt-4 max-w-xl text-sm leading-relaxed text-white/75 sm:text-base">{t("harmony.hero_subtitle")}</p>
+          <h1 className="sr-only">HarmonyLink</h1>
+          <div className="relative mx-auto h-28 w-44 sm:h-32 sm:w-52 md:h-36 md:w-60">
+            <Image
+              src={HOME_LOGO_SRC}
+              alt="HarmonyLink"
+              fill
+              className="object-contain"
+              priority
+              sizes="(max-width: 768px) 176px, 240px"
+            />
+          </div>
+          <p className="mt-6 max-w-xl text-sm leading-relaxed text-white/90 drop-shadow sm:text-base">{t("harmony.hero_subtitle")}</p>
           <div className="mx-auto mt-6 h-1 w-12 rounded-full bg-white/80" />
 
           {proclaims.length > 0 && (
@@ -174,7 +180,7 @@ export default function HarmonyLanding() {
           </div>
           <div className="flex flex-col items-center gap-6 md:flex-row md:justify-end">
             <div className="relative h-24 w-24 shrink-0">
-              <Image src={logo} alt="HarmonyLink" fill className="object-contain" sizes="96px" />
+              <Image src={HOME_LOGO_SRC} alt="HarmonyLink" fill className="object-contain" sizes="96px" />
             </div>
             <div className="flex flex-1 items-end justify-center gap-4 sm:gap-6">
               {statBars.map((b) => (
@@ -320,7 +326,7 @@ export default function HarmonyLanding() {
           </div>
         </div>
         <div className="mx-auto mt-10 flex max-w-5xl items-center justify-between px-4">
-          <Image src={logo} alt="HarmonyLink" width={80} height={24} className="h-6 w-auto opacity-90" />
+          <Image src={HOME_LOGO_SRC} alt="HarmonyLink" width={80} height={80} className="h-10 w-auto object-contain opacity-90" />
           <p className="text-xs text-white/35">© {new Date().getFullYear()} HarmonyLink</p>
         </div>
       </footer>

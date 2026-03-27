@@ -158,6 +158,21 @@
     "section4_p3": "Tool value coefficient exceeds pattern value across dimensions (ratio 3.1:1)",
     "section4_p4": "Through <b>cognition-gap folding—AI tutor system</b>, learning cost drops 87%, building a verifiable Web3 value internet foundation for all and reshaping blockchain social cognition infrastructure."
   },
+  "history_page": {
+    "title": "History",
+    "col_amount": "Amount (USDT)",
+    "col_time": "Time",
+    "col_hash": "Hash",
+    "col_purpose": "Purpose",
+    "purpose_account_activation": "Account activation",
+    "purpose_EQUITY": "Equity subscription",
+    "copy_hash": "Copy hash",
+    "connect_wallet": "Connect your wallet to view history",
+    "loading": "Loading…",
+    "empty": "No records yet",
+    "error_load": "Failed to load. Please try again.",
+    "load_more": "Load more"
+  },
   "subscribe_page": {
     "title": "Early Consensus Subscription",
     "intro": "Early consensus participants are creators and providers of HarmonyLink’s foundational content, and the first beneficiaries. So that after the HarmonyLink APP launches globally, users see richer content and a more engaging experience sooner, participants in early consensus subscription may join early and publish content before the global launch—on APP launch day, all videos users watch, like, and comment on are from early consensus subscribers. To enrich launch-day content, we encourage participation and offer the following benefits:",
@@ -172,6 +187,24 @@
     "cta": "Subscribe now",
     "footer_1": "* After subscribing, open “Personal Center” in the menu to view your benefits; you may exit only after all benefits are shown.",
     "footer_2": "We recommend using a newly created wallet when subscribing to avoid unnecessary loss from excessive authorization."
+  },
+  "equity_activation_page": {
+    "title": "Account activation",
+    "intro": "HarmonyLink users choose an equity package on this page to activate their account. “Activation” means completing on-chain identity creation and value interaction: in HarmonyLink, an activated user = on-chain address (sovereign identity) + interaction fuel (minimum gas) + closed-loop key actions, and qualifies as a holder of official platform benefits.\n\nEach package offers different benefits, all with a 50-day validity period. While valid, “activated” users enjoy everything in that package; after it expires, you must activate again on this page to regain the corresponding benefits.",
+    "table_col_option": "Package",
+    "table_col_benefits": "Daily benefits",
+    "row_benefit_base": "Daily: 1 video post, 3 likes, 1 comment, 10 comment likes; basic publishing and interaction (see the App for details).",
+    "row_benefit_plus": "Daily: 5 video posts, 17 likes, 7 comments, 50 comment likes; higher interaction limits (see the App for details).",
+    "row_benefit_premium": "Daily: 11 video posts, 35 likes, 15 comments, 120 comment likes; full package (see the App for details).",
+    "table_footer": "* Live likes and other interactions may earn HAK and other rewards per platform rules.",
+    "select_hint": "Select an equity package and pay the corresponding USDT",
+    "confirm_line": "You selected the {amount} USDT package. Tap “Pay” below to complete payment and activate your account.",
+    "referral_label": "Referral code (optional)",
+    "referral_placeholder": "Enter a code if you have one, or use an invite link",
+    "cta_pay": "Pay",
+    "paying": "Processing…",
+    "history_link": "History",
+    "disclaimer": "* Read the benefits carefully. Paid packages cannot be upgraded or refunded. Benefits apply to daily on-chain actions (posts, likes, comments, etc.) per platform rules."
   },
   "download_page": {
     "title": "Downloads & Documents",
@@ -193,7 +226,8 @@
     "download_app": "Download HarmonyLink APP",
     "download_business_plan": "HarmonyLink Business Plan (PDF)",
     "download_whitepaper": "HarmonyLink Whitepaper (PDF)",
-    "account_activation": "Account Activation"
+    "account_activation": "Account Activation",
+    "history_records": "History"
   },
   "user_type": {
     "NORMAL": "Inactive Node",

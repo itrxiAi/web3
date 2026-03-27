@@ -146,13 +146,7 @@ function StakingContent(): React.ReactElement {
         },
         body: JSON.stringify({
           address: address.toString(),
-          status: [
-            TxFlowStatus.PENDING,
-            TxFlowStatus.CONFIRMED,
-            TxFlowStatus.FAILED,
-          ],
           flowTypeArr: [TxFlowType.DEPOSIT],
-          take: 500, // Adjust based on your needs
         }),
       });
 

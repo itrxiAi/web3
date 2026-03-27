@@ -3,8 +3,6 @@
 import Image from "next/image";
 import type { ReactNode } from "react";
 import { useTranslations } from "next-intl";
-import { Link } from "@/i18n/navigation";
-
 export default function HarmonyDetailContent() {
   const t = useTranslations("about_page");
 
@@ -15,12 +13,13 @@ export default function HarmonyDetailContent() {
   const bodyClass =
     "text-left [&_strong]:font-bold [&_strong]:text-[#1a1a1a]";
 
-  // 顶部标题专属样式（最大）
-  const headerStyle = {
+  // 主标题（原顶栏大标题，现放在正文最上方）
+  const heroTitleStyle = {
     fontSize: "18px",
     letterSpacing: "1px",
     lineHeight: "1.4",
-    fontWeight: "bold",
+    fontWeight: "bold" as const,
+    color: "#1a1a1a",
     fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif',
   };
 
@@ -46,19 +45,20 @@ export default function HarmonyDetailContent() {
 
   return (
     <div className="min-h-screen bg-white">
-      <header 
-        className="px-4 py-3.5 text-center shadow-sm"
+      <header
+        className="min-h-[60px] w-full shadow-sm"
         style={{
           backgroundImage: "linear-gradient(0deg, #e50e0f 0%, #680a71 100%)",
-          ...headerStyle,
-          color: "#ffffff"
         }}
-      >
-        {t("hero_title")}
-      </header>
+        aria-hidden
+      />
 
       <main className="mx-auto max-w-[min(100%,560px)] px-4 pb-28 pt-6 sm:px-6">
         <article className="space-y-6"> {/* 减小段落之间的整体间距 (space-y-10 -> space-y-6) */}
+          <h1 className="text-center pb-1" style={heroTitleStyle}>
+            {t("hero_title")}
+          </h1>
+
           <section>
             <h2 style={titleStyle}>
               {t("section1_title")}

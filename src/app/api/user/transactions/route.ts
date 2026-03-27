@@ -14,7 +14,7 @@ export async function POST(request: Request) {
 
   // Get where clause for both queries
   const whereClause = {
-    from_address: address.toLowerCase(),
+    fromAddress: address.toLowerCase(),
     status: {
       in: [TxFlowStatus.CONFIRMED, TxFlowStatus.PENDING, TxFlowStatus.AUDITING, TxFlowStatus.REFUSED]
     },

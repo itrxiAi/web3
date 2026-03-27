@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { DEV_ENV, MAX_TIMESTAMP_GAP_MS } from '@/constants';
 import prisma from '@/lib/prisma';
-import { updateUserEquity, updateUserType } from '@/lib/user';
+import { updateUserEquity } from '@/lib/user';
 import { verifyTokenTransfer } from '@/utils/chain';
 import { getEnvironment } from '@/lib/config';
-import { EquityType, UserType } from '@prisma/client';
+import { EquityType } from '@prisma/client';
 import { ErrorCode } from '@/lib/errors';
 import { operationControl } from '@/utils/auth';
 
@@ -15,7 +15,15 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { txHash, dev_address, dev_referralCode, dev_type } = body;
 
-    if (!txHash || txHash) {
+    if (!txHash || typeof txHash !== 'string') {
+      return NextResponse.json(
+        { error: ErrorCode.INVALID_TRANSACTION },
+        { status: 400 }
+      );
+    }
+
+    const isDev = getEnvironment() === DEV_ENV;
+    if (isDev && (!dev_address || !dev_type)) {
       return NextResponse.json(
         { error: ErrorCode.INVALID_TRANSACTION },
         { status: 400 }
@@ -33,7 +41,6 @@ export async function POST(req: NextRequest) {
     operationControl.set(operationKey, true, MAX_TIMESTAMP_GAP_MS);
 
     // Skip transaction verification in development mode
-    const isDev = getEnvironment() === DEV_ENV;
     let verifyResult: {
       isValid: boolean;
       error?: string;

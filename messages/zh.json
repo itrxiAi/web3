@@ -158,6 +158,21 @@
     "section4_p3": "工具价值系数全维度超越模式价值（系数比3.1: 1）",
     "section4_p4": "通过 <b>认知鸿沟折叠技术——AI助教系统</b> 降低87%学习成本，真正构建全民可验证参与的Web3价值互联网基座，重塑区块链社会认知基础设施。"
   },
+  "history_page": {
+    "title": "历史记录",
+    "col_amount": "数量(USDT)",
+    "col_time": "时间",
+    "col_hash": "哈希值",
+    "col_purpose": "用途",
+    "purpose_account_activation": "账户激活",
+    "purpose_EQUITY": "权益认购",
+    "copy_hash": "复制哈希",
+    "connect_wallet": "请先连接钱包以查看历史记录",
+    "loading": "加载中…",
+    "empty": "暂无记录",
+    "error_load": "加载失败，请稍后重试",
+    "load_more": "加载更多"
+  },
   "subscribe_page": {
     "title": "早期共识认购",
     "intro": "早期共识者是指早期HarmonyLink基础内容的创造者、提供者，也是HarmonyLink的首批受益者；为了能够在HarmonyLink APP面向全球上线后，第一时间呈现给用户更丰富的内容，且使平台更具可玩性，参与了HarmonyLink早期共识认购的用户在 APP正式面向全球开放前即可提前参与并发布内容，即 APP 开放日，所有用户观看、点赞、评论的所有视频内容均属于参与早期共识认购用户所发布的内容；为了使平台上线后呈现的内容更丰富，我们鼓励用户参与其中，同时也为参与早期共识认购的用户量身定做以下权益：",
@@ -172,6 +187,24 @@
     "cta": "立即认购",
     "footer_1": "* 认购完成后请前往菜单栏中的“个人中心”查看个人权益；所有权益显示后方可退出；",
     "footer_2": "平台建议认购时请使用新建立的钱包，以免因为过度授权而造成的不必要损失！"
+  },
+  "equity_activation_page": {
+    "title": "账户激活",
+    "intro": "HarmonyLink 用户在该页面选择不同的权益包激活账户；「激活」是指用户完成链上身份创建并触发价值交互的过程，在 HarmonyLink 中，激活用户=链上地址创建（主权身份）+ 交互燃料注入（最低 Gas 费）+ 关键动作闭环，属于平台正式权益的获得者。\n\n不同权益包所包含的权益不同且都具有 50 天的时效性，时效期内，「激活」用户可享受权益包内的所有权益，超出时效期的要获得对应权益需再次在本页面「激活」。",
+    "table_col_option": "权益包选项",
+    "table_col_benefits": "权益包权益（每日）",
+    "row_benefit_base": "每日可发视频 1 条、点赞 3、评论 1、评论点赞 10；含基础互动与内容发布权益（具体以 App 内为准）。",
+    "row_benefit_plus": "每日可发视频 5 条、点赞 17、评论 7、评论点赞 50；更高频互动与曝光权益（具体以 App 内为准）。",
+    "row_benefit_premium": "每日可发视频 11 条、点赞 35、评论 15、评论点赞 120；全量权益包（具体以 App 内为准）。",
+    "table_footer": "* 直播点赞等互动有机会获得 HAK 等奖励，规则以平台公告为准。",
+    "select_hint": "请选择要激活的权益包并支付对应的 USDT",
+    "confirm_line": "您选择的是 {amount} USDT 的权益包，请点击下方「发起支付」按钮完成支付以激活您的账户",
+    "referral_label": "推荐码（可选）",
+    "referral_placeholder": "若有推荐码请填写，或通过邀请链接自动带入",
+    "cta_pay": "发起支付",
+    "paying": "处理中…",
+    "history_link": "历史记录",
+    "disclaimer": "* 请仔细阅读权益说明；支付成功后权益包不可升级或退款；权益仅限每日产生数据的行为（如发布、点赞、评论等），具体以平台规则为准。"
   },
   "download_page": {
     "title": "下载与文档",
@@ -193,7 +226,8 @@
     "download_app": "下载HarmonyLink APP",
     "download_business_plan": "HarmonyLink商业计划书下载",
     "download_whitepaper": "HarmonyLink白皮书下载",
-    "account_activation": "账户激活"
+    "account_activation": "账户激活",
+    "history_records": "历史记录"
   },
   "user_type": {
     "NORMAL": "未激活节点",

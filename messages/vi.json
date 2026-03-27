@@ -158,6 +158,21 @@
     "section4_p3": "Tool value coefficient exceeds pattern value across dimensions (ratio 3.1:1)",
     "section4_p4": "Through <b>cognition-gap folding—AI tutor system</b>, learning cost drops 87%, building a verifiable Web3 value internet foundation for all and reshaping blockchain social cognition infrastructure."
   },
+  "history_page": {
+    "title": "Lịch sử",
+    "col_amount": "Số lượng (USDT)",
+    "col_time": "Thời gian",
+    "col_hash": "Hash",
+    "col_purpose": "Mục đích",
+    "purpose_account_activation": "Kích hoạt tài khoản",
+    "purpose_EQUITY": "Đăng ký vốn chủ sở hữu",
+    "copy_hash": "Sao chép hash",
+    "connect_wallet": "Kết nối ví để xem lịch sử",
+    "loading": "Đang tải…",
+    "empty": "Chưa có bản ghi",
+    "error_load": "Tải thất bại. Vui lòng thử lại.",
+    "load_more": "Tải thêm"
+  },
   "subscribe_page": {
     "title": "Early Consensus Subscription",
     "intro": "Early consensus participants are creators and providers of HarmonyLink’s foundational content, and the first beneficiaries. So that after the HarmonyLink APP launches globally, users see richer content and a more engaging experience sooner, participants in early consensus subscription may join early and publish content before the global launch—on APP launch day, all videos users watch, like, and comment on are from early consensus subscribers. To enrich launch-day content, we encourage participation and offer the following benefits:",
@@ -172,6 +187,24 @@
     "cta": "Subscribe now",
     "footer_1": "* After subscribing, open “Personal Center” in the menu to view your benefits; you may exit only after all benefits are shown.",
     "footer_2": "We recommend using a newly created wallet when subscribing to avoid unnecessary loss from excessive authorization."
+  },
+  "equity_activation_page": {
+    "title": "Kích hoạt tài khoản",
+    "intro": "Người dùng HarmonyLink chọn gói quyền lợi trên trang này để kích hoạt tài khoản. “Kích hoạt” là hoàn tất tạo danh tính on-chain và tương tác giá trị: tại HarmonyLink, người dùng đã kích hoạt = địa chỉ on-chain (danh tính chủ quyền) + nhiên liệu tương tác (gas tối thiểu) + vòng hành động chính, thuộc nhóm người được quyền lợi chính thức của nền tảng.\n\nMỗi gói có quyền lợi khác nhau và đều có hiệu lực 50 ngày. Trong thời hạn, người “đã kích hoạt” được hưởng toàn bộ quyền trong gói; hết hạn muốn có lại quyền tương ứng cần “kích hoạt” lại trên trang này.",
+    "table_col_option": "Gói",
+    "table_col_benefits": "Quyền lợi hàng ngày",
+    "row_benefit_base": "Mỗi ngày: 1 video, 3 thích, 1 bình luận, 10 thích bình luận (chi tiết trong App).",
+    "row_benefit_plus": "Mỗi ngày: 5 video, 17 thích, 7 bình luận, 50 thích bình luận (chi tiết trong App).",
+    "row_benefit_premium": "Mỗi ngày: 11 video, 35 thích, 15 bình luận, 120 thích bình luận (chi tiết trong App).",
+    "table_footer": "* Thích livestream có thể nhận HAK theo quy tắc nền tảng.",
+    "select_hint": "Chọn gói và thanh toán USDT tương ứng",
+    "confirm_line": "Bạn đã chọn gói {amount} USDT. Nhấn thanh toán bên dưới để kích hoạt.",
+    "referral_label": "Mã giới thiệu (tuỳ chọn)",
+    "referral_placeholder": "Nhập nếu có hoặc dùng liên mời",
+    "cta_pay": "Thanh toán",
+    "paying": "Đang xử lý…",
+    "history_link": "Lịch sử",
+    "disclaimer": "* Đọc kỹ quyền lợi. Đã thanh toán không đổi gói hoàn tiền. Áp dụng cho hành vi hàng ngày theo quy tắc nền tảng."
   },
   "download_page": {
     "title": "Downloads & Documents",
@@ -193,7 +226,8 @@
     "download_app": "Download HarmonyLink APP",
     "download_business_plan": "HarmonyLink Business Plan (PDF)",
     "download_whitepaper": "HarmonyLink Whitepaper (PDF)",
-    "account_activation": "Account Activation"
+    "account_activation": "Account Activation",
+    "history_records": "Lịch sử"
   },
   "user_type": {
     "NORMAL": "Nút không hoạt động",

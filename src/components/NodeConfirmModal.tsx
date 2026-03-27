@@ -79,10 +79,11 @@ export const NodeConfirmModal: React.FC<NodeConfirmModalProps> = ({
         <button
           type="button"
           onClick={onConfirm}
-          className="mb-4 w-full rounded-xl py-4 text-center text-lg font-bold text-white"
+          className="mb-4 w-full py-4 text-center text-lg font-bold text-white"
           style={{
-            background: "linear-gradient(135deg, #E91E63 0%, #9C27B0 100%)",
-            boxShadow: "0 4px 24px rgba(233,30,99,0.45)",
+            borderRadius: "10px",
+            backgroundImage: "linear-gradient(0deg, #e50e0f 0%, #680a71 100%)",
+            boxShadow: "0 4px 24px rgba(229, 14, 15, 0.35)",
           }}
         >
           立即支付

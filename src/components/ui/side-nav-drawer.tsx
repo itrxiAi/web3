@@ -13,13 +13,14 @@ type NavItem = {
 
 const menuItems: NavItem[] = [
   { key: "home", href: "/" },
+  { key: "history_records", href: "/history" },
   { key: "about", href: "/about" },
   { key: "early_consensus", href: "/node" },
   { key: "personal_center", href: "/my" },
-  { key: "download_app", href: "/download#app" },
+  { key: "download_app", href: "/download#other" },
   { key: "download_business_plan", href: "/download#business" },
   { key: "download_whitepaper", href: "/download#whitepaper" },
-  { key: "account_activation", href: "/node" },
+  { key: "account_activation", href: "/activate" },
 ];
 
 function MenuIcon({ name }: { name: string }) {
@@ -79,6 +80,13 @@ function MenuIcon({ name }: { name: string }) {
           <path d="M8 12l2.5 2.5L16 9" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       );
+    case "history":
+      return (
+        <svg className={cls} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+          <circle cx="12" cy="12" r="9" />
+          <path d="M12 7v5l3 2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      );
     default:
       return null;
   }
@@ -89,6 +97,7 @@ const iconByKey: Record<string, string> = {
   about: "about",
   early_consensus: "early",
   personal_center: "user",
+  history_records: "history",
   download_app: "download",
   download_business_plan: "stack",
   download_whitepaper: "book",

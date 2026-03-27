@@ -866,48 +866,41 @@ const NodeMarket: React.FC<NodeMarketProps> = ({
   ];
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-black text-white">
-      {/* Background glow */}
-      <div
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background:
-            "radial-gradient(ellipse at 50% 28%, rgba(140, 15, 75, 0.55) 0%, rgba(0,0,0,0) 62%)",
-        }}
-      />
-
-      <div className="relative pb-16 pt-28 px-5">
+    <div className="relative min-h-screen overflow-hidden text-white">
+      <div className="relative pb-16 pt-16 px-5">
         {/* Title */}
         <h1 className="mb-6 text-center text-xl font-bold text-white">
           {tSub("title")}
         </h1>
 
-        {/* Content Card */}
+        {/* Content Card — 权益说明 */}
         <div
-          className="mb-5 rounded-xl p-4 text-xs leading-relaxed"
+          className="mb-5 rounded-[10px] p-3 text-xs leading-snug"
           style={{
-            background:
-              "linear-gradient(145deg, rgba(100, 12, 50, 0.72) 0%, rgba(38, 6, 42, 0.82) 100%)",
-            border: "1px solid rgba(210, 45, 95, 0.38)",
+            backgroundImage: "linear-gradient(0deg, #e50e0f 0%, #680a71 100%)",
           }}
         >
-          <p className="mb-4" style={{ color: "rgba(255,255,255,0.88)" }}>
+          <p className="mb-3 leading-snug text-white" style={{ color: "#ffffff" }}>
             {tSub("intro")}
           </p>
 
-          <div className="space-y-2.5">
+          <div className="space-y-1.5">
             {benefits.map((benefit, i) => (
-              <div key={i} className="flex gap-2">
-                <span className="shrink-0 font-bold text-white">{i + 1}</span>
-                <p style={{ color: "rgba(255,255,255,0.88)" }}>{benefit}</p>
+              <div key={i} className="flex items-start gap-2.5">
+                <span
+                  className="mt-0.5 flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full bg-black text-[10px] font-bold leading-none text-white"
+                  aria-hidden
+                >
+                  {i + 1}
+                </span>
+                <p className="leading-snug text-white" style={{ color: "#ffffff" }}>
+                  {benefit}
+                </p>
               </div>
             ))}
           </div>
 
-          <p
-            className="mt-4 text-[11px]"
-            style={{ color: "rgba(255,255,255,0.58)" }}
-          >
+          <p className="mt-3 text-[11px] leading-snug text-white/60">
             {tSub("note")}
           </p>
         </div>
@@ -926,7 +919,7 @@ const NodeMarket: React.FC<NodeMarketProps> = ({
           {tSub("price_line")}
         </p>
 
-        {/* CTA Button */}
+        {/* CTA Button — 立即认购 */}
         <button
           onClick={() => {
             if (!address) {
@@ -936,15 +929,21 @@ const NodeMarket: React.FC<NodeMarketProps> = ({
             setShowConfirmModal(true);
           }}
           disabled={leftNum === 0}
-          className="mb-8 w-full rounded-xl py-4 text-center text-lg font-bold text-white"
-          style={{
-            background:
-              leftNum === 0
-                ? "rgba(80,80,80,0.5)"
-                : "linear-gradient(135deg, #E91E63 0%, #9C27B0 100%)",
-            boxShadow:
-              leftNum === 0 ? "none" : "0 4px 24px rgba(233,30,99,0.4)",
-          }}
+          className="mb-8 w-full py-4 text-center text-lg font-bold text-white"
+          style={
+            leftNum === 0
+              ? {
+                  borderRadius: "10px",
+                  background: "rgba(80,80,80,0.5)",
+                  boxShadow: "none",
+                }
+              : {
+                  borderRadius: "10px",
+                  backgroundImage:
+                    "linear-gradient(0deg, #e50e0f 0%, #680a71 100%)",
+                  boxShadow: "0 4px 24px rgba(229, 14, 15, 0.35)",
+                }
+          }
         >
           {tSub("cta")}
         </button>
@@ -1111,7 +1110,10 @@ function NodeContent() {
 
 export default function NodePage() {
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div
+      className="min-h-screen bg-black text-white bg-cover bg-center bg-no-repeat"
+      style={{ backgroundImage: "url(/imgs/history/bg.png)" }}
+    >
       <main>
         <Suspense fallback={<LoadingSpinner />}>
           <NodeContent />

@@ -1,4 +1,5 @@
-import Logo from "./logo";
+import Image from "next/image";
+import Link from "next/link";
 import SideNavDrawer from "./side-nav-drawer";
 import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
@@ -76,11 +77,21 @@ export default function Header() {
     fetchUserInfo();
   }, [address, refFromUrl]);
 
+  const homeLogoHref = `/node/${searchParams.toString() ? `?${searchParams.toString()}` : ""}`;
+
   return (
     <header
-      className={`fixed top-0 left-0 right-0 z-30 transition-colors duration-300 ${
-        isHome ? "bg-[#005d54] shadow-sm" : "bg-transparent"
+      className={`fixed left-0 right-0 top-0 z-30 transition-colors duration-300 ${
+        isHome ? "shadow-sm" : "bg-transparent"
       }`}
+      style={
+        isHome
+          ? {
+              backgroundImage:
+                "linear-gradient(0deg, rgb(229, 14, 15) 0%, rgb(104, 10, 113) 100%)",
+            }
+          : undefined
+      }
     >
       <div className="mx-auto max-w-[1900px] px-4 sm:px-6 lg:px-8 2xl:px-16">
         {isHome ? (
@@ -90,7 +101,7 @@ export default function Header() {
               <button
                 type="button"
                 onClick={() => setSideMenuOpen(true)}
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-[#005d54] shadow-sm transition hover:bg-white/95"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-[#680a71] shadow-sm transition hover:bg-white/95"
                 aria-label={tNav("open_menu")}
               >
                 <svg
@@ -110,7 +121,20 @@ export default function Header() {
             </div>
 
             <div className="flex min-w-0 justify-center [&_img]:h-7 [&_img]:w-auto">
-              <Logo />
+              <Link
+                href={homeLogoHref}
+                className="inline-flex shrink-0 items-center"
+                aria-label="HarmonyLink"
+              >
+                <Image
+                  src="/imgs/home/logo.png"
+                  alt="HarmonyLink"
+                  width={140}
+                  height={40}
+                  className="h-7 w-auto object-contain"
+                  priority
+                />
+              </Link>
             </div>
 
             <div className="flex min-w-0 justify-end">
@@ -120,7 +144,7 @@ export default function Header() {
                 className={
                   walletConnected
                     ? "max-w-[min(100%,11rem)] truncate font-mono text-[11px] font-medium tracking-tight text-white sm:max-w-[14rem] sm:text-xs"
-                    : "rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-[#005d54] shadow-sm transition hover:bg-white/95"
+                    : "rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-[#680a71] shadow-sm transition hover:bg-white/95"
                 }
               >
                 {walletConnected ? formatHeaderId(address) : tWallet("connect_wallet")}

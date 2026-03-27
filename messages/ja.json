@@ -158,6 +158,21 @@
     "section4_p3": "Tool value coefficient exceeds pattern value across dimensions (ratio 3.1:1)",
     "section4_p4": "Through <b>cognition-gap folding—AI tutor system</b>, learning cost drops 87%, building a verifiable Web3 value internet foundation for all and reshaping blockchain social cognition infrastructure."
   },
+  "history_page": {
+    "title": "履歴",
+    "col_amount": "数量(USDT)",
+    "col_time": "時間",
+    "col_hash": "ハッシュ",
+    "col_purpose": "用途",
+    "purpose_account_activation": "アカウント有効化",
+    "purpose_EQUITY": "エクイティ購読",
+    "copy_hash": "ハッシュをコピー",
+    "connect_wallet": "履歴を表示するにはウォレットを接続してください",
+    "loading": "読み込み中…",
+    "empty": "記録がありません",
+    "error_load": "読み込みに失敗しました。しばらくしてからお試しください。",
+    "load_more": "さらに読み込む"
+  },
   "subscribe_page": {
     "title": "Early Consensus Subscription",
     "intro": "Early consensus participants are creators and providers of HarmonyLink’s foundational content, and the first beneficiaries. So that after the HarmonyLink APP launches globally, users see richer content and a more engaging experience sooner, participants in early consensus subscription may join early and publish content before the global launch—on APP launch day, all videos users watch, like, and comment on are from early consensus subscribers. To enrich launch-day content, we encourage participation and offer the following benefits:",
@@ -172,6 +187,24 @@
     "cta": "Subscribe now",
     "footer_1": "* After subscribing, open “Personal Center” in the menu to view your benefits; you may exit only after all benefits are shown.",
     "footer_2": "We recommend using a newly created wallet when subscribing to avoid unnecessary loss from excessive authorization."
+  },
+  "equity_activation_page": {
+    "title": "アカウント有効化",
+    "intro": "HarmonyLink では本ページで権益パッケージを選びアカウントを有効化します。「有効化」とはオンチェーン上で身元を作り、価値のやり取りを起こすプロセスです。HarmonyLink では有効化ユーザー＝オンチェーンアドレス（主権的身份）＋インタラクション用燃料（最低限のガス）＋主要アクションのクローズドループであり、正式なプラットフォーム権益の対象となります。\n\nパッケージごとに内容は異なり、いずれも 50 日間の有効期間があります。期間中はパッケージ内の権益を利用でき、期限後に同じ権益が必要な場合は本ページで再度「有効化」してください。",
+    "table_col_option": "パッケージ",
+    "table_col_benefits": "1日あたりの権益",
+    "row_benefit_base": "1日: 動画投稿 1、いいね 3、コメント 1、コメントいいね 10（詳細はアプリへ）。",
+    "row_benefit_plus": "1日: 動画投稿 5、いいね 17、コメント 7、コメントいいね 50（詳細はアプリへ）。",
+    "row_benefit_premium": "1日: 動画投稿 11、いいね 35、コメント 15、コメントいいね 120（詳細はアプリへ）。",
+    "table_footer": "* ライブいいね等は HAK 等の報酬対象になる場合があります（ルールはプラットフォームに準拠）。",
+    "select_hint": "権益パッケージを選び、対応する USDT を支払ってください",
+    "confirm_line": "{amount} USDT のパッケージを選択しました。下の「支払い」で決済し、アカウントを有効化してください。",
+    "referral_label": "紹介コード（任意）",
+    "referral_placeholder": "あれば入力、または招待リンクを利用",
+    "cta_pay": "支払いを開始",
+    "paying": "処理中…",
+    "history_link": "履歴",
+    "disclaimer": "* 権益をよくお読みください。支払い後の変更・返金はできません。権益は投稿・いいね・コメント等の日次行動に適用されます。"
   },
   "download_page": {
     "title": "Downloads & Documents",
@@ -193,7 +226,8 @@
     "download_app": "Download HarmonyLink APP",
     "download_business_plan": "HarmonyLink Business Plan (PDF)",
     "download_whitepaper": "HarmonyLink Whitepaper (PDF)",
-    "account_activation": "Account Activation"
+    "account_activation": "Account Activation",
+    "history_records": "履歴"
   },
   "user_type": {
     "NORMAL": "未アクティブノード",
