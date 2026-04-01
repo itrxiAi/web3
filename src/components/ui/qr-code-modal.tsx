@@ -344,7 +344,7 @@ export function QRCodeModal({
             <div className="flex justify-center items-center mb-4 sm:mb-6 relative z-10">
               <Image
                 src="/images/v2/logo.png"
-                alt="TwinX Logo"
+                alt="HAK Logo"
                 width={100}
                 height={30}
               />

@@ -15,13 +15,13 @@ PORT=3000  # 直接使用 3001，因为我们知道这个端口可用
 echo "Using port: $PORT"
 
 # 先清理旧进程
-pm2 delete ava-points 2>/dev/null || true
+pm2 delete hak 2>/dev/null || true
 
 # 启动项目
-cd "$BASE_DIR/ava-points" || exit
+cd "$BASE_DIR/web3" || exit
 # 使用 PM2 启动 Next.js 应用，使用找到的可用端口
 export PORT=$PORT
-pm2 start npm --name "ava-points" -- start -- -p $PORT
+pm2 start npm --name "hak" -- start -- -p $PORT
 
 # 等待 Next.js 应用启动
 echo "Waiting for Next.js to start..."
@@ -35,11 +35,11 @@ echo "Next.js running on port: $PORT"
 
 # 提供查看日志的命令
 echo -e "\nTo view logs in real-time, use:"
-echo "PM2 logs: pm2 logs ava-points"
+echo "PM2 logs: pm2 logs hak"
 
-curl --location "http://localhost:$PORT/api/admin/task" \
---header 'Content-Type: application/json' \
---header "Authorization: Bearer $AUTH_BEARER" \
---data '{
-    "func":""
-}'
+# curl --location "http://localhost:$PORT/api/admin/task" \
+# --header 'Content-Type: application/json' \
+# --header "Authorization: Bearer $AUTH_BEARER" \
+# --data '{
+#     "func":""
+# }'

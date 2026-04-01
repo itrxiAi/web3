@@ -6,7 +6,7 @@ const INDEX_CACHE_DURATION = 96 * 60 * 60 * 1000; // 24 hours
 
 // Cache key prefixes - using standard Redis naming conventions
 // Format: entity:identifier:attribute
-const KEY_PREFIX = "TwinX";
+const KEY_PREFIX = "HAK";
 
 const TASK_STATIC_REWARD = `${KEY_PREFIX}:task:static`
 const TASK_DYNCMIC_REWARD = `${KEY_PREFIX}:task:dynamic`
