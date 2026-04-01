@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbo --hostname 127.0.0.1",
+    "dev": "next dev --hostname 0.0.0.0",
     "build": "prisma generate && next build",
     "start": "next start",
     "lint": "next lint"
@@ -66,6 +66,12 @@
     "glob": "^10.4.6",
     "sucrase": {
       "glob": "^10.4.6"
+    },
+    "@types/react": "^18.2.0",
+    "react": "^18.2.0",
+    "react-native": {
+      "@types/react": "^18.2.0",
+      "react": "^18.2.0"
     }
   },
   "devDependencies": {

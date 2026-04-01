@@ -286,7 +286,7 @@
   "user_type": {
     "NORMAL": "عقدة غير نشطة",
     "GROUP": "عقدة كوكبية",
-    "COMMUNITY": "عقدة نجمية",
+    "COMMUNITY": "المدقق",
     "common": "شائع",
     "SYSTEM_INIT": "عقدة مؤسس النظام",
     "COMMUNITY_INIT": "عقدة مؤسس المجتمع",

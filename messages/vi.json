@@ -281,7 +281,7 @@
   "user_type": {
     "NORMAL": "Nút không hoạt động",
     "GROUP": "Nút hành tinh",
-    "COMMUNITY": "Nút sao",
+    "COMMUNITY": "Người xác thực",
     "common": "Thông thường",
     "SYSTEM_INIT": "Nút sáng lập hệ thống",
     "COMMUNITY_INIT": "Nút sáng lập cộng đồng",

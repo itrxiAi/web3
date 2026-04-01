@@ -13,7 +13,7 @@ type NavItem = {
 
 const menuItems: NavItem[] = [
   { key: "home", href: "/" },
-  { key: "home2", href: "/home2" },
+  // { key: "home2", href: "/home2" },
   { key: "history_records", href: "/history" },
   { key: "about", href: "/about" },
   { key: "early_consensus", href: "/node" },
