@@ -286,7 +286,7 @@
   "user_type": {
     "NORMAL": "비활성화 노드",
     "GROUP": "행성 노드",
-    "COMMUNITY": "항성 노드",
+    "COMMUNITY": "검증자",
     "common": "일반",
     "SYSTEM_INIT": "시스템 창시자 노드",
     "COMMUNITY_INIT": "커뮤니티 창시자 노드",

@@ -286,7 +286,7 @@
   "user_type": {
     "NORMAL": "Inactive Node",
     "GROUP": "Planetary Node",
-    "COMMUNITY": "Stellar Node",
+    "COMMUNITY": "Validator",
     "common": "Common",
     "SYSTEM_INIT": "System Founder Node",
     "COMMUNITY_INIT": "Community Founder Node",

@@ -12,7 +12,7 @@ const USER_DATA_CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
 
 // Cache key prefixes - using standard Redis naming conventions
 // Format: entity:identifier:attribute
-const KEY_PREFIX = "TwinX";
+const KEY_PREFIX = "HAK";
 const PERFORMANCE_KEY = `${KEY_PREFIX}:user:performance`;
 const USER_ID_KEY = `${KEY_PREFIX}:user:id`;
 const USER_PATH_KEY = `${KEY_PREFIX}:user:path`;

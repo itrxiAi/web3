@@ -190,7 +190,7 @@ export async function getGroupNum(): Promise<number> {
 
 export async function getCommunityNum(): Promise<number> {
     const num = await getConfig(COMMUNITY_NUM);
-    return num ? Number(num) : 200;
+    return num ? Number(num) : 500;
 }
 
 export async function getLevel1Threshold(): Promise<decimal> {
@@ -378,7 +378,7 @@ export async function getGroupPriceDisplay(): Promise<decimal> {
 
 export async function getCommunityPriceDisplay(): Promise<decimal> {
     const price = await getConfig(COMMUNITY_PRICE_DISPLAY);
-    return new decimal(price || 2000);
+    return new decimal(price || 1000);
 }
 
 export async function getGroupPriceTransfer(): Promise<decimal> {
@@ -388,7 +388,7 @@ export async function getGroupPriceTransfer(): Promise<decimal> {
 
 export async function getCommunityPriceTransfer(): Promise<decimal> {
     const price = await getConfig(COMMUNITY_PRICE_TRANSFER);
-    return new decimal(price || 2000).mul(new decimal(10).pow(new decimal(TOKEN_USDT_DECIMAL)));
+    return new decimal(price || 1000).mul(new decimal(10).pow(new decimal(TOKEN_USDT_DECIMAL)));
 }
 
 // Equity price

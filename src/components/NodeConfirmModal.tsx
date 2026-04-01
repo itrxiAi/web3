@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useAppKitAccount } from "@reown/appkit/react";
+import { useReadContract } from "wagmi";
 import { useTranslations } from "next-intl";
 
 interface NodeConfirmModalProps {
@@ -21,18 +22,52 @@ export const NodeConfirmModal: React.FC<NodeConfirmModalProps> = ({
 }) => {
   const t = useTranslations("node");
   const { address } = useAppKitAccount();
-  const [usdtBalance, setUsdtBalance] = useState<string | null>(null);
+  
+  // USDT token address on BSC
+  const usdtAddress = "0x55d398326f99059fF775485246999027B3197955" as `0x${string}`;
+  
+  // Get USDT balance using useReadContract
+  const { data: balanceData, isLoading } = useReadContract({
+    address: usdtAddress,
+    abi: [
+      {
+        type: "function",
+        name: "balanceOf",
+        inputs: [{ type: "address" }],
+        outputs: [{ type: "uint256" }],
+        stateMutability: "view",
+      },
+      {
+        type: "function",
+        name: "decimals",
+        inputs: [],
+        outputs: [{ type: "uint8" }],
+        stateMutability: "view",
+      },
+    ],
+    functionName: "balanceOf",
+    args: address ? [address as `0x${string}`] : undefined,
+  });
 
-  useEffect(() => {
-    if (!isOpen || !address) return;
-    fetch(`/api/user/info?address=${address}`)
-      .then((r) => r.json())
-      .then((data) => {
-        const raw = Number(data?.usdt_points ?? 0);
-        setUsdtBalance(isNaN(raw) ? "0.00" : raw.toFixed(2));
-      })
-      .catch(() => setUsdtBalance("0.00"));
-  }, [isOpen, address]);
+  // Get decimals
+  const { data: decimalsData } = useReadContract({
+    address: usdtAddress,
+    abi: [
+      {
+        type: "function",
+        name: "decimals",
+        inputs: [],
+        outputs: [{ type: "uint8" }],
+        stateMutability: "view",
+      },
+    ],
+    functionName: "decimals",
+  });
+
+  // Format balance
+  const decimals = decimalsData ? Number(decimalsData) : 18;
+  const balance = balanceData ? Number(balanceData) / Math.pow(10, decimals) : 0;
+  const formattedBalance = balance.toFixed(2);
 
   if (!isOpen) return null;
 
@@ -74,7 +109,7 @@ export const NodeConfirmModal: React.FC<NodeConfirmModalProps> = ({
 
         {/* Balance */}
         <p className="mb-6 text-xs" style={{ color: "rgba(255,255,255,0.45)" }}>
-          {t("confirm_purchase_balance", { balance: usdtBalance ?? "…" })}
+          {t("confirm_purchase_balance", { balance: isLoading ? "…" : formattedBalance })}
         </p>
 
         {/* Confirm Button */}

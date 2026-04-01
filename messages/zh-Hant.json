@@ -279,7 +279,7 @@
     "history_records": "歷史記錄"
   },
   "user_type": {
-    "NORMAL": "未激活節點",
+    "NORMAL": "普通用户",
     "GROUP": "行星節點",
     "COMMUNITY": "恆星節點",
     "common": "普通",
@@ -362,7 +362,7 @@
     "reward_cap": "挖礦權益",
     "referrals": "推薦",
     "activated": "已激活",
-    "unactivated": "未激活",
+    "unactivated": "普通用户",
     "invite": "邀請好友",
     "buy_now": "立即購買",
     "node_reward_data": "節點獎勵",
@@ -478,7 +478,7 @@
     "usdt_amount": "USDT數量",
     "current_price": "當前價格",
     "activated": "已激活",
-    "unactivated": "未激活",
+    "unactivated": "普通用户",
     "community_level": "社區",
     "my_address": "我的地址",
     "my_minting": "我的鑄造",

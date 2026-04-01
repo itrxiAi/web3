@@ -286,7 +286,7 @@
   "user_type": {
     "NORMAL": "未アクティブノード",
     "GROUP": "惑星ノード",
-    "COMMUNITY": "恒星ノード",
+    "COMMUNITY": "検証者",
     "common": "一般",
     "SYSTEM_INIT": "システム創設者ノード",
     "COMMUNITY_INIT": "コミュニティ創設者ノード",

@@ -928,10 +928,10 @@ const NodeMarket: React.FC<NodeMarketProps> = ({
             }
             setShowConfirmModal(true);
           }}
-          disabled={leftNum === 0}
+          disabled={userInfo?.type === "COMMUNITY"}
           className="mb-8 w-full py-4 text-center text-lg font-bold text-white"
           style={
-            leftNum === 0
+            userInfo?.type === "COMMUNITY" || leftNum === 0
               ? {
                   borderRadius: "10px",
                   background: "rgba(80,80,80,0.5)",
@@ -1089,13 +1089,10 @@ function NodeContent() {
         message={txErrorMessage}
       />
       {hasNode && userInfo ? (
-        <ConnectedNodeDetails
-          referralCode={userInfo.referral_code || ""}
-          activationDate={formatDate(new Date(userInfo.buy_at || ""))}
-          userType={userInfo.type}
-          level={userInfo.level}
-          activePercent={userInfo.active_percent}
-          interestActive={userInfo.interest_active}
+        <NodeMarket
+          nodeData={nodeData}
+          userInfo={userInfo}
+          handleCommunity={handleCommunity}
         />
       ) : (
         <NodeMarket

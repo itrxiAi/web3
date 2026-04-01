@@ -2,7 +2,7 @@ import { Metadata, Viewport } from "next";
 import "./css/style.css";
 
 export const metadata: Metadata = {
-  title: "TwinX",
+  title: "HAK",
   description: "Decentralized crypto-autonomous community",
   icons: {
     icon: "/images/favicon.ico",
