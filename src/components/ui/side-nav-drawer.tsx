@@ -235,7 +235,7 @@ export default function SideNavDrawer({
 
         <nav className="relative z-10 min-h-0 flex-1 overflow-y-auto  border-white/[0.06] bg-gradient-to-b from-white/[0.05] from-[8%] via-black/55 via-[55%] to-black to-[100%] py-2 backdrop-blur-md">
           <ul className="space-y-0">
-            {menuItems.map((item) => {
+            {menuItems.map((item: NavItem) => {
               const isDownloadLink = item.href.startsWith('/documents/');
               const LinkComponent = isDownloadLink ? 'a' : Link;
               
