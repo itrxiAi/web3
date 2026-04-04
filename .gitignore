@@ -4,6 +4,7 @@
 /node_modules
 /contracts-project
 /.pnp
+/.windsurf
 .pnp.*
 .yarn/*
 !.yarn/patches

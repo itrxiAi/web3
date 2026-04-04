@@ -18,9 +18,9 @@ const menuItems: NavItem[] = [
   { key: "about", href: "/about" },
   { key: "early_consensus", href: "/node" },
   { key: "personal_center", href: "/my" },
-  { key: "download_app", href: "/download#other" },
-  { key: "download_business_plan", href: "/download#business" },
-  { key: "download_whitepaper", href: "/download#whitepaper" },
+  { key: "download_app", href: "/documents/harmonylink.apk" },
+  { key: "download_business_plan", href: "/documents/businessplan.pdf" },
+  { key: "download_whitepaper", href: "/documents/whitebook.pdf" },
   { key: "account_activation", href: "/activate" },
 ];
 
@@ -235,19 +235,25 @@ export default function SideNavDrawer({
 
         <nav className="relative z-10 min-h-0 flex-1 overflow-y-auto  border-white/[0.06] bg-gradient-to-b from-white/[0.05] from-[8%] via-black/55 via-[55%] to-black to-[100%] py-2 backdrop-blur-md">
           <ul className="space-y-0">
-            {menuItems.map((item) => (
-              <li key={item.key}>
-                <Link
-                  href={item.href}
-                  onClick={onClose}
-                  className="flex items-center gap-3 px-4 py-3.5 text-[15px] font-medium text-white/95 transition hover:bg-white/[0.06]"
-                >
-                  <MenuIcon name={iconByKey[item.key] ?? "home"} />
-                  <span className="min-w-0 flex-1 leading-snug">{t(item.key)}</span>
-                  <ChevronRight />
-                </Link>
-              </li>
-            ))}
+            {menuItems.map((item) => {
+              const isDownloadLink = item.href.startsWith('/documents/');
+              const LinkComponent = isDownloadLink ? 'a' : Link;
+              
+              return (
+                <li key={item.key}>
+                  <LinkComponent
+                    href={item.href}
+                    onClick={onClose}
+                    className="flex items-center gap-3 px-4 py-3.5 text-[15px] font-medium text-white/95 transition hover:bg-white/[0.06]"
+                    {...(isDownloadLink && { target: '_blank', rel: 'noopener noreferrer' })}
+                  >
+                    <MenuIcon name={iconByKey[item.key] ?? "home"} />
+                    <span className="min-w-0 flex-1 leading-snug">{t(item.key)}</span>
+                    <ChevronRight />
+                  </LinkComponent>
+                </li>
+              );
+            })}
           </ul>
         </nav>
 
