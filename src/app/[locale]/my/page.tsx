@@ -577,23 +577,23 @@ function MyContent() {
                         : ""}
                       {roleTypes.find((item) => item.type === userInfo?.type)?.label || tUserType(UserType.NORMAL)}
                     </>
-                  ) : (
+                  ) : ( 
                     "--"
                   )}
                 </p>
 
                 {/* Invite Link inline (copy only) */}
                 <div className="flex items-center gap-1 min-w-0">
-                  <span
+                  {/* <span
                     className="text-xs shrink-0"
                     style={{ color: "rgba(255, 255, 255, 0.6)" }}
                   >
                     {t("my_recommender")}：
-                  </span>
-                  <span className="text-xs text-white truncate min-w-0 flex-1">
+                  </span> */}
+                  {/* <span className="text-xs text-white truncate min-w-0 flex-1">
                     {address ? `www.harmony.Link${formatAddress(address)}` : "--"}
-                  </span>
-                  <button
+                  </span> */}
+                  {/* <button
                     type="button"
                     onClick={() => {
                       if (!address) {
@@ -613,7 +613,7 @@ function MyContent() {
                   height={20}
                   className="object-contain"
                 />
-                  </button>
+                  </button> */}
                 </div>
               </div>
             </div>
