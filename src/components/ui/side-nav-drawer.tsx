@@ -18,9 +18,9 @@ const menuItems: NavItem[] = [
   { key: "about", href: "/about" },
   { key: "early_consensus", href: "/node" },
   { key: "personal_center", href: "/my" },
-  { key: "download_app", href: "/documents/harmonylink.apk" },
-  { key: "download_business_plan", href: "/documents/businessplan.pdf" },
-  { key: "download_whitepaper", href: "/documents/whitebook.pdf" },
+  { key: "download_app", href: "/download#other" },
+  { key: "download_business_plan", href: "/download#business" },
+  { key: "download_whitepaper", href: "/download#whitepaper" },
   { key: "account_activation", href: "/activate" },
 ];
 

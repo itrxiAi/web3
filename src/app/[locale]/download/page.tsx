@@ -17,14 +17,14 @@ export default function DownloadPage() {
 
   /** Mock：三类 — 商业计划书、白皮书、其他资料（href 后续可接真实地址） */
   const items: DownloadItem[] = [
-    { key: "business-zh", categoryId: "business", type: "pdf", label: t("file_business_zh") },
-    { key: "business-en", categoryId: "business", type: "pdf", label: t("file_business_en") },
-    { key: "whitepaper-zh", categoryId: "whitepaper", type: "pdf", label: t("file_whitepaper_zh") },
-    { key: "whitepaper-en", categoryId: "whitepaper", type: "pdf", label: t("file_whitepaper_en") },
-    { key: "long-pic-zh", categoryId: "other", type: "jpg", label: t("file_long_pic_zh") },
-    { key: "long-pic-en", categoryId: "other", type: "jpg", label: t("file_long_pic_en") },
-    { key: "tutorial-zh", categoryId: "other", type: "mp4", label: t("file_tutorial_zh") },
-    { key: "tutorial-en", categoryId: "other", type: "mp4", label: t("file_tutorial_en") },
+    { key: "business-zh", categoryId: "business", type: "pdf", label: t("file_business_zh"), href: "/documents/businessplan.pdf" },
+    { key: "business-en", categoryId: "business", type: "pdf", label: t("file_business_en"), href: "/documents/businessplan.pdf" },
+    { key: "whitepaper-zh", categoryId: "whitepaper", type: "pdf", label: t("file_whitepaper_zh"), href: "/documents/whitepaper.pdf" },
+    { key: "whitepaper-en", categoryId: "whitepaper", type: "pdf", label: t("file_whitepaper_en"), href: "/documents/whitepaper.pdf" },
+    { key: "long-pic-zh", categoryId: "other", type: "jpg", label: t("file_long_pic_zh"), href: "/documents/whitepaper.pdf" },
+    { key: "long-pic-en", categoryId: "other", type: "jpg", label: t("file_long_pic_en"), href: "/documents/whitepaper.pdf" },
+    { key: "tutorial-zh", categoryId: "other", type: "mp4", label: t("file_tutorial_zh"), href: "/documents/whitepaper.pdf" },
+    { key: "tutorial-en", categoryId: "other", type: "mp4", label: t("file_tutorial_en"), href: "/documents/whitepaper.pdf" },
   ];
 
   const FILE_ICON_SRC: Record<FileType, string> = {
