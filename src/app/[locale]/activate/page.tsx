@@ -179,7 +179,7 @@ function ActivateInner() {
           <button
             type="button"
             onClick={onPay}
-            disabled={isPaying}
+            disabled={true}//{isPaying}
             className="min-h-[48px] w-full max-w-[min(100%,320px)] rounded-[10px] py-3 text-center text-base font-bold text-white disabled:opacity-60"
             style={{
               backgroundImage: "linear-gradient(90deg, #c41e3a 0%, #5b21b6 100%)",
