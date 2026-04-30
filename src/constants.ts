@@ -16,8 +16,12 @@ export const NORMAL_TYPE = 'NORMAL' as const;
 export const EQUITY_BASE_TYPE = 'BASE' as const;
 export const EQUITY_PLUS_TYPE = 'PLUS' as const;
 export const EQUITY_PREMIUM_TYPE = 'PREMIUM' as const;
+export const VERIFIER_1 = 'VERIFIER1' as const;
+export const VERIFIER_2 = 'VERIFIER2' as const;
+export const VERIFIER_3 = 'VERIFIER3' as const;
+export const VERIFIER_4 = 'VERIFIER4' as const;
 
-export type MembershipType = typeof GROUP_TYPE | typeof COMMUNITY_TYPE | typeof NORMAL_TYPE | typeof EQUITY_BASE_TYPE | typeof EQUITY_PLUS_TYPE | typeof EQUITY_PREMIUM_TYPE;
+export type MembershipType = typeof GROUP_TYPE | typeof COMMUNITY_TYPE | typeof NORMAL_TYPE | typeof EQUITY_BASE_TYPE | typeof EQUITY_PLUS_TYPE | typeof EQUITY_PREMIUM_TYPE | typeof VERIFIER_1 | typeof VERIFIER_2 | typeof VERIFIER_3 | typeof VERIFIER_4;
 
 // environment
 export const DEV_ENV = 'development';

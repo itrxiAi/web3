@@ -381,6 +381,22 @@ export async function getCommunityPriceDisplay(): Promise<decimal> {
     return new decimal(price || 1000);
 }
 
+export async function getVerifier1(): Promise<decimal> {
+    return new decimal(500);
+}
+
+export async function getVerifier2(): Promise<decimal> {
+    return new decimal(1000);
+}
+
+export async function getVerifier3(): Promise<decimal> {
+    return new decimal(5000);
+}
+
+export async function getVerifier4(): Promise<decimal> {
+    return new decimal(10000);
+}
+
 export async function getGroupPriceTransfer(): Promise<decimal> {
     const price = await getConfig(GROUP_PRICE_TRANSFER);
     return new decimal(price || 500).mul(new decimal(10).pow(new decimal(TOKEN_USDT_DECIMAL)));

@@ -31,6 +31,8 @@ interface UserInfo {
   referral_code?: string;
   superior_referral_code?: string;
   interest_active: boolean;
+  cards: number;
+  points: number;
 }
 
 function MyContent() {
@@ -481,7 +483,7 @@ function MyContent() {
       key: "trading_dividends",
       label: t("trading_dividends"),
       icon: "$",
-    },
+    }/* ,
     {
       key: "team_level_t2",
       label: t("team_level_t2"),
@@ -491,7 +493,7 @@ function MyContent() {
       key: "ad_revenue",
       label: t("ad_revenue"),
       icon: "◈",
-    },
+    }, */
   ];
 
   function BenefitCircleIcon({ iconKey, label, isActivated }: { iconKey: string; label: string; isActivated: boolean }) {
@@ -626,6 +628,29 @@ function MyContent() {
             </div>
           </div>
 
+          {/* My HAKCARD and Points Section */}
+          <div className="mb-8">
+            <div
+              className="p-5"
+              style={{
+                opacity: 0.78,
+                borderRadius: "15px",
+                backgroundImage: "linear-gradient(0deg, #e30e10 0%, #690a71 100%)",
+              }}
+            >
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-white/80">{t("hakcard")}</p>
+                  <p className="text-2xl font-bold text-white">{userInfo?.cards || 0}</p>
+                </div>
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-white/80">{t("verifier_points")}</p>
+                  <p className="text-2xl font-bold text-white">{userInfo?.points || 0}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* My Benefits Section */}
           <div className="mb-8">
             <div
@@ -657,7 +682,7 @@ function MyContent() {
               </div>
 
               {/* Row 2: 2 items centered */}
-              <div className="flex justify-around mx-auto" style={{ width: "66%" }}>
+              {/* <div className="flex justify-around mx-auto" style={{ width: "66%" }}>
                 {benefitsData.slice(3).map((benefit) => (
                   <BenefitCircleIcon 
                     key={benefit.key} 
@@ -666,7 +691,7 @@ function MyContent() {
                     isActivated={userInfo?.type === UserType.COMMUNITY || false}
                   />
                 ))}
-              </div>
+              </div> */}
             </div>
           </div>
 

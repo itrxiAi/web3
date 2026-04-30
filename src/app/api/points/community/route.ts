@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { DEV_ENV, MAX_TIMESTAMP_GAP_MS } from '@/constants';
+import { DEV_ENV, MAX_TIMESTAMP_GAP_MS, MembershipType } from '@/constants';
 import prisma from '@/lib/prisma';
 import { updateUserType } from '@/lib/user';
 import { verifyTokenTransfer } from '@/utils/chain';
@@ -83,7 +83,7 @@ export async function POST(req: NextRequest) {
     try {
         await updateUserType({
           walletAddress,
-          type: type as UserType,
+          type: type as MembershipType,
           txHash,
           tx: prisma
         });

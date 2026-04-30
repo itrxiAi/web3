@@ -1,8 +1,8 @@
-import { DB_BATCH } from '@/constants';
+import { DB_BATCH, MembershipType, VERIFIER_1, VERIFIER_2, VERIFIER_3, VERIFIER_4 } from '@/constants';
 import prisma from './prisma';
 import { EquityType, Prisma, TokenType, TxFlowStatus, TxFlowType, UserType } from '@prisma/client';
 import decimal from 'decimal.js';
-import { getCommunityNum, getCommunityPriceDisplay, getGroupNum, getGroupPriceDisplay, getHotWalletAddress, getReferralDirectRewardRateCommunity, getReferralDirectRewardRateGroup, getReferralDiffRewardRateCommunity, getReferralDiffRewardRateGalaxy, getGalaxyThreshold, getStakeGroupDynamicRewardCap, getStakeCommunityDynamicRewardCap, getGroupMinLevel, getCommunityMinLevel, getGalaxyMinLevel, getReferralDirectRewardRateGalaxy, getEquityBasePriceDisplay, getEquityPlusPriceDisplay, getEquityPremiumPriceDisplay } from './config';
+import { getCommunityNum, getCommunityPriceDisplay, getGroupNum, getGroupPriceDisplay, getHotWalletAddress, getReferralDirectRewardRateCommunity, getReferralDirectRewardRateGroup, getReferralDiffRewardRateCommunity, getReferralDiffRewardRateGalaxy, getGalaxyThreshold, getStakeGroupDynamicRewardCap, getStakeCommunityDynamicRewardCap, getGroupMinLevel, getCommunityMinLevel, getGalaxyMinLevel, getReferralDirectRewardRateGalaxy, getEquityBasePriceDisplay, getEquityPlusPriceDisplay, getEquityPremiumPriceDisplay, getVerifier1, getVerifier2, getVerifier3, getVerifier4 } from './config';
 import { cleanUserLevel, cleanUserMining, cleanUserTotalPerformance, getUserAddressById, getUserPath, getUserTotalPerformance } from './userCache';
 import { reRankUser } from '@/tasks/user';
 //import { processBalanceUpdate } from './balance';
@@ -88,12 +88,12 @@ export async function updateUserType({
   tx
 }: {
   walletAddress: string;
-  type: UserType;
+  type: MembershipType;
   txHash: string;
   tx: Prisma.TransactionClient;
 }) {
   let amount = 0;
-  let userType: UserType = type; // 默认使用传入的类型，确保不会为 null
+  //let userType: UserType = type as UserType; // 默认使用传入的类型，确保不会为 null
   let stakeCap = new decimal(0)
   let dynamicCap = new decimal(0)
   let minLevel = 0
@@ -111,15 +111,32 @@ export async function updateUserType({
   //   minLevel = await getCommunityMinLevel()
   // }
 
-  if (type === UserType.COMMUNITY) {
-    amount = (await getCommunityPriceDisplay()).toNumber();
-    userType = UserType.COMMUNITY;
-    dynamicCap = await getStakeCommunityDynamicRewardCap()
-    minLevel = await getCommunityMinLevel()
+  // if (type === UserType.COMMUNITY) {
+  //   amount = (await getCommunityPriceDisplay()).toNumber();
+  //   userType = UserType.COMMUNITY;
+  //   dynamicCap = await getStakeCommunityDynamicRewardCap()
+  //   minLevel = await getCommunityMinLevel()
+  // }
+
+  let points = 0;
+  let cards = 0;
+
+  if (type === VERIFIER_1) {
+    points = 100;
+    cards = 1;
+  } else if (type === VERIFIER_2) {
+    points = 250;
+    cards = 2;
+  } else if (type === VERIFIER_3) {
+    points = 1500;
+    cards = 10;
+  } else if (type === VERIFIER_4) {
+    points = 3500;
+    cards = 20;
   }
 
   const count = await tx.user.count({
-    where: { type }
+    where: { type: UserType.COMMUNITY }
   });
   if (count >= (type != UserType.COMMUNITY ? await getGroupNum() : await getCommunityNum())) {
     throw new Error('All spots are currently sold out');
@@ -140,7 +157,14 @@ export async function updateUserType({
 
   const user = await tx.user.update({
     where: { walletAddress: walletAddress },
-    data: { type: userType, equityType: EquityType.PREMIUM, purchaseAt: new Date(), equityActivedAt: new Date()/* , min_level: minLevel */ }
+    data: {
+      type: UserType.COMMUNITY,
+      equityType: EquityType.PREMIUM,
+      purchaseAt: new Date(),
+      equityActivedAt: new Date(),
+      points: { increment: points },
+      cards: { increment: cards }
+    }
   });
 
   await reRankUser(walletAddress)

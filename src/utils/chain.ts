@@ -1,10 +1,10 @@
 import { Connection, PublicKey, LAMPORTS_PER_SOL, Transaction, Keypair, VersionedTransaction, TransactionMessage, TransactionConfirmationStrategy, BlockheightBasedTransactionConfirmationStrategy, BaseTransactionConfirmationStrategy, ComputeBudgetProgram } from '@solana/web3.js';
 import { bsc } from 'viem/chains';
-import { MEMO_PROGRAM_ID, GROUP_TYPE, COMMUNITY_TYPE, MembershipType, NORMAL_TYPE, DEV_ENV, MAX_TRANSACTION_TIMEOUT_MS, EQUITY_BASE_TYPE, EQUITY_PLUS_TYPE, EQUITY_PREMIUM_TYPE } from '@/constants';
+import { MEMO_PROGRAM_ID, GROUP_TYPE, COMMUNITY_TYPE, MembershipType, NORMAL_TYPE, DEV_ENV, MAX_TRANSACTION_TIMEOUT_MS, EQUITY_BASE_TYPE, EQUITY_PLUS_TYPE, EQUITY_PREMIUM_TYPE, VERIFIER_1, VERIFIER_2, VERIFIER_3, VERIFIER_4 } from '@/constants';
 import { EquityType, TokenType, TxFlowStatus } from '@prisma/client';
 import decimal from 'decimal.js';
 import prisma from '@/lib/prisma';
-import { getCommunityPriceDisplay, getCommunityPriceTransfer, getGroupPriceDisplay, getGroupPriceTransfer, getHotWalletAddress, getHotWalletKeypair, getBurningAddress, getEquityBasePriceDisplay, getEquityPlusPriceDisplay, getEquityPremiumPriceDisplay } from '@/lib/config';
+import { getCommunityPriceDisplay, getCommunityPriceTransfer, getGroupPriceDisplay, getGroupPriceTransfer, getHotWalletAddress, getHotWalletKeypair, getBurningAddress, getEquityBasePriceDisplay, getEquityPlusPriceDisplay, getEquityPremiumPriceDisplay, getVerifier1, getVerifier2, getVerifier3, getVerifier4 } from '@/lib/config';
 import { getCurrentPrice } from './lbank';
 import { truncateNumber } from './common';
 // Ethereum imports
@@ -349,22 +349,42 @@ export async function verifyTokenTransfer(txHash: string, equity: boolean = fals
 
     // Verify amount matches type (using same logic as Solana)
     if (!equity) {
-      if (amountDecimal.equals(await getGroupPriceDisplay())) { // Compare decimal to decimal
+      if (amountDecimal.equals(await getVerifier1())) { // Compare decimal to decimal
         return {
           isValid: true,
           fromAddress,
           referralCode,
-          type: GROUP_TYPE,
+          type: VERIFIER_1,
           amount
         };
       }
 
-      if (amountDecimal.equals(await getCommunityPriceDisplay())) { // Convert to USDT decimals
+      if (amountDecimal.equals(await getVerifier2())) { // Convert to USDT decimals
         return {
           isValid: true,
           fromAddress,
           referralCode,
-          type: COMMUNITY_TYPE,
+          type: VERIFIER_2,
+          amount
+        };
+      }
+
+      if (amountDecimal.equals(await getVerifier3())) { // Convert to USDT decimals
+        return {
+          isValid: true,
+          fromAddress,
+          referralCode,
+          type: VERIFIER_3,
+          amount
+        };
+      }
+
+      if (amountDecimal.equals(await getVerifier4())) { // Convert to USDT decimals
+        return {
+          isValid: true,
+          fromAddress,
+          referralCode,
+          type: VERIFIER_4,
           amount
         };
       }

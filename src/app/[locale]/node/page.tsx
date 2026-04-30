@@ -849,6 +849,7 @@ const NodeMarket: React.FC<NodeMarketProps> = ({
   const tSub = useTranslations("subscribe_page");
   const { address } = useAppKitAccount();
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [selectedPrice, setSelectedPrice] = useState("1000");
 
   if (!nodeData) {
     return <LoadingSpinner />;
@@ -912,41 +913,118 @@ const NodeMarket: React.FC<NodeMarketProps> = ({
         >
           {tSub("urgency")}
         </p>
-        <p
-          className="mb-6 text-center text-xs"
-          style={{ color: "rgba(255,255,255,0.68)" }}
-        >
-          {tSub("price_line")}
-        </p>
 
-        {/* CTA Button — 立即认购 */}
-        <button
-          onClick={() => {
-            if (!address) {
-              triggerWalletConnect();
-              return;
+        {/* 4 Price Buttons */}
+        <div className="mb-6 flex flex-col gap-3">
+          <button
+            onClick={() => {
+              if (!address) {
+                triggerWalletConnect();
+                return;
+              }
+              setSelectedPrice("100");
+              setShowConfirmModal(true);
+            }}
+            disabled={userInfo?.type === "COMMUNITY"}
+            className="py-3 text-center text-sm font-bold text-white"
+            style={
+              userInfo?.type === "COMMUNITY" || leftNum === 0
+                ? {
+                    borderRadius: "8px",
+                    background: "rgba(80,80,80,0.5)",
+                    boxShadow: "none",
+                  }
+                : {
+                    borderRadius: "8px",
+                    backgroundImage: "linear-gradient(0deg, #e50e0f 0%, #680a71 100%)",
+                    boxShadow: "0 4px 24px rgba(229, 14, 15, 0.35)",
+                  }
             }
-            setShowConfirmModal(true);
-          }}
-          disabled={userInfo?.type === "COMMUNITY"}
-          className="mb-8 w-full py-4 text-center text-lg font-bold text-white"
-          style={
-            userInfo?.type === "COMMUNITY" || leftNum === 0
-              ? {
-                  borderRadius: "10px",
-                  background: "rgba(80,80,80,0.5)",
-                  boxShadow: "none",
-                }
-              : {
-                  borderRadius: "10px",
-                  backgroundImage:
-                    "linear-gradient(0deg, #e50e0f 0%, #680a71 100%)",
-                  boxShadow: "0 4px 24px rgba(229, 14, 15, 0.35)",
-                }
-          }
-        >
-          {tSub("cta")}
-        </button>
+          >
+            100 USDT - {tSub("verifier_benefits", { cards: 1, points: 100 })}
+          </button>
+          <button
+            onClick={() => {
+              if (!address) {
+                triggerWalletConnect();
+                return;
+              }
+              setSelectedPrice("250");
+              setShowConfirmModal(true);
+            }}
+            disabled={userInfo?.type === "COMMUNITY"}
+            className="py-3 text-center text-sm font-bold text-white"
+            style={
+              userInfo?.type === "COMMUNITY" || leftNum === 0
+                ? {
+                    borderRadius: "8px",
+                    background: "rgba(80,80,80,0.5)",
+                    boxShadow: "none",
+                  }
+                : {
+                    borderRadius: "8px",
+                    backgroundImage: "linear-gradient(0deg, #e50e0f 0%, #680a71 100%)",
+                    boxShadow: "0 4px 24px rgba(229, 14, 15, 0.35)",
+                  }
+            }
+          >
+            250 USDT - {tSub("verifier_benefits", { cards: 2, points: 250 })}
+          </button>
+          <button
+            onClick={() => {
+              if (!address) {
+                triggerWalletConnect();
+                return;
+              }
+              setSelectedPrice("1500");
+              setShowConfirmModal(true);
+            }}
+            disabled={userInfo?.type === "COMMUNITY"}
+            className="py-3 text-center text-sm font-bold text-white"
+            style={
+              userInfo?.type === "COMMUNITY" || leftNum === 0
+                ? {
+                    borderRadius: "8px",
+                    background: "rgba(80,80,80,0.5)",
+                    boxShadow: "none",
+                  }
+                : {
+                    borderRadius: "8px",
+                    backgroundImage: "linear-gradient(0deg, #e50e0f 0%, #680a71 100%)",
+                    boxShadow: "0 4px 24px rgba(229, 14, 15, 0.35)",
+                  }
+            }
+          >
+            1500 USDT - {tSub("verifier_benefits", { cards: 10, points: 1500 })}
+          </button>
+          <button
+            onClick={() => {
+              if (!address) {
+                triggerWalletConnect();
+                return;
+              }
+              setSelectedPrice("3500");
+              setShowConfirmModal(true);
+            }}
+            disabled={userInfo?.type === "COMMUNITY"}
+            className="py-3 text-center text-sm font-bold text-white"
+            style={
+              userInfo?.type === "COMMUNITY" || leftNum === 0
+                ? {
+                    borderRadius: "8px",
+                    background: "rgba(80,80,80,0.5)",
+                    boxShadow: "none",
+                  }
+                : {
+                    borderRadius: "8px",
+                    backgroundImage: "linear-gradient(0deg, #e50e0f 0%, #680a71 100%)",
+                    boxShadow: "0 4px 24px rgba(229, 14, 15, 0.35)",
+                  }
+            }
+          >
+            3500 USDT - {tSub("verifier_benefits", { cards: 20, points: 3500 })}
+          </button>
+        </div>
 
         {/* Footer Notes */}
         <p className="mb-3 text-xs" style={{ color: "rgba(255,255,255,0.58)" }}>
@@ -966,7 +1044,7 @@ const NodeMarket: React.FC<NodeMarketProps> = ({
           handleCommunity(true, "");
         }}
         isBigNode={true}
-        price={price}
+        price={selectedPrice}
       />
     </div>
   );

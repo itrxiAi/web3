@@ -75,6 +75,8 @@ model User {
   type          UserType?
   path          String?  // Materialized path storing the hierarchy path
   equityType    EquityType? @map("equity_type")
+  points        Int       @default(0)
+  cards         Int       @default(0)
   superior      String?   @db.VarChar(255)// Superior's Solana wallet address
   referralCode String?   @db.VarChar(255) @map("referral_code") @unique
   purchaseAt    DateTime?
