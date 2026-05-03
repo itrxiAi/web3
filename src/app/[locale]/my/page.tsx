@@ -6,7 +6,7 @@ import { useTranslations } from "next-intl";
 import Image from "next/image";
 import Link from "next/link";
 import LoadingSpinner from "@/components/LoadingSpinner";
-import { TokenType, TxFlowType, UserType } from "@prisma/client";
+import { EquityType, TokenType, TxFlowType, UserType } from "@prisma/client";
 import { generateOperationHash } from "@/utils/auth";
 import bs58 from "bs58";
 import { triggerWalletConnect } from "@/components/ui/wallet-ref";
@@ -30,7 +30,7 @@ interface UserInfo {
   token_staked_points: number;
   referral_code?: string;
   superior_referral_code?: string;
-  interest_active: boolean;
+  equityType: EquityType | null;
   cards: number;
   points: number;
 }
@@ -152,7 +152,9 @@ function MyContent() {
           token_locked_points: Number(data.token_locked_points),
           token_staked_points: Number(data.token_staked_points),
           referral_code: data.referral_code,
-          interest_active: data.interest_active,
+          equityType: (data.equityType as EquityType | null) ?? null,
+          cards: Number(data.cards ?? 0),
+          points: Number(data.points ?? 0),
         };
 
         setUserInfo(parsedData);
@@ -582,7 +584,7 @@ function MyContent() {
                   {address ? (
                     <>
                       {userInfo?.type === UserType.COMMUNITY
-                        ? (userInfo?.interest_active ? t("activated") : t("unactivated")) + "/"
+                        ? (userInfo?.equityType ? t("activated") : t("unactivated")) + "/"
                         : ""}
                       {roleTypes.find((item) => item.type === userInfo?.type)?.label || tUserType(UserType.NORMAL)}
                     </>

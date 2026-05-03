@@ -9,6 +9,8 @@ import {
   EQUITY_BASE_TYPE,
   EQUITY_PLUS_TYPE,
   EQUITY_PREMIUM_TYPE,
+  EQUITY_EXPERT_TYPE,
+  EQUITY_VIP_TYPE,
   type MembershipType,
 } from "@/constants";
 import { triggerWalletConnect } from "@/components/ui/wallet-ref";
@@ -192,6 +194,14 @@ export function useEquityActivation(options?: EquityActivationOptions) {
   };
 }
 
+const EQUITY_TYPES = [
+  EQUITY_BASE_TYPE,
+  EQUITY_PLUS_TYPE,
+  EQUITY_PREMIUM_TYPE,
+  EQUITY_EXPERT_TYPE,
+  EQUITY_VIP_TYPE,
+] as const;
+
 export function isEquityDevType(s: string): s is MembershipType {
-  return s === EQUITY_BASE_TYPE || s === EQUITY_PLUS_TYPE || s === EQUITY_PREMIUM_TYPE;
+  return (EQUITY_TYPES as readonly string[]).includes(s);
 }

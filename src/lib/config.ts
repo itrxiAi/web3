@@ -25,10 +25,14 @@ const COMMUNITY_PRICE_TRANSFER = "COMMUNITY_PRICE_TRANSFER";
 const EQUITY_BASE_PRICE_DISPLAY = "EQUITY_BASE_PRICE_DISPLAY";
 const EQUITY_PLUS_PRICE_DISPLAY = "EQUITY_PLUS_PRICE_DISPLAY";
 const EQUITY_PREMIUM_PRICE_DISPLAY = "EQUITY_PREMIUM_PRICE_DISPLAY"
+const EQUITY_EXPERT_PRICE_DISPLAY = "EQUITY_EXPERT_PRICE_DISPLAY";
+const EQUITY_VIP_PRICE_DISPLAY = "EQUITY_VIP_PRICE_DISPLAY";
 
 const EQUITY_BASE_PRICE_TRANSFER = "EQUITY_BASE_PRICE_TRANSFER";
 const EQUITY_PLUS_PRICE_TRANSFER = "EQUITY_PLUS_PRICE_TRANSFER";
 const EQUITY_PREMIUM_PRICE_TRANSFER = "EQUITY_PREMIUM_PRICE_TRANSFER"
+const EQUITY_EXPERT_PRICE_TRANSFER = "EQUITY_EXPERT_PRICE_TRANSFER";
+const EQUITY_VIP_PRICE_TRANSFER = "EQUITY_VIP_PRICE_TRANSFER"
 
 const GROUP_NUM = "GROUP_NUM"; //800
 const COMMUNITY_NUM = "COMMUNITY_NUM"; //200
@@ -423,6 +427,16 @@ export async function getEquityPremiumPriceDisplay(): Promise<decimal> {
     return new decimal(price || 1000);
 }
 
+export async function getEquityExpertPriceDisplay(): Promise<decimal> {
+    const price = await getConfig(EQUITY_EXPERT_PRICE_DISPLAY);
+    return new decimal(price || 5000);
+}
+
+export async function getEquityVipPriceDisplay(): Promise<decimal> {
+    const price = await getConfig(EQUITY_VIP_PRICE_DISPLAY);
+    return new decimal(price || 10000);
+}
+
 export async function getEquityBasePriceTransfer(): Promise<decimal> {
     const price = await getConfig(EQUITY_BASE_PRICE_TRANSFER);
     return new decimal(price || 100).mul(new decimal(10).pow(new decimal(TOKEN_USDT_DECIMAL)));
@@ -436,6 +450,16 @@ export async function getEquityPlusPriceTransfer(): Promise<decimal> {
 export async function getEquityPremiumPriceTransfer(): Promise<decimal> {
     const price = await getConfig(EQUITY_PREMIUM_PRICE_TRANSFER);
     return new decimal(price || 1000).mul(new decimal(10).pow(new decimal(TOKEN_USDT_DECIMAL)));
+}
+
+export async function getEquityExpertPriceTransfer(): Promise<decimal> {
+    const price = await getConfig(EQUITY_EXPERT_PRICE_TRANSFER);
+    return new decimal(price || 5000).mul(new decimal(10).pow(new decimal(TOKEN_USDT_DECIMAL)));
+}
+
+export async function getEquityVipPriceTransfer(): Promise<decimal> {
+    const price = await getConfig(EQUITY_VIP_PRICE_TRANSFER);
+    return new decimal(price || 10000).mul(new decimal(10).pow(new decimal(TOKEN_USDT_DECIMAL)));
 }
 
 export async function getMinWithdrawUsdtAmount(): Promise<decimal> {

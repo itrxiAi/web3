@@ -17,13 +17,27 @@ import {
   EQUITY_BASE_TYPE,
   EQUITY_PLUS_TYPE,
   EQUITY_PREMIUM_TYPE,
+  EQUITY_EXPERT_TYPE,
+  EQUITY_VIP_TYPE,
 } from "@/constants";
 
-function tierKey(devType: string): "base" | "plus" | "premium" {
+type TierCopyKey = "base" | "plus" | "premium" | "expert" | "vip";
+
+function tierKey(devType: string): TierCopyKey {
   if (devType === EQUITY_PLUS_TYPE) return "plus";
   if (devType === EQUITY_PREMIUM_TYPE) return "premium";
+  if (devType === EQUITY_EXPERT_TYPE) return "expert";
+  if (devType === EQUITY_VIP_TYPE) return "vip";
   return "base";
 }
+
+const DISPLAY_ORDER = [
+  EQUITY_BASE_TYPE,
+  EQUITY_PLUS_TYPE,
+  EQUITY_PREMIUM_TYPE,
+  EQUITY_EXPERT_TYPE,
+  EQUITY_VIP_TYPE,
+] as const;
 
 function ActivateInner() {
   const t = useTranslations("equity_activation_page");
@@ -109,14 +123,14 @@ function ActivateInner() {
 
         {/* 对比表：第1行 #650a73，第2行 #89161f，第3行同第1，第4行同第2 */}
         <div className="mb-4 overflow-hidden rounded-lg border border-white/15 text-[11px] sm:text-xs">
-          <div
+          {/* <div
             className="grid grid-cols-[minmax(0,0.42fr)_1fr] gap-0 px-2 py-2 font-semibold text-white/95 sm:px-3"
             style={{ backgroundColor: "#650a73" }}
           >
             <div>{t("table_col_option")}</div>
             <div className="text-right sm:text-left">{t("table_col_benefits")}</div>
-          </div>
-          {[EQUITY_BASE_TYPE, EQUITY_PLUS_TYPE, EQUITY_PREMIUM_TYPE].map((dt, idx) => {
+          </div> */}
+          {/* {DISPLAY_ORDER.map((dt, idx) => {
             const tier = tiers.find((x) => x.dev_type === dt);
             const k = tierKey(dt);
             const rowBg = idx % 2 === 0 ? "#89161f" : "#650a73";
@@ -134,40 +148,46 @@ function ActivateInner() {
                 </div>
               </div>
             );
-          })}
+          })} */}
         </div>
 
         {/* 选档 */}
         <p className="mb-2 text-center text-xs font-medium" style={{ color: "#2dd4bf" }}>
           {t("select_hint")}
         </p>
-        <div className="mb-3 flex gap-2">
-          {tiers.map((tier) => {
-            const active = selected === tier.dev_type;
-            return (
-              <button
-                key={tier.dev_type}
-                type="button"
-                onClick={() => setSelected(tier.dev_type)}
-                className="flex-1 rounded-lg py-2.5 text-center text-xs font-bold transition sm:text-sm"
-                style={
-                  active
-                    ? {
-                        background: "linear-gradient(180deg, #2dd4bf 0%, #14b8a6 100%)",
-                        color: "#0f172a",
-                        boxShadow: "0 0 16px rgba(45,212,191,0.35)",
-                      }
-                    : {
-                        background: "rgba(55, 55, 65, 0.65)",
-                        color: "rgba(255,255,255,0.85)",
-                        border: "1px solid rgba(255,255,255,0.08)",
-                      }
-                }
-              >
-                {tier.price_display} USDT
-              </button>
-            );
-          })}
+        <div className="mb-3 overflow-hidden rounded-[18px] border border-white/15 bg-[rgba(6,22,36,0.8)] shadow-[0_18px_38px_rgba(4,16,28,0.45)]">
+          <div
+            className="grid"
+            style={{ gridTemplateColumns: `repeat(${tiers.length}, minmax(0, 1fr))` }}
+          >
+            {tiers.map((tier, idx) => {
+              const active = selected === tier.dev_type;
+              return (
+                <button
+                  key={tier.dev_type}
+                  type="button"
+                  onClick={() => setSelected(tier.dev_type)}
+                  className={`relative flex min-h-[46px] items-center justify-center px-3 text-center text-[11px] font-bold uppercase tracking-wide transition-all sm:text-xs ${
+                    idx > 0 ? "border-l border-white/10" : ""
+                  }`}
+                  style={
+                    active
+                      ? {
+                          background: "linear-gradient(180deg, #2ee6c4 0%, #11b6a1 100%)",
+                          color: "#041b1f",
+                          boxShadow: "0 0 20px rgba(45,212,191,0.38)",
+                        }
+                      : {
+                          background: "rgba(8, 28, 44, 0.7)",
+                          color: "rgba(255,255,255,0.82)",
+                        }
+                  }
+                >
+                  {tier.price_display} USDT
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         <p className="mb-6 text-center text-[11px] leading-relaxed text-white/80">

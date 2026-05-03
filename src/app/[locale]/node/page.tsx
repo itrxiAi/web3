@@ -4,7 +4,15 @@ import React, { Suspense, useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import LoadingSpinnerWithText from "@/components/LoadingSpinnerWithText";
-import { COMMUNITY_TYPE, GROUP_TYPE } from "@/constants";
+import {
+  COMMUNITY_TYPE,
+  GROUP_TYPE,
+  VERIFIER_1,
+  VERIFIER_2,
+  VERIFIER_3,
+  VERIFIER_4,
+  type MembershipType,
+} from "@/constants";
 import { formatDate } from "@/utils/dateUtils";
 import Image from "next/image";
 import { QRCodeModal } from "@/components/ui/qr-code-modal";
@@ -33,7 +41,11 @@ interface NodeCardProps {
   nodeType?: string;
   referralCode?: string;
   hasSuperior?: boolean;
-  handleCommunity?: (isBigNode: boolean, recommender: string) => Promise<void>;
+  handleCommunity?: (
+    type: MembershipType,
+    price: number,
+    recommender: string
+  ) => Promise<void>;
 }
 
 const NodeCard: React.FC<NodeCardProps> = ({
@@ -180,7 +192,10 @@ const NodeCard: React.FC<NodeCardProps> = ({
         onClose={() => setShowConfirmModal(false)}
         onConfirm={() => {
           setShowConfirmModal(false);
-          handleCommunity?.(nodeType === UserType.COMMUNITY, "");
+          const membershipType =
+            nodeType === UserType.COMMUNITY ? COMMUNITY_TYPE : GROUP_TYPE;
+          const numericPrice = Number(price);
+          handleCommunity?.(membershipType, numericPrice, "");
         }}
         isBigNode={nodeType === UserType.COMMUNITY}
         price={price}
@@ -838,7 +853,11 @@ interface NodeMarketProps {
     created_at: string | null;
     buy_at: string | null;
   } | null;
-  handleCommunity: (isBigNode: boolean, recommender: string) => Promise<void>;
+  handleCommunity: (
+    type: MembershipType,
+    price: number,
+    recommender: string
+  ) => Promise<void>;
 }
 
 const NodeMarket: React.FC<NodeMarketProps> = ({
@@ -849,13 +868,20 @@ const NodeMarket: React.FC<NodeMarketProps> = ({
   const tSub = useTranslations("subscribe_page");
   const { address } = useAppKitAccount();
   const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const [selectedPrice, setSelectedPrice] = useState("1000");
+  const verifierOptions = [
+    { type: VERIFIER_1, price: 500, cards: 1, points: 100 },
+    { type: VERIFIER_2, price: 1000, cards: 2, points: 250 },
+    { type: VERIFIER_3, price: 5000, cards: 10, points: 1500 },
+    { type: VERIFIER_4, price: 10000, cards: 20, points: 3500 },
+  ] as const;
+  const [selectedOption, setSelectedOption] = useState<(typeof verifierOptions)[number]>(
+    verifierOptions[0]
+  );
 
   if (!nodeData) {
     return <LoadingSpinner />;
   }
 
-  const price = nodeData.communityNode.price_display.toString();
   const leftNum = nodeData.communityNode.leftNum;
 
   const benefits = [
@@ -916,114 +942,41 @@ const NodeMarket: React.FC<NodeMarketProps> = ({
 
         {/* 4 Price Buttons */}
         <div className="mb-6 flex flex-col gap-3">
-          <button
-            onClick={() => {
-              if (!address) {
-                triggerWalletConnect();
-                return;
+          {verifierOptions.map((option) => (
+            <button
+              key={option.type}
+              onClick={() => {
+                if (!address) {
+                  triggerWalletConnect();
+                  return;
+                }
+                setSelectedOption(option);
+                setShowConfirmModal(true);
+              }}
+              disabled={userInfo?.type === "COMMUNITY"}
+              className="py-3 text-center text-sm font-bold text-white"
+              style={
+                userInfo?.type === "COMMUNITY" || leftNum === 0
+                  ? {
+                      borderRadius: "8px",
+                      background: "rgba(80,80,80,0.5)",
+                      boxShadow: "none",
+                    }
+                  : {
+                      borderRadius: "8px",
+                      backgroundImage: "linear-gradient(0deg, #e50e0f 0%, #680a71 100%)",
+                      boxShadow: "0 4px 24px rgba(229, 14, 15, 0.35)",
+                    }
               }
-              setSelectedPrice("100");
-              setShowConfirmModal(true);
-            }}
-            disabled={userInfo?.type === "COMMUNITY"}
-            className="py-3 text-center text-sm font-bold text-white"
-            style={
-              userInfo?.type === "COMMUNITY" || leftNum === 0
-                ? {
-                    borderRadius: "8px",
-                    background: "rgba(80,80,80,0.5)",
-                    boxShadow: "none",
-                  }
-                : {
-                    borderRadius: "8px",
-                    backgroundImage: "linear-gradient(0deg, #e50e0f 0%, #680a71 100%)",
-                    boxShadow: "0 4px 24px rgba(229, 14, 15, 0.35)",
-                  }
-            }
-          >
-            100 USDT - {tSub("verifier_benefits", { cards: 1, points: 100 })}
-          </button>
-          <button
-            onClick={() => {
-              if (!address) {
-                triggerWalletConnect();
-                return;
-              }
-              setSelectedPrice("250");
-              setShowConfirmModal(true);
-            }}
-            disabled={userInfo?.type === "COMMUNITY"}
-            className="py-3 text-center text-sm font-bold text-white"
-            style={
-              userInfo?.type === "COMMUNITY" || leftNum === 0
-                ? {
-                    borderRadius: "8px",
-                    background: "rgba(80,80,80,0.5)",
-                    boxShadow: "none",
-                  }
-                : {
-                    borderRadius: "8px",
-                    backgroundImage: "linear-gradient(0deg, #e50e0f 0%, #680a71 100%)",
-                    boxShadow: "0 4px 24px rgba(229, 14, 15, 0.35)",
-                  }
-            }
-          >
-            250 USDT - {tSub("verifier_benefits", { cards: 2, points: 250 })}
-          </button>
-          <button
-            onClick={() => {
-              if (!address) {
-                triggerWalletConnect();
-                return;
-              }
-              setSelectedPrice("1500");
-              setShowConfirmModal(true);
-            }}
-            disabled={userInfo?.type === "COMMUNITY"}
-            className="py-3 text-center text-sm font-bold text-white"
-            style={
-              userInfo?.type === "COMMUNITY" || leftNum === 0
-                ? {
-                    borderRadius: "8px",
-                    background: "rgba(80,80,80,0.5)",
-                    boxShadow: "none",
-                  }
-                : {
-                    borderRadius: "8px",
-                    backgroundImage: "linear-gradient(0deg, #e50e0f 0%, #680a71 100%)",
-                    boxShadow: "0 4px 24px rgba(229, 14, 15, 0.35)",
-                  }
-            }
-          >
-            1500 USDT - {tSub("verifier_benefits", { cards: 10, points: 1500 })}
-          </button>
-          <button
-            onClick={() => {
-              if (!address) {
-                triggerWalletConnect();
-                return;
-              }
-              setSelectedPrice("3500");
-              setShowConfirmModal(true);
-            }}
-            disabled={userInfo?.type === "COMMUNITY"}
-            className="py-3 text-center text-sm font-bold text-white"
-            style={
-              userInfo?.type === "COMMUNITY" || leftNum === 0
-                ? {
-                    borderRadius: "8px",
-                    background: "rgba(80,80,80,0.5)",
-                    boxShadow: "none",
-                  }
-                : {
-                    borderRadius: "8px",
-                    backgroundImage: "linear-gradient(0deg, #e50e0f 0%, #680a71 100%)",
-                    boxShadow: "0 4px 24px rgba(229, 14, 15, 0.35)",
-                  }
-            }
-          >
-            3500 USDT - {tSub("verifier_benefits", { cards: 20, points: 3500 })}
-          </button>
+            >
+              {option.price} USDT -
+              {" "}
+              {tSub("verifier_benefits", {
+                cards: option.cards,
+                points: option.points,
+              })}
+            </button>
+          ))}
         </div>
 
         {/* Footer Notes */}
@@ -1035,16 +988,20 @@ const NodeMarket: React.FC<NodeMarketProps> = ({
         </p>
       </div>
 
-      {/* Confirm Modal — calls COMMUNITY (isBigNode=true) */}
+      {/* Confirm Modal */}
       <NodeConfirmModal
         isOpen={showConfirmModal}
         onClose={() => setShowConfirmModal(false)}
         onConfirm={() => {
           setShowConfirmModal(false);
-          handleCommunity(true, "");
+          void handleCommunity(
+            selectedOption.type,
+            selectedOption.price,
+            ""
+          );
         }}
-        isBigNode={true}
-        price={selectedPrice}
+        isBigNode={false}
+        price={selectedOption.price.toString()}
       />
     </div>
   );

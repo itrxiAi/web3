@@ -1,8 +1,46 @@
-import { DB_BATCH, MembershipType, VERIFIER_1, VERIFIER_2, VERIFIER_3, VERIFIER_4 } from '@/constants';
+import {
+  DB_BATCH,
+  MembershipType,
+  VERIFIER_1,
+  VERIFIER_2,
+  VERIFIER_3,
+  VERIFIER_4,
+  EQUITY_BASE_TYPE,
+  EQUITY_PLUS_TYPE,
+  EQUITY_PREMIUM_TYPE,
+  EQUITY_EXPERT_TYPE,
+  EQUITY_VIP_TYPE,
+} from '@/constants';
 import prisma from './prisma';
 import { EquityType, Prisma, TokenType, TxFlowStatus, TxFlowType, UserType } from '@prisma/client';
 import decimal from 'decimal.js';
-import { getCommunityNum, getCommunityPriceDisplay, getGroupNum, getGroupPriceDisplay, getHotWalletAddress, getReferralDirectRewardRateCommunity, getReferralDirectRewardRateGroup, getReferralDiffRewardRateCommunity, getReferralDiffRewardRateGalaxy, getGalaxyThreshold, getStakeGroupDynamicRewardCap, getStakeCommunityDynamicRewardCap, getGroupMinLevel, getCommunityMinLevel, getGalaxyMinLevel, getReferralDirectRewardRateGalaxy, getEquityBasePriceDisplay, getEquityPlusPriceDisplay, getEquityPremiumPriceDisplay, getVerifier1, getVerifier2, getVerifier3, getVerifier4 } from './config';
+import {
+  getCommunityNum,
+  getCommunityPriceDisplay,
+  getGroupNum,
+  getGroupPriceDisplay,
+  getHotWalletAddress,
+  getReferralDirectRewardRateCommunity,
+  getReferralDirectRewardRateGroup,
+  getReferralDiffRewardRateCommunity,
+  getReferralDiffRewardRateGalaxy,
+  getGalaxyThreshold,
+  getStakeGroupDynamicRewardCap,
+  getStakeCommunityDynamicRewardCap,
+  getGroupMinLevel,
+  getCommunityMinLevel,
+  getGalaxyMinLevel,
+  getReferralDirectRewardRateGalaxy,
+  getEquityBasePriceDisplay,
+  getEquityPlusPriceDisplay,
+  getEquityPremiumPriceDisplay,
+  getEquityExpertPriceDisplay,
+  getEquityVipPriceDisplay,
+  getVerifier1,
+  getVerifier2,
+  getVerifier3,
+  getVerifier4,
+} from './config';
 import { cleanUserLevel, cleanUserMining, cleanUserTotalPerformance, getUserAddressById, getUserPath, getUserTotalPerformance } from './userCache';
 import { reRankUser } from '@/tasks/user';
 //import { processBalanceUpdate } from './balance';
@@ -51,12 +89,17 @@ export async function updateUserEquity({
   tx: Prisma.TransactionClient;
 }) {
   let amount = 0;
-  if (equityType === EquityType.BASE) {
+  const equityKey = equityType as unknown as string;
+  if (equityKey === EQUITY_BASE_TYPE) {
     amount = (await getEquityBasePriceDisplay()).toNumber();
-  } else if (equityType === EquityType.PLUS) {
+  } else if (equityKey === EQUITY_PLUS_TYPE) {
     amount = (await getEquityPlusPriceDisplay()).toNumber();
-  } else if (equityType === EquityType.PREMIUM) {
+  } else if (equityKey === EQUITY_PREMIUM_TYPE) {
     amount = (await getEquityPremiumPriceDisplay()).toNumber();
+  } else if (equityKey === EQUITY_EXPERT_TYPE) {
+    amount = (await getEquityExpertPriceDisplay()).toNumber();
+  } else if (equityKey === EQUITY_VIP_TYPE) {
+    amount = (await getEquityVipPriceDisplay()).toNumber();
   }
   const transactiion = await tx.transaction.create({
     data: {
@@ -72,7 +115,7 @@ export async function updateUserEquity({
 
   const user = await tx.user.update({
     where: { walletAddress: walletAddress },
-    data: { equityType: EquityType.PREMIUM, equityActivedAt: new Date() }
+    data: { equityType, equityActivedAt: new Date() }
   });
 
   return {
@@ -120,19 +163,24 @@ export async function updateUserType({
 
   let points = 0;
   let cards = 0;
+  let equityTypeKey: string = EQUITY_PREMIUM_TYPE;
 
   if (type === VERIFIER_1) {
     points = 100;
     cards = 1;
+    equityTypeKey = EQUITY_PLUS_TYPE;
   } else if (type === VERIFIER_2) {
     points = 250;
     cards = 2;
+    equityTypeKey = EQUITY_PREMIUM_TYPE;
   } else if (type === VERIFIER_3) {
     points = 1500;
     cards = 10;
+    equityTypeKey = EQUITY_EXPERT_TYPE;
   } else if (type === VERIFIER_4) {
     points = 3500;
     cards = 20;
+    equityTypeKey = EQUITY_VIP_TYPE;
   }
 
   const count = await tx.user.count({
@@ -159,11 +207,11 @@ export async function updateUserType({
     where: { walletAddress: walletAddress },
     data: {
       type: UserType.COMMUNITY,
-      equityType: EquityType.PREMIUM,
+      equityType: equityTypeKey as EquityType,
       purchaseAt: new Date(),
       equityActivedAt: new Date(),
-      points: { increment: points },
-      cards: { increment: cards }
+      points: points,
+      cards: cards
     }
   });
 

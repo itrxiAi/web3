@@ -45,8 +45,8 @@ export default function EarlyConsensusSubscribe() {
       return;
     }
     if (!ready || !nodeData) return;
-    const isBigNode = pickSubscribeNodeKind(nodeData);
-    void handleCommunity(isBigNode, ref);
+    const { type, price } = pickSubscribeNodeKind(nodeData);
+    void handleCommunity(type, price, ref);
   };
 
   if (isJoining) {

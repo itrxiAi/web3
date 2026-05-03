@@ -33,11 +33,15 @@ export async function GET(req: NextRequest) {
         superior: true,
         createdAt: true,
         purchaseAt: true,
-        equityActivedAt: true
+        equityActivedAt: true,
+        equityType: true,
+        cards: true,
+        points: true,
       }
     })
     // const userLevel = await getUserLevel(walletAddress)
     // const performance = await getUserTotalPerformance(walletAddress)
+    const performance = new decimal(0);
     let activePercent = 100;
     // if (userInfo?.type == UserType.GALAXY && !userInfo?.interest_active) {
     //   activePercent = await getActivePercent({
@@ -75,7 +79,10 @@ export async function GET(req: NextRequest) {
         stake_reward_cap: new decimal(0),
         stake_dynamic_reward_cap: new decimal(0),
         active_percent: 0,
-        is_special: false
+        is_special: false,
+        equityType: null,
+        cards: 0,
+        points: 0,
       });
     }
 
@@ -114,7 +121,9 @@ export async function GET(req: NextRequest) {
       // },
       // usdt_withdrawable: new decimal(usdt_withdrawable),
       // token_withdrawable: new decimal(token_withdrawable),
-      is_special: false
+      is_special: false,
+      cards: userInfo.cards ?? 0,
+      points: userInfo.points ?? 0,
     });
   } catch (error) {
     console.error('Error getting points:', error);

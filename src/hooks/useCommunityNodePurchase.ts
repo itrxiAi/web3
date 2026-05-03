@@ -4,7 +4,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useAppKitAccount } from "@reown/appkit/react";
 import { useWriteContract } from "wagmi";
 import bs58 from "bs58";
-import { COMMUNITY_TYPE, DEV_ENV, GROUP_TYPE } from "@/constants";
+import {
+  COMMUNITY_TYPE,
+  DEV_ENV,
+  GROUP_TYPE,
+  type MembershipType,
+} from "@/constants";
 import { triggerWalletConnect } from "@/components/ui/wallet-ref";
 
 export interface NodeDataShape {
@@ -95,20 +100,20 @@ function normalizeNodesPayload(raw: unknown): NodesDataShape | null {
   const g = data.groupNode as Record<string, unknown> | undefined;
   const groupNode: NodeDataShape = g
     ? {
-        price_display: coerceNumber(g.price_display, FALLBACK_NODE_DATA.groupNode.price_display),
-        price_transfer: coerceNumber(g.price_transfer, FALLBACK_NODE_DATA.groupNode.price_transfer),
-        maxNum: coerceNumber(g.maxNum, FALLBACK_NODE_DATA.groupNode.maxNum),
-        leftNum: coerceNumber(g.leftNum, FALLBACK_NODE_DATA.groupNode.leftNum),
-        referralReward: coerceNumber(g.referralReward, FALLBACK_NODE_DATA.groupNode.referralReward),
-        minLevel: coerceNumber(g.minLevel, FALLBACK_NODE_DATA.groupNode.minLevel),
-        incubationReward: coerceNumber(g.incubationReward, FALLBACK_NODE_DATA.groupNode.incubationReward),
-        dynamicRewardCap: coerceNumber(g.dynamicRewardCap, FALLBACK_NODE_DATA.groupNode.dynamicRewardCap),
-        dynamicRewardCapIncrement: coerceNumber(
-          g.dynamicRewardCapIncrement,
-          FALLBACK_NODE_DATA.groupNode.dynamicRewardCapIncrement
-        ),
-        dividendReward: coerceNumber(g.dividendReward, FALLBACK_NODE_DATA.groupNode.dividendReward),
-      }
+      price_display: coerceNumber(g.price_display, FALLBACK_NODE_DATA.groupNode.price_display),
+      price_transfer: coerceNumber(g.price_transfer, FALLBACK_NODE_DATA.groupNode.price_transfer),
+      maxNum: coerceNumber(g.maxNum, FALLBACK_NODE_DATA.groupNode.maxNum),
+      leftNum: coerceNumber(g.leftNum, FALLBACK_NODE_DATA.groupNode.leftNum),
+      referralReward: coerceNumber(g.referralReward, FALLBACK_NODE_DATA.groupNode.referralReward),
+      minLevel: coerceNumber(g.minLevel, FALLBACK_NODE_DATA.groupNode.minLevel),
+      incubationReward: coerceNumber(g.incubationReward, FALLBACK_NODE_DATA.groupNode.incubationReward),
+      dynamicRewardCap: coerceNumber(g.dynamicRewardCap, FALLBACK_NODE_DATA.groupNode.dynamicRewardCap),
+      dynamicRewardCapIncrement: coerceNumber(
+        g.dynamicRewardCapIncrement,
+        FALLBACK_NODE_DATA.groupNode.dynamicRewardCapIncrement
+      ),
+      dividendReward: coerceNumber(g.dividendReward, FALLBACK_NODE_DATA.groupNode.dividendReward),
+    }
     : { ...FALLBACK_NODE_DATA.groupNode };
 
   return { groupNode, communityNode };
@@ -221,7 +226,7 @@ export function useCommunityNodePurchase(options?: CommunityPurchaseOptions) {
   );
 
   const handleCommunity = useCallback(
-    async (isBigNode: boolean, recommender: string) => {
+    async (type: MembershipType, priceInUsd: number, recommender: string) => {
       if (!address) {
         triggerWalletConnect();
         return;
@@ -231,18 +236,31 @@ export function useCommunityNodePurchase(options?: CommunityPurchaseOptions) {
       try {
         setTxErrorMessage(null);
 
-        if (!nodeData) {
-          throw new Error("Node data not found");
+        let normalizedPrice = Number(priceInUsd);
+
+        if (!Number.isFinite(normalizedPrice) || normalizedPrice <= 0) {
+          if (!nodeData) {
+            throw new Error("Please enter a valid positive number");
+          }
+
+          if (type === COMMUNITY_TYPE) {
+            normalizedPrice = nodeData.communityNode.price_display;
+          } else if (type === GROUP_TYPE) {
+            normalizedPrice = nodeData.groupNode.price_display;
+          }
         }
 
-        const points = isBigNode
-          ? nodeData.communityNode.price_transfer
-          : nodeData.groupNode.price_transfer;
-        if (isNaN(points) || points <= 0) {
+        if (!Number.isFinite(normalizedPrice) || normalizedPrice <= 0) {
           throw new Error("Please enter a valid positive number");
         }
 
-        const type = isBigNode ? COMMUNITY_TYPE : GROUP_TYPE;
+        const amountToTransfer = Math.round(
+          normalizedPrice * 10 ** USDT_DECIMAL
+        );
+
+        if (!Number.isFinite(amountToTransfer) || amountToTransfer <= 0) {
+          throw new Error("Please enter a valid positive number");
+        }
 
         let txSig: string;
         if (env?.environment === DEV_ENV) {
@@ -251,7 +269,7 @@ export function useCommunityNodePurchase(options?: CommunityPurchaseOptions) {
           crypto.getRandomValues(randomBytes);
           txSig = bs58.encode(randomBytes);
         } else {
-          txSig = await transferTokens(points);
+          txSig = await transferTokens(amountToTransfer);
         }
 
         setTxSignature(txSig);
@@ -305,13 +323,17 @@ export function useCommunityNodePurchase(options?: CommunityPurchaseOptions) {
 }
 
 /** 与文案「1,000 USDT」对齐：选价格更接近 1000 的档位；并列时默认定行星（GROUP） */
-export function pickSubscribeNodeKind(nodeData: NodesDataShape): boolean {
+export function pickSubscribeNodeKind(nodeData: NodesDataShape) {
   const target = 1000;
-  const g = Number(nodeData.groupNode.price_display);
-  const c = Number(nodeData.communityNode.price_display);
-  const dg = Math.abs(g - target);
-  const dc = Math.abs(c - target);
-  if (dc < dg) return true;
-  if (dg < dc) return false;
-  return false;
+  const groupPrice = Number(nodeData.groupNode.price_display);
+  const communityPrice = Number(nodeData.communityNode.price_display);
+  const diffGroup = Math.abs(groupPrice - target);
+  const diffCommunity = Math.abs(communityPrice - target);
+  if (diffCommunity < diffGroup) {
+    return { type: COMMUNITY_TYPE, price: communityPrice } as const;
+  }
+  if (diffGroup < diffCommunity) {
+    return { type: GROUP_TYPE, price: groupPrice } as const;
+  }
+  return { type: GROUP_TYPE, price: groupPrice } as const;
 }

@@ -56,6 +56,8 @@ enum EquityType {
   BASE
   PLUS
   PREMIUM
+  EXPERT
+  VIP
 }
 
 model User {
