@@ -197,7 +197,7 @@ export async function updateUserType({
       toAddress: (await getHotWalletAddress()).toString(),
       amount: amount,
       tokenType: TokenType.USDT,
-      type: TxFlowType.EQUITY,
+      type: TxFlowType.PURCHASE,
       status: TxFlowStatus.PENDING
     }
   });

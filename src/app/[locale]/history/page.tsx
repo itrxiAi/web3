@@ -237,7 +237,7 @@ export default function HistoryPage() {
                           )}
                         </div>
                         <div className="text-[11px] text-white sm:text-xs">
-                          {row.type === "EQUITY" ? t("purpose_EQUITY") : row.type}
+                          {row.type === "PURCHASE" ? t("purpose_EQUITY") : row.type}
                         </div>
                       </div>
                     </div>
