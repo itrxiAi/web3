@@ -207,7 +207,7 @@ export async function updateUserType({
     where: { walletAddress: walletAddress },
     data: {
       type: UserType.COMMUNITY,
-      equityType: equityTypeKey as EquityType,
+      //equityType: equityTypeKey as EquityType,
       purchaseAt: new Date(),
       equityActivedAt: new Date(),
       points: points,
