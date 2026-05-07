@@ -23,7 +23,8 @@ const AdminStatisticsPage = () => {
   const [listError, setListError] = useState('');
 
   const [targetWallet, setTargetWallet] = useState('');
-  const [targetType, setTargetType] = useState<'COMMUNITY' | 'NULL'>('COMMUNITY');
+  const [targetPoints, setTargetPoints] = useState<number>(0);
+  const [targetCards, setTargetCards] = useState<number>(0);
   const [typeLoading, setTypeLoading] = useState(false);
   const [typeMessage, setTypeMessage] = useState('');
   const [typeError, setTypeError] = useState('');
@@ -72,7 +73,8 @@ const AdminStatisticsPage = () => {
         },
         body: JSON.stringify({
           walletAddress: targetWallet,
-          type: targetType === 'COMMUNITY' ? 'COMMUNITY' : null
+          points: targetPoints,
+          cards: targetCards
         })
       });
 
@@ -81,7 +83,7 @@ const AdminStatisticsPage = () => {
         throw new Error(data?.error || `Request failed: ${response.status}`);
       }
 
-      setTypeMessage(`设置成功：${data.user?.walletAddress} -> ${data.user?.type ?? 'NULL'}`);
+      setTypeMessage(`设置成功：${data.user?.walletAddress} -> type=${data.user?.type ?? 'NULL'}, points=${data.user?.points}, cards=${data.user?.cards}`);
       await fetchCommunityUsers(page, pageSize);
     } catch (error) {
       setTypeError(error instanceof Error ? error.message : '设置失败');
@@ -189,21 +191,32 @@ const AdminStatisticsPage = () => {
         </section>
 
         <section className="rounded-xl border border-white/20 bg-white/5 p-4 space-y-3">
-          <h2 className="text-lg font-semibold">2) 手动设置用户 type (验证者 / NULL)</h2>
+          <h2 className="text-lg font-semibold">2) 手动设置用户 points 和 cards</h2>
           <input
             value={targetWallet}
             onChange={(e) => setTargetWallet(e.target.value)}
             placeholder="用户钱包地址"
             className="w-full rounded border border-white/20 bg-black/50 px-3 py-2 text-sm font-mono"
           />
-          <select
-            value={targetType}
-            onChange={(e) => setTargetType(e.target.value as 'COMMUNITY' | 'NULL')}
-            className="rounded border border-white/20 bg-black/50 px-3 py-2 text-sm"
-          >
-            <option value="COMMUNITY">验证者</option>
-            <option value="NULL">NULL</option>
-          </select>
+          <div className="flex gap-3">
+            <input
+              type="number"
+              value={targetPoints}
+              onChange={(e) => setTargetPoints(Number(e.target.value))}
+              placeholder="points"
+              className="w-32 rounded border border-white/20 bg-black/50 px-3 py-2 text-sm"
+            />
+            <input
+              type="number"
+              value={targetCards}
+              onChange={(e) => setTargetCards(Number(e.target.value))}
+              placeholder="cards"
+              className="w-32 rounded border border-white/20 bg-black/50 px-3 py-2 text-sm"
+            />
+          </div>
+          <p className="text-xs text-white/60">
+            提示：points/cards 非0时 userType 自动设为 COMMUNITY，都为0时设为 NULL
+          </p>
           <div>
             <button
               onClick={() => void updateCommunityType()}

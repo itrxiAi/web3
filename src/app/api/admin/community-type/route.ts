@@ -6,7 +6,7 @@ import { UserType } from '@prisma/client';
 export async function POST(req: NextRequest) {
 
   try {
-    const { walletAddress, type } = await req.json();
+    const { walletAddress, points, cards } = await req.json();
 
     if (!walletAddress || typeof walletAddress !== 'string') {
       return NextResponse.json(
@@ -15,14 +15,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const normalizedAddress = walletAddress.toLowerCase();
-
-    if (type !== 'COMMUNITY' && type !== null) {
+    if (typeof points !== 'number' || typeof cards !== 'number') {
       return NextResponse.json(
-        { error: 'type must be COMMUNITY or null' },
+        { error: 'points and cards must be numbers' },
         { status: 400 }
       );
     }
+
+    const normalizedAddress = walletAddress.toLowerCase();
 
     const user = await prisma.user.findUnique({
       where: { walletAddress: normalizedAddress },
@@ -36,15 +36,27 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const nextType = type === 'COMMUNITY' ? UserType.COMMUNITY : null;
+    // Derive userType: non-zero points/cards => COMMUNITY, else null
+    const nextType = (points !== 0 || cards !== 0) ? UserType.COMMUNITY : null;
 
+    const now = new Date();
     const updated = await prisma.user.update({
       where: { walletAddress: normalizedAddress },
-      data: { type: nextType },
+      data: {
+        type: nextType,
+        points,
+        cards,
+        purchaseAt: nextType ? now : null,
+        equityActivedAt: nextType ? now : null
+      },
       select: {
         id: true,
         walletAddress: true,
         type: true,
+        points: true,
+        cards: true,
+        purchaseAt: true,
+        equityActivedAt: true,
         updatedAt: true
       }
     });
