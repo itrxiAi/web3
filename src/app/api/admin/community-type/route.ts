@@ -8,6 +8,11 @@ export async function POST(req: NextRequest) {
   try {
     const { walletAddress, points, cards } = await req.json();
 
+    return NextResponse.json(
+        { error: 'not available' },
+        { status: 400 }
+      );
+
     if (!walletAddress || typeof walletAddress !== 'string') {
       return NextResponse.json(
         { error: 'walletAddress is required' },
