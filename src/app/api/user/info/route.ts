@@ -31,6 +31,7 @@ export async function GET(req: NextRequest) {
         type: true,
         referralCode: true,
         superior: true,
+        path: true,
         createdAt: true,
         purchaseAt: true,
         equityActivedAt: true,
@@ -110,6 +111,7 @@ export async function GET(req: NextRequest) {
       //level: userLevel,
       performance: performance,
       active_percent: activePercent,
+      referral_code: userInfo.referralCode,
       superior_referral_code,
       // ...userBalance || {
       //   usdt_points: new decimal(0),

@@ -48,7 +48,9 @@ const MyConnectButton: React.FC<Props> = ({ size, className }) => {
         }
       }
 
-      // If no existing data, call user creation API（带上 URL ?ref= 以便绑定上级）
+      // If no existing data, call user creation API.
+      // 上级绑定改由 RecommenderModal -> /api/user/update-referrer 完成，
+      // 这里不再透传 ?ref=，避免两条路径竞态。
       fetch("/api/user/init", {
         method: "POST",
         headers: {
@@ -56,7 +58,6 @@ const MyConnectButton: React.FC<Props> = ({ size, className }) => {
         },
         body: JSON.stringify({
           address: userAddress.toLowerCase(),
-          referralCode: refParam || undefined,
         }),
       })
         .then((response) => {

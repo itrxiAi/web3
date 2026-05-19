@@ -445,6 +445,7 @@ export async function updateUserType({
 export interface SubordinateInfo {
   id: string;
   walletAddress: string;
+  referralCode: string | null;
   //level: number;
   type: UserType | null;
   path: string | null;
@@ -499,31 +500,33 @@ export function isActive(user: SubordinateInfo) {
 //   return users;
 // }
 
-// This function will return all subordinates including the user himself
-// export async function getAllSubordinates(path: string): Promise<SubordinateInfo[]> {
-//   const subordinates = await prisma.user.findMany({
-//     where: {
-//       path: {
-//         startsWith: path
-//       }
-//     },
-//     select: {
-//       id: true,
-//       walletAddress: true,
-//       level: true,
-//       path: true,
-//       type: true,
-//       buy_at: true,
-//       created_at: true
-//     }
-//   });
+//This function will return all subordinates including the user himself
+export async function getAllSubordinates(path: string): Promise<SubordinateInfo[]> {
+  const subordinates = await prisma.user.findMany({
+    where: {
+      path: {
+        startsWith: path
+      }
+    },
+    select: {
+      id: true,
+      walletAddress: true,
+      referralCode: true,
+      //level: true,
+      path: true,
+      type: true,
+      purchaseAt: true,
+      //buy_at: true,
+      //created_at: true
+    }
+  });
 
-//   // Add the required balance property with null value
-//   return subordinates.map(sub => ({
-//     ...sub,
-//     balance: null
-//   }));
-// }
+  // Add the required balance property with null value
+  return subordinates.map(sub => ({
+    ...sub,
+    balance: null
+  }));
+}
 
 /**
  * Get subordinates with balance and depth
@@ -638,6 +641,7 @@ export async function getDirectSubordinates(address: string): Promise<Subordinat
     select: {
       id: true,
       walletAddress: true,
+      referralCode: true,
       //level: true,
       path: true,
       type: true,
@@ -746,7 +750,16 @@ export async function updateUserPath(
   presentPath?: string
 ): Promise<void> {
   if (!presentPath) {
-    presentPath = userId.toString();
+    // Use 8-char referralCode as the path segment instead of the 25-char cuid
+    // to keep materialized paths compact (path is queried via startsWith).
+    const u = await tx.user.findUnique({
+      where: { id: userId },
+      select: { referralCode: true },
+    });
+    if (!u?.referralCode) {
+      throw new Error(`updateUserPath: user ${userId} has no referralCode`);
+    }
+    presentPath = u.referralCode;
   }
   const path = superiorPath ? `${superiorPath}.${presentPath}` : presentPath;
   const updateData: Prisma.UserUpdateArgs['data'] = {

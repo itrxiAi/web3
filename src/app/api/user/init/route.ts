@@ -39,7 +39,7 @@ export async function POST(request: Request) {
                 }
             });
 
-            //await updateUserPath(user.id, superior?.path || null, tx);
+            await updateUserPath(user.id, superior?.path || null, tx);
         });
     } catch (e) {
         console.error('user init transaction failed:', e);

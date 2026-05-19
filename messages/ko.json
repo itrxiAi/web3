@@ -474,6 +474,7 @@
   },
   "my": {
     "my_recommender": "나의 추천인",
+    "referrer": "추천인",
     "invite": "초대",
     "my_invites": "나의 초대",
     "my_community": "나의 커뮤니티",

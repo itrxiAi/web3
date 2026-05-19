@@ -474,6 +474,7 @@
   },
   "my": {
     "my_recommender": "私の紹介者",
+    "referrer": "紹介者",
     "invite": "招待",
     "my_invites": "私の招待",
     "my_community": "私のコミュニティ",

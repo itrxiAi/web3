@@ -1,4 +1,4 @@
-import { verifyMessage } from 'viem';
+import { verifyMessage, keccak256, toBytes } from 'viem';
 import bs58 from 'bs58';
 import { TokenType, TxFlowType } from '@prisma/client';
 import { ExpiringMap } from '@/utils/expiringMap';
@@ -137,27 +137,19 @@ export async function verifyToken(token: string): Promise<boolean> {
   }
 }
 
+const SHORTCODE_ALPHABET = '23456789ABCDEFGHJKMNPQRSTVWXYZ'; // Crockford base32, no 0/O/1/I/L/U
+const SHORTCODE_LEN = 8;
+
 export function randomReferralCode(address: string): string {
-  try {
-    // For Ethereum addresses, we can use the address directly
-    // Normalize the address (remove '0x' prefix if present and ensure lowercase)
-    const normalizedAddress = address.toLowerCase().startsWith('0x') 
-      ? address.toLowerCase().slice(2) 
-      : address.toLowerCase();
-    
-    // Create a hash of the address to obscure the original
-    const addressBuffer = Buffer.from(normalizedAddress, 'hex');
-    const hash = crypto.createHash('sha256').update(addressBuffer).digest();
-
-    // Use a salt to further prevent reverse-engineering
-    const salt = 'aitko-points-salt-289123';
-    const saltedHash = crypto.createHmac('sha256', salt).update(hash).digest();
-
-    // Take the first 6 bytes and convert to a more compact format
-    const first6Bytes = saltedHash.slice(0, 6);
-    return first6Bytes.toString('base64').replace(/\+/g, '').replace(/\//g, '').replace(/=/g, '').toUpperCase();
-  } catch (error) {
-    console.error('Error generating referral code:', error);
-    throw new Error('Failed to generate referral code');
+  const hash: `0x${string}` = keccak256(toBytes(address.toLowerCase()));
+  const bytes = Buffer.from(hash.slice(2), 'hex');
+  let big = BigInt(0);
+  for (let i = 0; i < 5; i++) big = (big << BigInt(8)) | BigInt(bytes[i]);
+  const mask = BigInt(SHORTCODE_ALPHABET.length - 1);
+  let out = '';
+  for (let i = 0; i < SHORTCODE_LEN; i++) {
+    out = SHORTCODE_ALPHABET[Number(big & mask)] + out;
+    big >>= BigInt(5);
   }
+  return out;
 }

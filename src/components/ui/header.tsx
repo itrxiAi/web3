@@ -183,15 +183,15 @@ export default function Header() {
         )}
       </div>
 
-      {/* Recommender Modal */}
-      <RecommenderModal
-        isOpen={showRecommenderModal}
-        onClose={() => setShowRecommenderModal(false)}
-        initialReferralCode={referralCodeFromUrl}
-      />
     </header>
 
-    {/* 与顶栏平级，避免被限制在 header 的 z-30 层叠上下文内，导致侧栏被 main 盖住 */}
+    {/* 与顶栏平级，避免被 header 的 backdrop-filter 创建的 containing block
+        困住 fixed 元素（modal 会被夹在 header 那一条里）。 */}
+    <RecommenderModal
+      isOpen={showRecommenderModal}
+      onClose={() => setShowRecommenderModal(false)}
+      initialReferralCode={referralCodeFromUrl}
+    />
     <SideNavDrawer open={sideMenuOpen} onClose={() => setSideMenuOpen(false)} />
     </>
   );

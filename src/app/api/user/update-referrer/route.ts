@@ -3,7 +3,7 @@ import prisma from '@/lib/prisma'
 import { generateOperationHash, randomReferralCode, verifySignature } from '@/utils/auth';
 import { MAX_TIMESTAMP_GAP_MS, UPDATE_REFERRAL } from '@/constants';
 import { operationControl } from '@/utils/auth';
-//import { cleanUserMiningLevelPerformanceCache, getAllSubordinates, updateSuperiorNodeReward, updateUserPath } from '@/lib/user';
+import { /* cleanUserMiningLevelPerformanceCache,  */getAllSubordinates, /* updateSuperiorNodeReward,  */updateUserPath } from '@/lib/user';
 import { ErrorCode } from '@/lib/errors';
 import { get } from 'http';
 import { TxFlowStatus, TxFlowType, UserType } from '@prisma/client';
@@ -46,10 +46,15 @@ export async function POST(request: Request) {
         select: { walletAddress: true, path: true }
     });
 
+    console.log(`superior:${superior}`, JSON.stringify(superior))
+
     const user = await prisma.user.findUnique({
         where: { walletAddress: lowerCaseAddress },
         select: { superior: true, id: true, type: true, path: true }
     });
+
+    console.log(`user:${user}`, JSON.stringify(user))
+
 
     if (!user || !user.path || user?.superior || lowerCaseAddress === superior?.walletAddress) {
         return NextResponse.json(
@@ -65,17 +70,20 @@ export async function POST(request: Request) {
         );
     }
 
-    //const subordinates = await getAllSubordinates(user.path)
+    const subordinates = await getAllSubordinates(user.path)
+    console.log(`subordinates:${JSON.stringify(subordinates)}`)
     const superiors = superior.path.split('.')
+    console.log(`superiors:${superiors}`)
+
 
     // Check if any subordinate's ID is already in superior's path
-    // if (superior.path && subordinates.some(sub => superiors.includes(`${sub.id}`))) {
-    //     console.error(`One of the subordinate's IDs is already in superior's path, ${superiors}`);
-    //     return NextResponse.json(
-    //         { error: ErrorCode.OPERATION_FAILED },
-    //         { status: 400 }
-    //     );
-    // }
+    if (superior.path && subordinates.some(sub => superiors.includes(`${sub.referralCode}`))) {
+        console.error(`One of the subordinate's IDs is already in superior's path, ${superiors}`);
+        return NextResponse.json(
+            { error: ErrorCode.OPERATION_FAILED },
+            { status: 400 }
+        );
+    }
 
 
     await prisma.user.update({
@@ -86,33 +94,33 @@ export async function POST(request: Request) {
         }
     });
 
-    // for (const user of subordinates) {
-    //     if (!user.path) {
-    //         console.error(`User ${user.id} has no path`);
-    //         continue;
-    //     }
-    //     await updateUserPath(user.id, superior.path, prisma, user.path);
-    // }
-
-
-    const tx = await prisma.transaction.findFirst({
-        where: {
-            fromAddress: lowerCaseAddress,
-            type: TxFlowType.PURCHASE,
-            status: TxFlowStatus.CONFIRMED
-        },
-        select: { id: true, description: true }
-    })
-
-    if (tx && (tx.description === "" || !tx.description)) {
-        console.log(`Rereward for ${lowerCaseAddress}, tx id: ${tx.id}`)
-        await prisma.transaction.update({
-            where: { id: tx.id },
-            data: {
-                status: TxFlowStatus.PENDING
-            }
-        })
+    for (const user of subordinates) {
+        if (!user.path) {
+            console.error(`User ${user.id} has no path`);
+            continue;
+        }
+        await updateUserPath(user.id, superior.path, prisma, user.path);
     }
+
+
+    // const tx = await prisma.transaction.findFirst({
+    //     where: {
+    //         fromAddress: lowerCaseAddress,
+    //         type: TxFlowType.PURCHASE,
+    //         status: TxFlowStatus.CONFIRMED
+    //     },
+    //     select: { id: true, description: true }
+    // })
+
+    // if (tx && (tx.description === "" || !tx.description)) {
+    //     console.log(`Rereward for ${lowerCaseAddress}, tx id: ${tx.id}`)
+    //     await prisma.transaction.update({
+    //         where: { id: tx.id },
+    //         data: {
+    //             status: TxFlowStatus.PENDING
+    //         }
+    //     })
+    // }
 
     return NextResponse.json({
         data: true

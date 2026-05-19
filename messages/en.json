@@ -474,6 +474,7 @@
   },
   "my": {
     "my_recommender": "My Referrer",
+    "referrer": "Referrer",
     "invite": "Invite",
     "my_invites": "My Invitations",
     "my_community": "My Community",

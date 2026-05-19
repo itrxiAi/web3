@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import Image from "next/image";
 import Link from "next/link";
 import LoadingSpinner from "@/components/LoadingSpinner";
@@ -30,6 +30,7 @@ interface UserInfo {
   token_staked_points: number;
   referral_code?: string;
   superior_referral_code?: string;
+  path?: string | null;
   equityType: EquityType | null;
   cards: number;
   points: number;
@@ -39,6 +40,7 @@ function MyContent() {
   const { address } = useAppKitAccount();
   const { signMessageAsync } = useSignMessage();
   const t = useTranslations("my");
+  const locale = useLocale();
   const tUserType = useTranslations("user_type");
   const tErrors = useTranslations("errors");
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
@@ -113,8 +115,24 @@ function MyContent() {
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
   };
 
-  // Invitation link URL used for copy action
-  const inviteUrl = address ? `www.harmony.Link${address}` : "";
+  // Invitation link uses referralCode; host comes from the current origin.
+  const code = userInfo?.referral_code;
+  const inviteUrl =
+    code && typeof window !== "undefined"
+      ? `${window.location.origin}/${locale}?ref=${code}`
+      : "";
+  const inviteUrlDisplay =
+    code && typeof window !== "undefined"
+      ? `${window.location.host}/${locale}?ref=${code}`
+      : "--";
+
+  // Referrer's referralCode is the second-to-last segment of the path
+  // (path layout: "rootCode.…parentCode.myCode"). When the user is a root
+  // (length 1) or has no path, there is no referrer.
+  const referrerCode = (() => {
+    const segs = userInfo?.path?.split(".") ?? [];
+    return segs.length >= 2 ? segs[segs.length - 2] : null;
+  })();
 
   const handleCopy = () => {
     if (!inviteUrl) return;
@@ -152,6 +170,7 @@ function MyContent() {
           token_locked_points: Number(data.token_locked_points),
           token_staked_points: Number(data.token_staked_points),
           referral_code: data.referral_code,
+          path: data.path ?? null,
           equityType: (data.equityType as EquityType | null) ?? null,
           cards: Number(data.cards ?? 0),
           points: Number(data.points ?? 0),
@@ -593,18 +612,18 @@ function MyContent() {
                   )}
                 </p>
 
-                {/* Invite Link inline (copy only) */}
-                <div className="flex items-center gap-1 min-w-0">
-                  {/* <span
+                {/* Invite link row with copy button */}
+                <div className="flex items-center gap-2 min-w-0">
+                  <span
                     className="text-xs shrink-0"
-                    style={{ color: "rgba(255, 255, 255, 0.6)" }}
+                    style={{ color: "rgba(255,255,255,0.7)" }}
                   >
                     {t("my_recommender")}：
-                  </span> */}
-                  {/* <span className="text-xs text-white truncate min-w-0 flex-1">
-                    {address ? `www.harmony.Link${formatAddress(address)}` : "--"}
-                  </span> */}
-                  {/* <button
+                  </span>
+                  <span className="text-xs text-white truncate min-w-0 flex-1">
+                    {inviteUrlDisplay}
+                  </span>
+                  <button
                     type="button"
                     onClick={() => {
                       if (!address) {
@@ -613,19 +632,45 @@ function MyContent() {
                       }
                       handleCopy();
                     }}
-                    className="p-1 rounded shrink-0 ml-1"
+                    className="p-1 rounded shrink-0"
                     aria-label="Copy invitation link"
-                  
                   >
-                  <Image
-                  src="/imgs/my/copy.png"
-                  alt="Logo"
-                  width={20}
-                  height={20}
-                  className="object-contain"
-                />
-                  </button> */}
+                    <Image
+                      src="/imgs/my/copy.png"
+                      alt="Copy"
+                      width={20}
+                      height={20}
+                      className="object-contain"
+                    />
+                  </button>
                 </div>
+
+                {/* Referrer row: shows the inviter's referralCode parsed
+                    from path. If empty, the row is clickable to open the
+                    recommender input modal. */}
+                {/* <div
+                  className={`flex items-center gap-2 min-w-0 ${
+                    !referrerCode && address ? "cursor-pointer" : ""
+                  }`}
+                  onClick={() => {
+                    if (referrerCode) return;
+                    if (!address) {
+                      triggerWalletConnect();
+                      return;
+                    }
+                    setShowRecommenderModal(true);
+                  }}
+                >
+                  <span
+                    className="text-xs shrink-0"
+                    style={{ color: "rgba(255,255,255,0.7)" }}
+                  >
+                    {t("referrer")}：
+                  </span>
+                  <span className="text-xs text-white truncate min-w-0 flex-1">
+                    {referrerCode || "--"}
+                  </span>
+                </div> */}
               </div>
             </div>
           </div>

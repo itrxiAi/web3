@@ -451,6 +451,7 @@
   },
   "my": {
     "my_recommender": "邀請鏈接",
+    "referrer": "邀請人",
     "invite": "邀請",
     "my_invites": "我的邀請",
     "my_community": "我的社區",

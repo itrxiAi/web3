@@ -76,6 +76,7 @@ model User {
   backgroundUrl String?   @db.VarChar(255) @map("background_url")
   type          UserType?
   path          String?  // Materialized path storing the hierarchy path
+  depth         Int       @default(0)
   equityType    EquityType? @map("equity_type")
   points        Int       @default(0)
   cards         Int       @default(0)
@@ -87,6 +88,9 @@ model User {
   updatedAt     DateTime  @updatedAt @map("updated_at")
 
   @@index([walletAddress])
+  @@index([referralCode])
+  @@index([path])
+  @@index([depth])
   @@index([username])
   @@index([email])
   @@index([phoneNumber])
