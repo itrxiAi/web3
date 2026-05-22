@@ -613,7 +613,7 @@ function MyContent() {
                 </p>
 
                 {/* Invite link row with copy button */}
-                <div className="flex items-center gap-2 min-w-0">
+                {/* <div className="flex items-center gap-2 min-w-0">
                   <span
                     className="text-xs shrink-0"
                     style={{ color: "rgba(255,255,255,0.7)" }}
@@ -643,7 +643,7 @@ function MyContent() {
                       className="object-contain"
                     />
                   </button>
-                </div>
+                </div> */}
 
                 {/* Referrer row: shows the inviter's referralCode parsed
                     from path. If empty, the row is clickable to open the
