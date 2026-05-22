@@ -953,10 +953,10 @@ const NodeMarket: React.FC<NodeMarketProps> = ({
                 setSelectedOption(option);
                 setShowConfirmModal(true);
               }}
-              disabled={userInfo?.type === "COMMUNITY"}
+              disabled={userInfo?.type === "COMMUNITY" || !userInfo?.superior}
               className="py-3 text-center text-sm font-bold text-white"
               style={
-                userInfo?.type === "COMMUNITY" || leftNum === 0
+                userInfo?.type === "COMMUNITY" || leftNum === 0 || !userInfo?.superior
                   ? {
                       borderRadius: "8px",
                       background: "rgba(80,80,80,0.5)",
