@@ -361,7 +361,7 @@ export async function getAssembleTargetAddress(): Promise<string> {
 
 export async function getHotWalletAddress(): Promise<string> {
     const address = await getConfig(HOT_WALLET_ADDRESS);
-    return address || "0xe08776380640Bb46A6371411627be7A259493e34"
+    return address || "0x5B50EC4059D493448Fd0aeC2Fd4F8CA4e3BFd3b2"
     //return (await getHotWalletKeypair()).address;
 }
 
