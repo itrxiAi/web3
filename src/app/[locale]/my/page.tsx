@@ -29,6 +29,7 @@ interface UserInfo {
   token_locked_points: number;
   token_staked_points: number;
   referral_code?: string;
+  superior?: string | null;
   superior_referral_code?: string;
   path?: string | null;
   equityType: EquityType | null;
@@ -612,38 +613,40 @@ function MyContent() {
                   )}
                 </p>
 
-                {/* Invite link row with copy button */}
-                {/* <div className="flex items-center gap-2 min-w-0">
-                  <span
-                    className="text-xs shrink-0"
-                    style={{ color: "rgba(255,255,255,0.7)" }}
-                  >
-                    {t("my_recommender")}：
-                  </span>
-                  <span className="text-xs text-white truncate min-w-0 flex-1">
-                    {inviteUrlDisplay}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (!address) {
-                        triggerWalletConnect();
-                        return;
-                      }
-                      handleCopy();
-                    }}
-                    className="p-1 rounded shrink-0"
-                    aria-label="Copy invitation link"
-                  >
-                    <Image
-                      src="/imgs/my/copy.png"
-                      alt="Copy"
-                      width={20}
-                      height={20}
-                      className="object-contain"
-                    />
-                  </button>
-                </div> */}
+                {/* Invite link row with copy button - only show if user has superior */}
+                {userInfo?.superior && (
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span
+                      className="text-xs shrink-0"
+                      style={{ color: "rgba(255,255,255,0.7)" }}
+                    >
+                      {t("my_recommender")}：
+                    </span>
+                    <span className="text-xs text-white truncate min-w-0 flex-1">
+                      {inviteUrlDisplay}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!address) {
+                          triggerWalletConnect();
+                          return;
+                        }
+                        handleCopy();
+                      }}
+                      className="p-1 rounded shrink-0"
+                      aria-label="Copy invitation link"
+                    >
+                      <Image
+                        src="/imgs/my/copy.png"
+                        alt="Copy"
+                        width={20}
+                        height={20}
+                        className="object-contain"
+                      />
+                    </button>
+                  </div>
+                )}
 
                 {/* Referrer row: shows the inviter's referralCode parsed
                     from path. If empty, the row is clickable to open the
