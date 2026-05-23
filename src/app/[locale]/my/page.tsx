@@ -577,7 +577,8 @@ function MyContent() {
               }}
             />
 
-              <div className="relative flex gap-6">
+              <div className="relative flex flex-col gap-4">
+                <div className="flex gap-6">
               {/* Left: Avatar */}
               <div className="flex-shrink-0 flex items-center justify-center">
                 <Image
@@ -613,9 +614,39 @@ function MyContent() {
                   )}
                 </p>
 
-                {/* Invite link row with copy button - only show if user has superior */}
+
+                {/* Referrer row: shows the inviter's referralCode parsed
+                    from path. If empty, the row is clickable to open the
+                    recommender input modal. */}
+                {/* <div
+                  className={`flex items-center gap-2 min-w-0 ${
+                    !referrerCode && address ? "cursor-pointer" : ""
+                  }`}
+                  onClick={() => {
+                    if (referrerCode) return;
+                    if (!address) {
+                      triggerWalletConnect();
+                      return;
+                    }
+                    setShowRecommenderModal(true);
+                  }}
+                >
+                  <span
+                    className="text-xs shrink-0"
+                    style={{ color: "rgba(255,255,255,0.7)" }}
+                  >
+                    {t("referrer")}：
+                  </span>
+                  <span className="text-xs text-white truncate min-w-0 flex-1">
+                    {referrerCode || "--"}
+                  </span>
+                </div> */}
+              </div>
+                </div>
+
+                {/* Invite link row with full width - only show if user has superior */}
                 {userInfo?.superior && (
-                  <div className="flex items-center gap-2 min-w-0">
+                  <div className="flex items-center gap-2 w-full">
                     <span
                       className="text-xs shrink-0"
                       style={{ color: "rgba(255,255,255,0.7)" }}
@@ -647,35 +678,7 @@ function MyContent() {
                     </button>
                   </div>
                 )}
-
-                {/* Referrer row: shows the inviter's referralCode parsed
-                    from path. If empty, the row is clickable to open the
-                    recommender input modal. */}
-                {/* <div
-                  className={`flex items-center gap-2 min-w-0 ${
-                    !referrerCode && address ? "cursor-pointer" : ""
-                  }`}
-                  onClick={() => {
-                    if (referrerCode) return;
-                    if (!address) {
-                      triggerWalletConnect();
-                      return;
-                    }
-                    setShowRecommenderModal(true);
-                  }}
-                >
-                  <span
-                    className="text-xs shrink-0"
-                    style={{ color: "rgba(255,255,255,0.7)" }}
-                  >
-                    {t("referrer")}：
-                  </span>
-                  <span className="text-xs text-white truncate min-w-0 flex-1">
-                    {referrerCode || "--"}
-                  </span>
-                </div> */}
               </div>
-            </div>
           </div>
 
           {/* My HAKCARD and Points Section */}
