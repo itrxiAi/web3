@@ -37,6 +37,14 @@ interface UserInfo {
   points: number;
 }
 
+interface DirectReferral {
+  sequence: number;
+  address: string;
+  equityType: string;
+  consensusAmount: number;
+  activatedAt: string | null;
+}
+
 function MyContent() {
   const { address } = useAppKitAccount();
   const { signMessageAsync } = useSignMessage();
@@ -45,6 +53,7 @@ function MyContent() {
   const tUserType = useTranslations("user_type");
   const tErrors = useTranslations("errors");
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
+  const [directs, setDirects] = useState<DirectReferral[]>([]);
   const [loading, setLoading] = useState(false);
   const [showCashOutModal, setShowCashOutModal] = useState(false);
   const [showInternalTransferModal, setShowInternalTransferModal] =
@@ -65,9 +74,24 @@ function MyContent() {
     TokenType.USDT
   );
 
+  // Fetch direct referrals
+  const fetchDirects = async () => {
+    if (!address) return;
+    try {
+      const response = await fetch(`/api/user/directs?address=${address}`);
+      if (response.ok) {
+        const data = await response.json();
+        setDirects(data.directs || []);
+      }
+    } catch (error) {
+      console.error('Error fetching directs:', error);
+    }
+  };
+
   useEffect(() => {
     if (address) {
       setToAddress(address);
+      fetchDirects();
     }
   }, [address]);
 
@@ -615,71 +639,98 @@ function MyContent() {
                 </p>
 
 
-                {/* Referrer row: shows the inviter's referralCode parsed
-                    from path. If empty, the row is clickable to open the
-                    recommender input modal. */}
-                {/* <div
-                  className={`flex items-center gap-2 min-w-0 ${
-                    !referrerCode && address ? "cursor-pointer" : ""
-                  }`}
-                  onClick={() => {
-                    if (referrerCode) return;
-                    if (!address) {
-                      triggerWalletConnect();
-                      return;
-                    }
-                    setShowRecommenderModal(true);
-                  }}
-                >
+              </div>
+                </div>
+
+                {/* Invite link row with full width */}
+                <div className="flex items-center gap-2 w-full">
                   <span
                     className="text-xs shrink-0"
                     style={{ color: "rgba(255,255,255,0.7)" }}
                   >
-                    {t("referrer")}：
+                    {t("my_recommender")}：
                   </span>
                   <span className="text-xs text-white truncate min-w-0 flex-1">
-                    {referrerCode || "--"}
+                    {inviteUrlDisplay}
                   </span>
-                </div> */}
-              </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!address) {
+                        triggerWalletConnect();
+                        return;
+                      }
+                      handleCopy();
+                    }}
+                    className="p-1 rounded shrink-0"
+                    aria-label="Copy invitation link"
+                  >
+                    <Image
+                      src="/imgs/my/copy.png"
+                      alt="Copy"
+                      width={20}
+                      height={20}
+                      className="object-contain"
+                    />
+                  </button>
                 </div>
 
-                {/* Invite link row with full width - only show if user has superior */}
+                {/* Superior (referrer) row - read-only display */}
                 {userInfo?.superior && (
                   <div className="flex items-center gap-2 w-full">
                     <span
                       className="text-xs shrink-0"
                       style={{ color: "rgba(255,255,255,0.7)" }}
                     >
-                      {t("my_recommender")}：
+                      {t("referrer")}：
                     </span>
                     <span className="text-xs text-white truncate min-w-0 flex-1">
-                      {inviteUrlDisplay}
+                      {userInfo.superior}
                     </span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (!address) {
-                          triggerWalletConnect();
-                          return;
-                        }
-                        handleCopy();
-                      }}
-                      className="p-1 rounded shrink-0"
-                      aria-label="Copy invitation link"
-                    >
-                      <Image
-                        src="/imgs/my/copy.png"
-                        alt="Copy"
-                        width={20}
-                        height={20}
-                        className="object-contain"
-                      />
-                    </button>
                   </div>
                 )}
               </div>
           </div>
+
+          {/* My Directs Section */}
+          {directs.length > 0 && (
+            <div className="mb-8">
+              <div
+                className="p-5"
+                style={{
+                  opacity: 0.78,
+                  borderRadius: "15px",
+                  backgroundImage: "linear-gradient(0deg, #e30e10 0%, #690a71 100%)",
+                }}
+              >
+                <h2 className="text-sm font-bold text-white mb-4">{t("my_directs")}</h2>
+                <div className="space-y-2">
+                  {/* Table Header */}
+                  <div className="grid grid-cols-[60px_1fr_120px] gap-2 text-xs text-white/70 pb-2 border-b border-white/20">
+                    <div>{t("direct_sequence")}</div>
+                    <div>{t("direct_address")}</div>
+                    <div className="text-right">{t("early_consensus")}</div>
+                  </div>
+                  {/* Table Rows - Real data from API */}
+                  {directs.map((direct) => {
+                    // 格式化地址为中间省略号格式：0x1234...5678
+                    const formatAddress = (addr: string) => {
+                      if (!addr || addr.length < 12) return addr;
+                      return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+                    };
+                    
+                    return (
+                      <div key={direct.sequence} className="grid grid-cols-[60px_1fr_120px] gap-2 text-xs text-white py-2">
+                        <div>{direct.sequence}</div>
+                        <div>{formatAddress(direct.address)}</div>
+                        <div className="text-right">{direct.consensusAmount}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* My HAKCARD and Points Section */}
           <div className="mb-8">
