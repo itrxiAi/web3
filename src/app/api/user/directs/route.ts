@@ -22,8 +22,8 @@ export async function GET(req: NextRequest) {
     // Get user's direct referrals
     const directs = await prisma.user.findMany({
       where: {
-        superior: walletAddress,
-        cards: { gt: 0 }, // Only include users with cards (early consensus)
+        superior: walletAddress//,
+//        cards: { gt: 0 }, // Only include users with cards (early consensus)
       },
       select: {
         walletAddress: true,
