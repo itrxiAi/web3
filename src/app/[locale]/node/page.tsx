@@ -920,7 +920,7 @@ const NodeMarket: React.FC<NodeMarketProps> = ({
                 >
                   {i + 1}
                 </span>
-                <p className="leading-snug text-white" style={{ color: "#ffffff" }}>
+                <p className="whitespace-pre-line leading-snug text-white" style={{ color: "#ffffff" }}>
                   {benefit}
                 </p>
               </div>

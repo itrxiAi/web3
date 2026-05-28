@@ -108,7 +108,7 @@ export default function EarlyConsensusSubscribe() {
                   className="flex gap-2 text-left text-[13px] leading-[1.75] text-white/95 sm:text-sm"
                 >
                   <span className="shrink-0 font-bold text-white">{i + 1}</span>
-                  <span>{t(key)}</span>
+                  <span className="whitespace-pre-line">{t(key)}</span>
                 </li>
               ))}
             </ol>
