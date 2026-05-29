@@ -50,6 +50,7 @@ export function useEquityActivation(options?: EquityActivationOptions) {
 
   const [tiers, setTiers] = useState<EquityTierInfo[] | null>(null);
   const [env, setEnv] = useState<{ environment: string; hotWalletAddress: string } | null>(null);
+  const [userExists, setUserExists] = useState<boolean | null>(null);
   const [isPaying, setIsPaying] = useState(false);
   const [txSignature, setTxSignature] = useState<string | null>(null);
   const [showTxModal, setShowTxModal] = useState(false);
@@ -91,6 +92,32 @@ export function useEquityActivation(options?: EquityActivationOptions) {
       cancelled = true;
     };
   }, []);
+
+  // 检查用户是否存在
+  useEffect(() => {
+    let cancelled = false;
+    const checkUser = async () => {
+      if (!address) {
+        setUserExists(null);
+        return;
+      }
+      try {
+        const response = await fetch(`/api/user/exists?address=${encodeURIComponent(address)}`);
+        const data = await response.json();
+        if (cancelled) return;
+        setUserExists(data.exists);
+      } catch (e) {
+        console.error("Failed to check user exists:", e);
+        if (!cancelled) {
+          setUserExists(true); // 出错时默认为存在，不阻止激活
+        }
+      }
+    };
+    void checkUser();
+    return () => {
+      cancelled = true;
+    };
+  }, [address]);
 
   const transferTokens = useCallback(
     async (amountWei: string): Promise<string> => {
@@ -182,6 +209,7 @@ export function useEquityActivation(options?: EquityActivationOptions) {
   return {
     tiers,
     env,
+    userExists,
     ready: Boolean(tiers?.length && env),
     isPaying,
     payEquity,
