@@ -148,7 +148,7 @@ function MyContent() {
       : "";
   const inviteUrlDisplay =
     code && typeof window !== "undefined"
-      ? `${window.location.host}/${locale}?ref=${code}`
+      ? `${window.location.origin}/${locale}?ref=${code}`
       : "--";
 
   // Referrer's referralCode is the second-to-last segment of the path
