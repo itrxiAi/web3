@@ -98,6 +98,23 @@ type TeamRevenueBreakdown = {
   };
 };
 
+type CommunityApplication = {
+  id: string;
+  name: string;
+  logo: string | null;
+  description: string | null;
+  contactPerson: string;
+  walletAddress: string;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  contributionScore: string;
+  createdAt: string;
+  owner: {
+    id: string;
+    address: string;
+    nickname: string | null;
+  };
+};
+
 // 昨天的 YYYY-MM-DD（UTC，与后端结算口径一致）
 function yesterdayUTC(): string {
   const d = new Date();
@@ -155,6 +172,14 @@ const AdminStatisticsPage = () => {
   const [compensateLoading, setCompensateLoading] = useState(false);
   const [compensateMessage, setCompensateMessage] = useState('');
   const [compensateError, setCompensateError] = useState('');
+
+  // 社区审核
+  const [communities, setCommunities] = useState<CommunityApplication[]>([]);
+  const [communityStatus, setCommunityStatus] = useState<'PENDING' | 'APPROVED' | 'REJECTED' | 'ALL'>('PENDING');
+  const [communityLoading, setCommunityLoading] = useState(false);
+  const [communityError, setCommunityError] = useState('');
+  const [approveLoading, setApproveLoading] = useState<string | null>(null);
+  const [rejectReason, setRejectReason] = useState<Record<string, string>>({});
 
   const fetchArbiters = async (nextPage = arbiterPage) => {
     setArbiterLoading(true);
@@ -297,6 +322,56 @@ const AdminStatisticsPage = () => {
       setCompensateError(error instanceof Error ? error.message : '补偿失败');
     } finally {
       setCompensateLoading(false);
+    }
+  };
+
+  // 获取社区列表
+  const fetchCommunities = async () => {
+    setCommunityLoading(true);
+    setCommunityError('');
+    try {
+      const statusParam = communityStatus === 'ALL' ? '' : `?status=${communityStatus}`;
+      const response = await fetch(`/api/admin/communities${statusParam}`);
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data?.error || data?.message || `Request failed: ${response.status}`);
+      setCommunities(data.items || []);
+    } catch (error) {
+      setCommunityError(error instanceof Error ? error.message : '获取社区列表失败');
+    } finally {
+      setCommunityLoading(false);
+    }
+  };
+
+  // 审核社区（通过或拒绝）
+  const handleApproveCommunity = async (communityId: string, approved: boolean, reason?: string) => {
+    setApproveLoading(communityId);
+    try {
+      const response = await fetch(`/api/admin/communities/${communityId}/approve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          status: approved ? 'APPROVED' : 'REJECTED',
+          rejectReason: reason,
+        }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data?.error || data?.message || `Request failed: ${response.status}`);
+      
+      // 刷新列表
+      await fetchCommunities();
+      
+      // 清空拒绝原因
+      if (!approved) {
+        setRejectReason((prev) => {
+          const newState = { ...prev };
+          delete newState[communityId];
+          return newState;
+        });
+      }
+    } catch (error) {
+      alert(error instanceof Error ? error.message : '审核失败');
+    } finally {
+      setApproveLoading(null);
     }
   };
 
@@ -679,6 +754,121 @@ const AdminStatisticsPage = () => {
           </div>
           {compensateMessage && <p className="text-green-400 text-sm">{compensateMessage}</p>}
           {compensateError && <p className="text-red-400 text-sm">{compensateError}</p>}
+        </section>
+
+        {/* 8) 社区申请审核 */}
+        <section className="rounded-xl border border-white/20 bg-white/5 p-4 space-y-4">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <h2 className="text-lg font-semibold">8) 社区申请审核</h2>
+            <div className="flex items-center gap-2">
+              <select
+                value={communityStatus}
+                onChange={(e) => setCommunityStatus(e.target.value as typeof communityStatus)}
+                className="rounded border border-white/20 bg-black/50 px-3 py-1.5 text-sm"
+              >
+                <option value="PENDING">待审核</option>
+                <option value="APPROVED">已通过</option>
+                <option value="REJECTED">已拒绝</option>
+                <option value="ALL">全部</option>
+              </select>
+              <button
+                onClick={() => void fetchCommunities()}
+                disabled={communityLoading}
+                className="rounded bg-blue-600 px-3 py-1.5 text-sm disabled:bg-gray-600"
+              >
+                {communityLoading ? '加载中...' : '刷新列表'}
+              </button>
+            </div>
+          </div>
+
+          {communityError && <p className="text-red-400 text-sm">{communityError}</p>}
+
+          <div className="space-y-4">
+            {communities.length === 0 && !communityLoading && (
+              <p className="text-white/60 text-sm">暂无社区申请</p>
+            )}
+
+            {communities.map((community) => (
+              <div key={community.id} className="rounded-lg border border-white/20 bg-black/30 p-4 space-y-3">
+                <div className="flex items-start gap-4">
+                  {community.logo && (
+                    <img
+                      src={community.logo}
+                      alt={community.name}
+                      className="w-16 h-16 rounded-lg object-cover flex-shrink-0"
+                    />
+                  )}
+                  <div className="flex-1 space-y-2 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="text-lg font-semibold">{community.name}</h3>
+                      <span
+                        className={`px-2 py-0.5 rounded text-xs font-medium ${
+                          community.status === 'APPROVED'
+                            ? 'bg-green-600/20 text-green-400'
+                            : community.status === 'REJECTED'
+                            ? 'bg-red-600/20 text-red-400'
+                            : 'bg-yellow-600/20 text-yellow-400'
+                        }`}
+                      >
+                        {community.status === 'APPROVED' ? '已通过' : community.status === 'REJECTED' ? '已拒绝' : '待审核'}
+                      </span>
+                    </div>
+                    {community.description && (
+                      <p className="text-sm text-white/80 break-words">{community.description}</p>
+                    )}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                      <div className="flex gap-1 items-baseline">
+                        <span className="text-white/60 flex-shrink-0">申请人：</span>
+                        <span className="font-mono truncate">{community.owner.nickname || <AddressTag address={community.owner.address} />}</span>
+                      </div>
+                      <div className="flex gap-1 items-baseline">
+                        <span className="text-white/60 flex-shrink-0">联系方式：</span>
+                        <span className="truncate">{community.contactPerson}</span>
+                      </div>
+                      <div className="flex gap-1 items-baseline">
+                        <span className="text-white/60 flex-shrink-0">收益钱包：</span>
+                        <span className="font-mono truncate"><AddressTag address={community.walletAddress} /></span>
+                      </div>
+                      <div className="flex gap-1 items-baseline">
+                        <span className="text-white/60 flex-shrink-0">贡献值：</span>
+                        <span className="text-yellow-300">{community.contributionScore}</span>
+                      </div>
+                      <div className="flex gap-1 items-baseline">
+                        <span className="text-white/60 flex-shrink-0">申请时间：</span>
+                        <span>{new Date(community.createdAt).toLocaleString()}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {community.status === 'PENDING' && (
+                  <div className="flex items-center gap-3 pt-2 border-t border-white/10">
+                    <input
+                      type="text"
+                      value={rejectReason[community.id] || ''}
+                      onChange={(e) => setRejectReason((prev) => ({ ...prev, [community.id]: e.target.value }))}
+                      placeholder="拒绝原因（可选）"
+                      className="flex-1 rounded border border-white/20 bg-black/50 px-3 py-1.5 text-sm"
+                    />
+                    <button
+                      onClick={() => void handleApproveCommunity(community.id, true)}
+                      disabled={approveLoading === community.id}
+                      className="rounded bg-green-600 px-4 py-1.5 text-sm font-medium disabled:bg-gray-600 flex-shrink-0"
+                    >
+                      {approveLoading === community.id ? '处理中...' : '通过'}
+                    </button>
+                    <button
+                      onClick={() => void handleApproveCommunity(community.id, false, rejectReason[community.id])}
+                      disabled={approveLoading === community.id}
+                      className="rounded bg-red-600 px-4 py-1.5 text-sm font-medium disabled:bg-gray-600 flex-shrink-0"
+                    >
+                      拒绝
+                    </button>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
         </section>
       </div>
     </div>
