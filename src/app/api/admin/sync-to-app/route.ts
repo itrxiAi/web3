@@ -102,56 +102,56 @@ export async function POST(req: NextRequest) {
       }
 
       // 2) 激活（按 cards 数量判断 + 映射 package）
-      const map = u.cards > 0 ? cardsToPackage(u.cards) : null;
-      if (map) {
-        try {
-          const resp = await fetch(`${apiBase}/internal/activations`, {
-            method: 'POST',
-            headers,
-            body: JSON.stringify({
-              address,
-              package: map.package,
-              amountUsdt: map.amountUsdt,
-              activatedAt: (u.equityActivedAt ?? u.purchaseAt ?? u.createdAt).toISOString(),
-              txHash: null,
-            }),
-          });
-          if (!resp.ok) {
-            const json = await resp.json().catch(() => ({}));
-            const data = json?.data ?? json;
-            throw new Error(data?.message || data?.error || `activations ${resp.status}`);
-          }
-          stats.activationOk += 1;
-        } catch (e) {
-          stats.errors.push({ address, step: 'activations', error: (e as Error).message });
-        }
-      } else {
-        stats.activationSkipped += 1;
-      }
+      // const map = u.cards > 0 ? cardsToPackage(u.cards) : null;
+      // if (map) {
+      //   try {
+      //     const resp = await fetch(`${apiBase}/internal/activations`, {
+      //       method: 'POST',
+      //       headers,
+      //       body: JSON.stringify({
+      //         address,
+      //         package: map.package,
+      //         amountUsdt: map.amountUsdt,
+      //         activatedAt: (u.equityActivedAt ?? u.purchaseAt ?? u.createdAt).toISOString(),
+      //         txHash: null,
+      //       }),
+      //     });
+      //     if (!resp.ok) {
+      //       const json = await resp.json().catch(() => ({}));
+      //       const data = json?.data ?? json;
+      //       throw new Error(data?.message || data?.error || `activations ${resp.status}`);
+      //     }
+      //     stats.activationOk += 1;
+      //   } catch (e) {
+      //     stats.errors.push({ address, step: 'activations', error: (e as Error).message });
+      //   }
+      // } else {
+      //   stats.activationSkipped += 1;
+      // }
 
-      // 3) 鉴定者
-      if (u.type === UserType.COMMUNITY) {
-        try {
-          const resp = await fetch(`${apiBase}/internal/arbiters`, {
-            method: 'POST',
-            headers,
-            body: JSON.stringify({
-              address,
-              becameAt: (u.purchaseAt ?? u.createdAt).toISOString(),
-            }),
-          });
-          if (!resp.ok) {
-            const json = await resp.json().catch(() => ({}));
-            const data = json?.data ?? json;
-            throw new Error(data?.message || data?.error || `arbiters ${resp.status}`);
-          }
-          stats.arbiterOk += 1;
-        } catch (e) {
-          stats.errors.push({ address, step: 'arbiters', error: (e as Error).message });
-        }
-      } else {
-        stats.arbiterSkipped += 1;
-      }
+      // // 3) 鉴定者
+      // if (u.type === UserType.COMMUNITY) {
+      //   try {
+      //     const resp = await fetch(`${apiBase}/internal/arbiters`, {
+      //       method: 'POST',
+      //       headers,
+      //       body: JSON.stringify({
+      //         address,
+      //         becameAt: (u.purchaseAt ?? u.createdAt).toISOString(),
+      //       }),
+      //     });
+      //     if (!resp.ok) {
+      //       const json = await resp.json().catch(() => ({}));
+      //       const data = json?.data ?? json;
+      //       throw new Error(data?.message || data?.error || `arbiters ${resp.status}`);
+      //     }
+      //     stats.arbiterOk += 1;
+      //   } catch (e) {
+      //     stats.errors.push({ address, step: 'arbiters', error: (e as Error).message });
+      //   }
+      // } else {
+      //   stats.arbiterSkipped += 1;
+      // }
     }
 
     return NextResponse.json(stats);
