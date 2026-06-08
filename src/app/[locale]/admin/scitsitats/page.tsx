@@ -121,12 +121,6 @@ type BannerItem = {
   order: number;
 };
 
-type BannerItem = {
-  imageUrl: string;
-  linkUrl: string;
-  order: number;
-};
-
 // 昨天的 YYYY-MM-DD（UTC，与后端结算口径一致）
 function yesterdayUTC(): string {
   const d = new Date();
@@ -192,14 +186,6 @@ const AdminStatisticsPage = () => {
   const [communityError, setCommunityError] = useState('');
   const [approveLoading, setApproveLoading] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState<Record<string, string>>({});
-
-  // Banner 管理
-  const [banners, setBanners] = useState<BannerItem[]>([]);
-  const [bannerLoading, setBannerLoading] = useState(false);
-  const [bannerError, setBannerError] = useState('');
-  const [bannerSaving, setBannerSaving] = useState(false);
-  const [uploadingBanner, setUploadingBanner] = useState(false);
-  const [newBanner, setNewBanner] = useState<BannerItem>({ imageUrl: '', linkUrl: '', order: 0 });
 
   // Banner 管理
   const [banners, setBanners] = useState<BannerItem[]>([]);
@@ -400,107 +386,6 @@ const AdminStatisticsPage = () => {
       alert(error instanceof Error ? error.message : '审核失败');
     } finally {
       setApproveLoading(null);
-    }
-  };
-
-  // 获取 Banners
-  const fetchBanners = async () => {
-    setBannerLoading(true);
-    setBannerError('');
-    try {
-      const response = await fetch('/api/admin/banners');
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data?.error || `Request failed: ${response.status}`);
-      setBanners(data.banners || []);
-    } catch (error) {
-      setBannerError(error instanceof Error ? error.message : '获取Banner失败');
-    } finally {
-      setBannerLoading(false);
-    }
-  };
-
-  // 上传Banner图片
-  const uploadBannerImage = async (file: File): Promise<string> => {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('purpose', 'banner');
-
-    const response = await fetch('/api/admin/upload-banner', {
-      method: 'POST',
-      body: formData,
-    });
-    
-    const data = await response.json().catch(() => ({}));
-    console.log('[uploadBannerImage] 收到响应:', data);
-    if (!response.ok) throw new Error(data?.error || `上传失败: ${response.status}`);
-    
-    // 兼容两种响应格式：{url: ...} 或 {data: {url: ...}}
-    const url = data.url || data.data?.url || data.publicUrl || data.data?.publicUrl;
-    console.log('[uploadBannerImage] 返回 URL:', url);
-    if (!url) {
-      console.error('[uploadBannerImage] 无法获取 URL，完整响应:', JSON.stringify(data));
-      throw new Error('上传成功但未返回 URL');
-    }
-    return url;
-  };
-
-  // 更新 Banners
-  const updateBanners = async (updatedBanners: BannerItem[]) => {
-    setBannerSaving(true);
-    setBannerError('');
-    try {
-      const response = await fetch('/api/admin/banners', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ banners: updatedBanners }),
-      });
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data?.error || `Request failed: ${response.status}`);
-      setBanners(data.banners || updatedBanners);
-      alert('Banner更新成功');
-    } catch (error) {
-      setBannerError(error instanceof Error ? error.message : '更新Banner失败');
-    } finally {
-      setBannerSaving(false);
-    }
-  };
-
-  // 添加 Banner
-  const addBanner = () => {
-    console.log('[addBanner] newBanner:', newBanner);
-    if (!newBanner.imageUrl || !newBanner.linkUrl) {
-      alert('请填写完整的Banner信息');
-      return;
-    }
-    const updated = [...banners, newBanner].sort((a, b) => a.order - b.order);
-    void updateBanners(updated);
-    setNewBanner({ imageUrl: '', linkUrl: '', order: banners.length + 1 });
-  };
-
-  // 删除 Banner
-  const deleteBanner = (index: number) => {
-    if (!confirm('确认删除该Banner？')) return;
-    const updated = banners.filter((_, i) => i !== index);
-    void updateBanners(updated);
-  };
-
-  // 处理图片上传
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    
-    setUploadingBanner(true);
-    setBannerError('');
-    try {
-      const url = await uploadBannerImage(file);
-      console.log('[handleImageUpload] 上传成功，URL:', url);
-      setNewBanner(prev => ({ ...prev, imageUrl: url }));
-      console.log('[handleImageUpload] newBanner.imageUrl 已更新为:', url);
-    } catch (error) {
-      console.error('[handleImageUpload] 上传失败:', error);
-      setBannerError(error instanceof Error ? error.message : '上传失败');
-    } finally {
-      setUploadingBanner(false);
     }
   };
 
