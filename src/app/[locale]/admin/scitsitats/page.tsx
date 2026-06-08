@@ -115,6 +115,12 @@ type CommunityApplication = {
   };
 };
 
+type BannerItem = {
+  imageUrl: string;
+  linkUrl: string;
+  order: number;
+};
+
 // 昨天的 YYYY-MM-DD（UTC，与后端结算口径一致）
 function yesterdayUTC(): string {
   const d = new Date();
@@ -180,6 +186,14 @@ const AdminStatisticsPage = () => {
   const [communityError, setCommunityError] = useState('');
   const [approveLoading, setApproveLoading] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState<Record<string, string>>({});
+
+  // Banner 管理
+  const [banners, setBanners] = useState<BannerItem[]>([]);
+  const [bannerLoading, setBannerLoading] = useState(false);
+  const [bannerError, setBannerError] = useState('');
+  const [bannerSaving, setBannerSaving] = useState(false);
+  const [uploadingBanner, setUploadingBanner] = useState(false);
+  const [newBanner, setNewBanner] = useState<BannerItem>({ imageUrl: '', linkUrl: '', order: 0 });
 
   const fetchArbiters = async (nextPage = arbiterPage) => {
     setArbiterLoading(true);
@@ -372,6 +386,140 @@ const AdminStatisticsPage = () => {
       alert(error instanceof Error ? error.message : '审核失败');
     } finally {
       setApproveLoading(null);
+    }
+  };
+
+  // 获取 Banners
+  const fetchBanners = async () => {
+    setBannerLoading(true);
+    setBannerError('');
+    try {
+      const response = await fetch('/api/admin/banners');
+      const data = await response.json().catch(() => ({}));
+      console.log('[fetchBanners] 收到响应:', data);
+      if (!response.ok) throw new Error(data?.error || `Request failed: ${response.status}`);
+      
+      // 兼容两种响应格式：{banners: ...} 或 {data: {banners: ...}}
+      const banners = data.banners || data.data?.banners || [];
+      console.log('[fetchBanners] 解析的 banners:', banners);
+      setBanners(banners);
+    } catch (error) {
+      console.error('[fetchBanners] 错误:', error);
+      setBannerError(error instanceof Error ? error.message : '获取Banner失败');
+    } finally {
+      setBannerLoading(false);
+    }
+  };
+
+  // 上传Banner图片
+  const uploadBannerImage = async (file: File): Promise<string> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('purpose', 'banner');
+
+    const response = await fetch('/api/admin/upload-banner', {
+      method: 'POST',
+      body: formData,
+    });
+    
+    const data = await response.json().catch(() => ({}));
+    console.log('[uploadBannerImage] 收到响应:', data);
+    if (!response.ok) throw new Error(data?.error || `上传失败: ${response.status}`);
+    
+    // 兼容两种响应格式：{url: ...} 或 {data: {url: ...}}
+    const url = data.url || data.data?.url || data.publicUrl || data.data?.publicUrl;
+    console.log('[uploadBannerImage] 返回 URL:', url);
+    if (!url) {
+      console.error('[uploadBannerImage] 无法获取 URL，完整响应:', JSON.stringify(data));
+      throw new Error('上传成功但未返回 URL');
+    }
+    return url;
+  };
+
+  // 更新 Banners
+  const updateBanners = async (updatedBanners: BannerItem[]) => {
+    setBannerSaving(true);
+    setBannerError('');
+    try {
+      const response = await fetch('/api/admin/banners', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ banners: updatedBanners }),
+      });
+      const data = await response.json().catch(() => ({}));
+      console.log('[updateBanners] 收到响应:', data);
+      if (!response.ok) throw new Error(data?.error || `Request failed: ${response.status}`);
+      
+      // 兼容两种响应格式
+      const banners = data.banners || data.data?.banners || updatedBanners;
+      setBanners(banners);
+      alert('Banner更新成功');
+    } catch (error) {
+      console.error('[updateBanners] 错误:', error);
+      setBannerError(error instanceof Error ? error.message : '更新Banner失败');
+    } finally {
+      setBannerSaving(false);
+    }
+  };
+
+  // 添加 Banner
+  const addBanner = () => {
+    console.log('[addBanner] newBanner:', newBanner);
+    if (!newBanner.imageUrl || !newBanner.linkUrl) {
+      alert('请填写完整的Banner信息');
+      return;
+    }
+    
+    // 检查 order 是否重复
+    if (banners.some(b => b.order === newBanner.order)) {
+      alert(`排序值 ${newBanner.order} 已存在，请使用不同的排序值`);
+      return;
+    }
+    
+    const updated = [...banners, newBanner].sort((a, b) => a.order - b.order);
+    void updateBanners(updated);
+    setNewBanner({ imageUrl: '', linkUrl: '', order: banners.length });
+  };
+
+  // 删除 Banner
+  const deleteBanner = (index: number) => {
+    if (!confirm('确认删除该Banner？')) return;
+    const updated = banners.filter((_, i) => i !== index);
+    void updateBanners(updated);
+  };
+
+  // 更新 Banner 的 order
+  const updateBannerOrder = (index: number, newOrder: number) => {
+    // 检查新 order 是否与其他 banner 重复
+    if (banners.some((b, i) => i !== index && b.order === newOrder)) {
+      alert(`排序值 ${newOrder} 已被其他 Banner 使用`);
+      return;
+    }
+    
+    const updated = banners.map((b, i) => 
+      i === index ? { ...b, order: newOrder } : b
+    ).sort((a, b) => a.order - b.order);
+    
+    void updateBanners(updated);
+  };
+
+  // 处理图片上传
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    setUploadingBanner(true);
+    setBannerError('');
+    try {
+      const url = await uploadBannerImage(file);
+      console.log('[handleImageUpload] 上传成功，URL:', url);
+      setNewBanner(prev => ({ ...prev, imageUrl: url }));
+      console.log('[handleImageUpload] newBanner.imageUrl 已更新为:', url);
+    } catch (error) {
+      console.error('[handleImageUpload] 上传失败:', error);
+      setBannerError(error instanceof Error ? error.message : '上传失败');
+    } finally {
+      setUploadingBanner(false);
     }
   };
 
@@ -868,6 +1016,127 @@ const AdminStatisticsPage = () => {
                 )}
               </div>
             ))}
+          </div>
+        </section>
+
+        {/* 9) Banner 管理 */}
+        <section className="rounded-xl border border-white/20 bg-white/5 p-4 space-y-4">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <h2 className="text-lg font-semibold">9) Banner 管理</h2>
+            <button
+              onClick={() => void fetchBanners()}
+              disabled={bannerLoading}
+              className="rounded bg-blue-600 px-3 py-1.5 text-sm disabled:bg-gray-600"
+            >
+              {bannerLoading ? '加载中...' : '刷新'}
+            </button>
+          </div>
+
+          {bannerError && <p className="text-red-400 text-sm">{bannerError}</p>}
+
+          {/* 当前 Banners */}
+          <div className="space-y-3">
+            <h3 className="text-sm font-semibold text-white/80">当前 Banners（{banners.length}）</h3>
+            {banners.length === 0 && !bannerLoading && (
+              <p className="text-white/60 text-sm">暂无Banner</p>
+            )}
+            {banners.map((banner, index) => (
+              <div key={index} className="rounded-lg border border-white/20 bg-black/30 p-3 flex items-center gap-4">
+                <div className="w-32 h-20 flex-shrink-0 rounded overflow-hidden bg-white/5">
+                  <img
+                    src={banner.imageUrl}
+                    alt={`Banner ${index + 1}`}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div className="flex-1 space-y-1 min-w-0">
+                  <div className="text-sm">
+                    <span className="text-white/60">跳转链接：</span>
+                    <a
+                      href={banner.linkUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="ml-2 text-blue-400 hover:underline truncate inline-block max-w-md"
+                    >
+                      {banner.linkUrl}
+                    </a>
+                  </div>
+                  <div className="text-sm text-white/60 flex items-center gap-2">
+                    <span>排序：</span>
+                    <input
+                      type="number"
+                      value={banner.order}
+                      onChange={(e) => updateBannerOrder(index, Number(e.target.value))}
+                      disabled={bannerSaving}
+                      className="w-20 rounded border border-white/20 bg-black/50 px-2 py-1 text-xs text-white disabled:opacity-50"
+                    />
+                  </div>
+                </div>
+                <button
+                  onClick={() => deleteBanner(index)}
+                  disabled={bannerSaving}
+                  className="rounded bg-red-600 px-3 py-1.5 text-sm disabled:bg-gray-600 flex-shrink-0"
+                >
+                  删除
+                </button>
+              </div>
+            ))}
+          </div>
+
+          {/* 添加新 Banner */}
+          <div className="rounded-lg border border-white/20 bg-black/30 p-4 space-y-3">
+            <h3 className="text-sm font-semibold">添加新 Banner</h3>
+            
+            <div className="space-y-3">
+              {/* 上传图片 */}
+              <div>
+                <label className="block text-sm text-white/80 mb-2">上传图片</label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  disabled={uploadingBanner}
+                  className="block w-full text-sm text-white/80 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:bg-blue-600 file:text-white hover:file:bg-blue-700 file:disabled:bg-gray-600"
+                />
+                {uploadingBanner && <p className="text-sm text-yellow-400 mt-1">上传中...</p>}
+                {newBanner.imageUrl && (
+                  <div className="mt-2 w-48 h-28 rounded overflow-hidden bg-white/5">
+                    <img src={newBanner.imageUrl} alt="Preview" className="w-full h-full object-cover" />
+                  </div>
+                )}
+              </div>
+
+              {/* 跳转链接 */}
+              <div>
+                <label className="block text-sm text-white/80 mb-2">跳转链接</label>
+                <input
+                  type="url"
+                  value={newBanner.linkUrl}
+                  onChange={(e) => setNewBanner(prev => ({ ...prev, linkUrl: e.target.value }))}
+                  placeholder="https://example.com"
+                  className="w-full rounded border border-white/20 bg-black/50 px-3 py-2 text-sm"
+                />
+              </div>
+
+              {/* 排序 */}
+              <div>
+                <label className="block text-sm text-white/80 mb-2">排序（数字越小越靠前）</label>
+                <input
+                  type="number"
+                  value={newBanner.order}
+                  onChange={(e) => setNewBanner(prev => ({ ...prev, order: Number(e.target.value) }))}
+                  className="w-32 rounded border border-white/20 bg-black/50 px-3 py-2 text-sm"
+                />
+              </div>
+
+              <button
+                onClick={addBanner}
+                disabled={bannerSaving || uploadingBanner || !newBanner.imageUrl || !newBanner.linkUrl}
+                className="rounded bg-green-600 px-4 py-2 text-sm disabled:bg-gray-600"
+              >
+                {bannerSaving ? '保存中...' : '添加 Banner'}
+              </button>
+            </div>
           </div>
         </section>
       </div>
