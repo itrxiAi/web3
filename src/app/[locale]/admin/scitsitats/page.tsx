@@ -105,6 +105,8 @@ type CommunityApplication = {
   description: string | null;
   contactPerson: string;
   walletAddress: string;
+  currentRevenue: string | null;
+  hasOffice: boolean | null;
   status: 'PENDING' | 'APPROVED' | 'REJECTED';
   contributionScore: string;
   createdAt: string;
@@ -985,6 +987,20 @@ const AdminStatisticsPage = () => {
                         <span className="text-white/60 flex-shrink-0">申请时间：</span>
                         <span>{new Date(community.createdAt).toLocaleString()}</span>
                       </div>
+                      {community.currentRevenue && (
+                        <div className="flex gap-1 items-baseline">
+                          <span className="text-white/60 flex-shrink-0">当前业绩：</span>
+                          <span>{community.currentRevenue}</span>
+                        </div>
+                      )}
+                      {community.hasOffice !== null && (
+                        <div className="flex gap-1 items-baseline">
+                          <span className="text-white/60 flex-shrink-0">是否有办公室：</span>
+                          <span className={community.hasOffice ? 'text-green-400' : 'text-gray-400'}>
+                            {community.hasOffice ? '是' : '否'}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
