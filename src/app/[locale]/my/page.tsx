@@ -650,7 +650,7 @@ function MyContent() {
                   >
                     {t("my_recommender")}：
                   </span>
-                  <span className="text-xs text-white truncate min-w-0 flex-1">
+                  <span className="text-xs text-white min-w-0 flex-1 break-all">
                     {inviteUrlDisplay}
                   </span>
                   <button
