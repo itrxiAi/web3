@@ -50,7 +50,7 @@ export function useEquityActivation(options?: EquityActivationOptions) {
 
   const [tiers, setTiers] = useState<EquityTierInfo[] | null>(null);
   const [env, setEnv] = useState<{ environment: string; hotWalletAddress: string } | null>(null);
-  const [userExists, setUserExists] = useState<boolean | null>(null);
+  const [canActivate, setCanActivate] = useState<boolean | null>(null);
   const [isPaying, setIsPaying] = useState(false);
   const [txSignature, setTxSignature] = useState<string | null>(null);
   const [showTxModal, setShowTxModal] = useState(false);
@@ -93,23 +93,23 @@ export function useEquityActivation(options?: EquityActivationOptions) {
     };
   }, []);
 
-  // 检查用户是否存在
+  // 检查用户是否可以激活
   useEffect(() => {
     let cancelled = false;
     const checkUser = async () => {
       if (!address) {
-        setUserExists(null);
+        setCanActivate(null);
         return;
       }
       try {
         const response = await fetch(`/api/user/exists?address=${encodeURIComponent(address)}`);
         const data = await response.json();
         if (cancelled) return;
-        setUserExists(data.exists);
+        setCanActivate(data.canActivate);
       } catch (e) {
-        console.error("Failed to check user exists:", e);
+        console.error("Failed to check if user can activate:", e);
         if (!cancelled) {
-          setUserExists(true); // 出错时默认为存在，不阻止激活
+          setCanActivate(true); // 出错时默认为可以激活，不阻止激活
         }
       }
     };
@@ -209,7 +209,7 @@ export function useEquityActivation(options?: EquityActivationOptions) {
   return {
     tiers,
     env,
-    userExists,
+    canActivate,
     ready: Boolean(tiers?.length && env),
     isPaying,
     payEquity,

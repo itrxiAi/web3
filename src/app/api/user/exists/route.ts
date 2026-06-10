@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
   if (!address) {
     console.log('[USER_EXISTS] No address provided');
     return NextResponse.json(
-      { exists: false, error: 'Address is required' },
+      { canActivate: false, error: 'Address is required' },
       { status: 400 }
     );
   }
@@ -23,8 +23,8 @@ export async function GET(req: NextRequest) {
 
   if (!appBackendUrl || !internalApiKey) {
     console.warn('APP_BACKEND_URL or INTERNAL_API_KEY not configured');
-    // 如果未配置，默认返回存在，不阻止激活
-    return NextResponse.json({ exists: true });
+    // 如果未配置，默认返回可以激活，不阻止激活
+    return NextResponse.json({ canActivate: true });
   }
 
   try {
@@ -42,24 +42,24 @@ export async function GET(req: NextRequest) {
 
     if (!response.ok) {
       console.error('[USER_EXISTS] Failed to check user exists:', response.status);
-      // 如果调用失败，默认返回存在，不阻止激活
-      return NextResponse.json({ exists: true });
+      // 如果调用失败，默认返回可以激活，不阻止激活
+      return NextResponse.json({ canActivate: true });
     }
 
     const responseData = await response.json();
     console.log('[USER_EXISTS] Response data:', responseData);
     
-    // app backend 的响应格式是 { data: { exists, user } }
+    // app backend 的响应格式是 { data: { canActivate, user } }
     const actualData = responseData.data || responseData;
     const result = {
-      exists: actualData.exists,
+      canActivate: actualData.canActivate,
       user: actualData.user,
     };
     console.log('[USER_EXISTS] Returning:', result);
     return NextResponse.json(result);
   } catch (error) {
     console.error('[USER_EXISTS] Error checking user exists:', error);
-    // 如果出错，默认返回存在，不阻止激活
-    return NextResponse.json({ exists: true });
+    // 如果出错，默认返回可以激活，不阻止激活
+    return NextResponse.json({ canActivate: true });
   }
 }
