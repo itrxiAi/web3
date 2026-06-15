@@ -4,8 +4,9 @@ import { NextRequest, NextResponse } from 'next/server';
  * 代理：转发到 app/backend 的 POST /api/v1/community/:id/approve
  * 注意：APP_BACKEND_URL 已包含 /api/v1，不需要再拼接
  */
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params;
     const base = process.env.APP_BACKEND_URL;
     if (!base) {
       return NextResponse.json({ error: 'APP_BACKEND_URL not configured' }, { status: 500 });
@@ -17,7 +18,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     }
     
     const body = await req.json();
-    const url = `${base.replace(/\/$/, '')}/community/${params.id}/approve`;
+    const url = `${base.replace(/\/$/, '')}/community/${id}/approve`;
     
     const resp = await fetch(url, {
       method: 'POST',
