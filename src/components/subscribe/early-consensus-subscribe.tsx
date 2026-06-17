@@ -129,7 +129,7 @@ export default function EarlyConsensusSubscribe() {
             <button
               type="button"
               onClick={onSubscribe}
-              disabled={Boolean(address && (!ready || !nodeData))}
+              disabled
               className="inline-flex min-w-[min(100%,280px)] items-center justify-center rounded-full bg-gradient-to-r from-[#c41e3a] via-[#9b1b4a] to-[#6b2d8a] px-10 py-3.5 text-center text-base font-bold text-white shadow-lg shadow-black/30 transition hover:brightness-110 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
             >
               {t("cta")}
