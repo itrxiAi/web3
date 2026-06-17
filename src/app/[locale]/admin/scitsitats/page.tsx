@@ -175,11 +175,17 @@ const AdminStatisticsPage = () => {
   const [syncMessage, setSyncMessage] = useState('');
   const [syncError, setSyncError] = useState('');
 
-  // 交易补偿（保留旧 web3 后端）
+  // 认购补偿（保留旧 web3 后端）
   const [compensateTxHash, setCompensateTxHash] = useState('');
   const [compensateLoading, setCompensateLoading] = useState(false);
   const [compensateMessage, setCompensateMessage] = useState('');
   const [compensateError, setCompensateError] = useState('');
+
+  // 激活补偿（equity，保留旧 web3 后端）
+  const [equityCompensateTxHash, setEquityCompensateTxHash] = useState('');
+  const [equityCompensateLoading, setEquityCompensateLoading] = useState(false);
+  const [equityCompensateMessage, setEquityCompensateMessage] = useState('');
+  const [equityCompensateError, setEquityCompensateError] = useState('');
 
   // 社区审核
   const [communities, setCommunities] = useState<CommunityApplication[]>([]);
@@ -338,6 +344,26 @@ const AdminStatisticsPage = () => {
       setCompensateError(error instanceof Error ? error.message : '补偿失败');
     } finally {
       setCompensateLoading(false);
+    }
+  };
+
+  const compensateEquityTransaction = async () => {
+    setEquityCompensateLoading(true);
+    setEquityCompensateError('');
+    setEquityCompensateMessage('');
+    try {
+      const response = await fetch('/api/points/equity', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ txHash: equityCompensateTxHash }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data?.error || `Request failed: ${response.status}`);
+      setEquityCompensateMessage('补偿调用成功');
+    } catch (error) {
+      setEquityCompensateError(error instanceof Error ? error.message : '补偿失败');
+    } finally {
+      setEquityCompensateLoading(false);
     }
   };
 
@@ -883,9 +909,9 @@ const AdminStatisticsPage = () => {
           {syncError && <p className="text-red-400 text-sm">{syncError}</p>}
         </section>
 
-        {/* 7) 交易补偿（保留旧 web3 后端） */}
+        {/* 7) 认购补偿（保留旧 web3 后端） */}
         <section className="rounded-xl border border-white/20 bg-white/5 p-4 space-y-3">
-          <h2 className="text-lg font-semibold">7) 交易补偿（保留旧 web3 后端）</h2>
+          <h2 className="text-lg font-semibold">7) 认购补偿（保留旧 web3 后端）</h2>
           <input
             value={compensateTxHash}
             onChange={(e) => setCompensateTxHash(e.target.value)}
@@ -904,6 +930,29 @@ const AdminStatisticsPage = () => {
           </div>
           {compensateMessage && <p className="text-green-400 text-sm">{compensateMessage}</p>}
           {compensateError && <p className="text-red-400 text-sm">{compensateError}</p>}
+        </section>
+
+        {/* 7.1) 激活补偿（equity，保留旧 web3 后端） */}
+        <section className="rounded-xl border border-white/20 bg-white/5 p-4 space-y-3">
+          <h2 className="text-lg font-semibold">激活补偿（保留旧 web3 后端）</h2>
+          <input
+            value={equityCompensateTxHash}
+            onChange={(e) => setEquityCompensateTxHash(e.target.value)}
+            placeholder="txHash（必填）"
+            className="w-full rounded border border-white/20 bg-black/50 px-3 py-2 text-sm font-mono"
+          />
+
+          <div>
+            <button
+              onClick={() => void compensateEquityTransaction()}
+              disabled={equityCompensateLoading || !equityCompensateTxHash.trim()}
+              className="rounded bg-orange-600 px-4 py-2 text-sm disabled:bg-gray-600"
+            >
+              {equityCompensateLoading ? '补偿中...' : '执行补偿'}
+            </button>
+          </div>
+          {equityCompensateMessage && <p className="text-green-400 text-sm">{equityCompensateMessage}</p>}
+          {equityCompensateError && <p className="text-red-400 text-sm">{equityCompensateError}</p>}
         </section>
 
         {/* 8) 社区申请审核 */}
