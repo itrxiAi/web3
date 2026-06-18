@@ -281,6 +281,113 @@ export async function verifyChainTransfer(txHash: string, tokenType: TokenType):
   };
 }
 
+/** 转账项：接收地址 + USDT 金额（人类可读，带 2 位小数的字符串） */
+export interface ActivationTransferItem {
+  address: string;
+  amount: string;
+}
+
+/**
+ * 校验用户激活的链上批量转账（Disperse 模式，与社区解锁一致）。
+ *
+ * 期望该交易调用了批量转账合约 `disperseToken`：先 transferFrom(user -> 合约) 总额，
+ * 再由合约 transfer(合约 -> 各接收者)。因此只统计 `from == 合约地址` 的 Transfer 事件，
+ * 并与后端返回、保存在 Transaction.description 里的 transferList 逐项比对。
+ *
+ * @param txHash 交易哈希
+ * @param expectedList 后端拼接的期望转账列表（address + amount）
+ * @param contractAddress 批量转账合约地址
+ */
+export async function verifyBatchActivationTransfer(
+  txHash: string,
+  expectedList: ActivationTransferItem[],
+  contractAddress: string,
+): Promise<{ isValid: boolean; error?: string; fromAddress?: string }> {
+  try {
+    // 幂等：交易不可重复使用
+    const existingTx = await prisma.transaction.findFirst({ where: { txHash } });
+    if (existingTx && existingTx.status === TxFlowStatus.CONFIRMED) {
+      return { isValid: false, error: 'Transaction already processed' };
+    }
+
+    const contract = contractAddress.toLowerCase();
+
+    // 1. 获取交易收据（带重试）
+    let receipt = null;
+    const delays = [2000, 4000, 4000, 8000, 8000, 8000];
+    for (let attempt = 0; attempt <= delays.length; attempt++) {
+      try {
+        receipt = await ethereumClient.getTransactionReceipt({ hash: txHash as `0x${string}` });
+        if (receipt) break;
+      } catch {
+        // ignore and retry
+      }
+      if (attempt < delays.length) {
+        await new Promise((r) => setTimeout(r, delays[attempt]));
+      }
+    }
+    if (!receipt) return { isValid: false, error: 'Transaction not found' };
+    if (receipt.status !== 'success') return { isValid: false, error: 'Transaction failed' };
+
+    // 2. 校验交易调用的是批量转账合约
+    if (receipt.to && receipt.to.toLowerCase() !== contract) {
+      return { isValid: false, error: 'Transaction did not call batch transfer contract' };
+    }
+
+    // 3. 解析从合约发出的 USDT Transfer 事件（合约 -> 接收者）
+    const actual: ActivationTransferItem[] = [];
+    for (const log of receipt.logs || []) {
+      if (log.address.toLowerCase() !== USDT_TOKEN_ADDRESS.toLowerCase()) continue;
+      let decoded;
+      try {
+        decoded = decodeEventLog({ abi: ERC20_ABI, data: log.data, topics: log.topics });
+      } catch {
+        continue;
+      }
+      if (decoded.eventName !== 'Transfer' || !decoded.args) continue;
+      const args = decoded.args as unknown as { from: string; to: string; value: bigint };
+      if (args.from.toLowerCase() !== contract) continue; // 仅统计合约 -> 接收者
+      actual.push({
+        address: args.to.toLowerCase(),
+        amount: new decimal(formatUnits(args.value, TOKEN_USDT_DECIMAL)).toDecimalPlaces(2, decimal.ROUND_DOWN).toFixed(2),
+      });
+    }
+
+    // 4. 比对转账列表（地址 + 金额，允许 0.01 USDT 误差）
+    if (!validateActivationTransferList(expectedList, actual)) {
+      return { isValid: false, error: 'Transfer list does not match' };
+    }
+
+    // 5. 付款人 = 交易发起者
+    let fromAddress: string | undefined;
+    try {
+      const tx = await ethereumClient.getTransaction({ hash: txHash as `0x${string}` });
+      fromAddress = tx?.from?.toLowerCase();
+    } catch {
+      fromAddress = undefined;
+    }
+
+    return { isValid: true, fromAddress };
+  } catch (error) {
+    console.error('Error verifying batch activation transfer:', error);
+    return { isValid: false, error: `Failed to verify transaction: ${error instanceof Error ? error.message : String(error)}` };
+  }
+}
+
+/** 比对期望与实际转账列表：数量一致、按地址排序后逐项地址相同、金额误差 <= 0.01。 */
+function validateActivationTransferList(expected: ActivationTransferItem[], actual: ActivationTransferItem[]): boolean {
+  if (expected.length !== actual.length) return false;
+  const byAddr = (a: ActivationTransferItem, b: ActivationTransferItem) => a.address.localeCompare(b.address);
+  const exp = [...expected].sort(byAddr);
+  const act = [...actual].sort(byAddr);
+  for (let i = 0; i < exp.length; i++) {
+    if (exp[i].address.toLowerCase() !== act[i].address.toLowerCase()) return false;
+    const diff = Math.abs(parseFloat(exp[i].amount) - parseFloat(act[i].amount));
+    if (diff > 0.01) return false;
+  }
+  return true;
+}
+
 /**
  * Verifies Ethereum USDT transfer transaction
  * @param txHash Ethereum transaction hash

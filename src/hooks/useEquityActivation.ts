@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useAppKitAccount } from "@reown/appkit/react";
-import { useWriteContract } from "wagmi";
+import { usePublicClient, useWriteContract } from "wagmi";
+import { parseUnits } from "viem";
 import bs58 from "bs58";
 import {
   DEV_ENV,
@@ -21,16 +22,41 @@ export type EquityTierInfo = {
   price_transfer: string;
 };
 
+type TransferItem = { address: string; amount: string };
+type ActivationQuote = {
+  quoteId: string;
+  transferList: TransferItem[];
+  amountUsdt: string;
+  batchTransferContract: string;
+};
+
+const USDT_DECIMALS = Number(process.env.NEXT_PUBLIC_USDT_DECIMAL ?? 18);
+
 const usdtAbi = [
   {
-    name: "transfer",
+    name: "approve",
     type: "function",
     stateMutability: "nonpayable",
     inputs: [
-      { name: "to", type: "address" },
+      { name: "spender", type: "address" },
       { name: "value", type: "uint256" },
     ],
     outputs: [{ name: "", type: "bool" }],
+  },
+] as const;
+
+// Disperse.app: disperseToken(token, recipients[], values[])
+const disperseAbi = [
+  {
+    name: "disperseToken",
+    type: "function",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "token", type: "address" },
+      { name: "recipients", type: "address[]" },
+      { name: "values", type: "uint256[]" },
+    ],
+    outputs: [],
   },
 ] as const;
 
@@ -119,24 +145,44 @@ export function useEquityActivation(options?: EquityActivationOptions) {
     };
   }, [address]);
 
-  const transferTokens = useCallback(
-    async (amountWei: string): Promise<string> => {
+  const publicClient = usePublicClient();
+
+  /** 发起 USDT 授权 + Disperse 批量转账，返回 disperse 交易哈希 */
+  const approveAndDisperse = useCallback(
+    async (quote: ActivationQuote): Promise<string> => {
       if (!address) {
         throw new Error("Wallet not connected");
-      }
-      if (!env?.hotWalletAddress) {
-        throw new Error("Hot wallet address environment variable is not set");
       }
       const tokenAddress = process.env.NEXT_PUBLIC_USDT_ADDRESS;
       if (!tokenAddress) {
         throw new Error("USDT contract address not found in environment variables");
       }
+      if (!quote.transferList.length) {
+        throw new Error("Empty transfer list");
+      }
 
-      const hash = await writeContractAsync({
+      const recipients = quote.transferList.map((t) => t.address as `0x${string}`);
+      const values = quote.transferList.map((t) => parseUnits(t.amount, USDT_DECIMALS));
+      const total = values.reduce((acc, v) => acc + v, BigInt(0));
+      const spender = quote.batchTransferContract as `0x${string}`;
+
+      // 1. 授权批量转账合约支配 USDT
+      const approveHash = await writeContractAsync({
         address: tokenAddress as `0x${string}`,
         abi: usdtAbi,
-        functionName: "transfer",
-        args: [env.hotWalletAddress as `0x${string}`, BigInt(amountWei)],
+        functionName: "approve",
+        args: [spender, total],
+      });
+      if (publicClient && approveHash) {
+        await publicClient.waitForTransactionReceipt({ hash: approveHash });
+      }
+
+      // 2. 调用 disperseToken 一笔拆分给所有接收者
+      const hash = await writeContractAsync({
+        address: spender,
+        abi: disperseAbi,
+        functionName: "disperseToken",
+        args: [tokenAddress as `0x${string}`, recipients, values],
       });
       if (!hash) {
         throw new Error("Transaction failed to return a hash");
@@ -145,7 +191,7 @@ export function useEquityActivation(options?: EquityActivationOptions) {
       setShowTxModal(true);
       return hash;
     },
-    [address, env, writeContractAsync]
+    [address, publicClient, writeContractAsync]
   );
 
   const payEquity = useCallback(
@@ -155,35 +201,50 @@ export function useEquityActivation(options?: EquityActivationOptions) {
         return;
       }
       if (isPaying) return;
-      const tier = tiers?.find((t) => t.dev_type === dev_type);
-      if (!tier?.price_transfer) {
-        throw new Error("Equity tier not loaded");
-      }
 
       setIsPaying(true);
       try {
         setTxErrorMessage(null);
 
+        // 1. 向后端请求拼接好的转账列表（直推/间推/系统钱包）
+        const quoteRes = await fetch("/api/points/equity/quote", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            dev_address: address.toString(),
+            dev_type,
+            dev_referralCode: referralRef.current ?? "",
+          }),
+        });
+        if (!quoteRes.ok) {
+          const errBody = await quoteRes.json().catch(() => ({}));
+          throw new Error(errBody.error || "Failed to build activation quote");
+        }
+        const quote = (await quoteRes.json()) as ActivationQuote;
+
+        // 2. 链上批量转账。
+        //    USE_DEV_MOCK_TX=false：dev/prod 均真实发起交易；
+        //    如需恢复 dev 用随机哈希（不真正上链），将其置为 true 即可。
+        const USE_DEV_MOCK_TX = false;
         let txSig: string;
-        if (env?.environment === DEV_ENV) {
+        if (USE_DEV_MOCK_TX && env?.environment === DEV_ENV) {
           const randomBytes = new Uint8Array(32);
           crypto.getRandomValues(randomBytes);
           txSig = bs58.encode(randomBytes);
         } else {
-          txSig = await transferTokens(tier.price_transfer);
+          txSig = await approveAndDisperse(quote);
         }
 
         setTxSignature(txSig);
         setShowTxModal(true);
 
+        // 3. 回调后端确认与校验
         const response = await fetch("/api/points/equity", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
+            quoteId: quote.quoteId,
             txHash: txSig,
-            dev_address: address.toString(),
-            dev_referralCode: referralRef.current ?? "",
-            dev_type,
           }),
         });
 
@@ -203,7 +264,7 @@ export function useEquityActivation(options?: EquityActivationOptions) {
         setIsPaying(false);
       }
     },
-    [address, tiers, env, isPaying, transferTokens]
+    [address, env, isPaying, approveAndDisperse]
   );
 
   return {

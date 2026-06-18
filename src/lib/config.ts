@@ -365,6 +365,17 @@ export async function getHotWalletAddress(): Promise<string> {
     //return (await getHotWalletKeypair()).address;
 }
 
+const BATCH_TRANSFER_CONTRACT = "BATCH_TRANSFER_CONTRACT";
+
+/**
+ * 批量转账合约地址（Disperse.app on BSC），用于用户激活的链上拆分付款。
+ * 与 app/backend config `community.batch_transfer_contract` 保持一致。
+ */
+export async function getBatchTransferContract(): Promise<string> {
+    const address = await getConfig(BATCH_TRANSFER_CONTRACT);
+    return address || "0xD152f549545093347A162Dce210e7293f1452150";
+}
+
 export async function getBurningAddress(): Promise<string> {
     const address = await getConfig(BURNING_ADDRESS);
     //return address || "0xdEad000000000000000000000000000000000000";

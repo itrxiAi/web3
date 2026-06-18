@@ -1,196 +1,116 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { DEV_ENV, MAX_TIMESTAMP_GAP_MS } from '@/constants';
 import prisma from '@/lib/prisma';
-import { updateUserEquity } from '@/lib/user';
-import { verifyTokenTransfer } from '@/utils/chain';
+import { verifyBatchActivationTransfer, type ActivationTransferItem } from '@/utils/chain';
 import { getEnvironment } from '@/lib/config';
-import { EquityType } from '@prisma/client';
+import { EquityType, TxFlowStatus, TxFlowType } from '@prisma/client';
 import { ErrorCode } from '@/lib/errors';
 import { operationControl } from '@/utils/auth';
+import { notifyActivation } from '@/lib/activation-quote';
 
-// Equity 类型到 App Package 的映射
-const EQUITY_TO_PACKAGE: Record<EquityType, string> = {
-  BASE: 'P100',
-  PLUS: 'P500',
-  PREMIUM: 'P1000',
-  EXPERT: 'P5000',
-  VIP: 'P10000',
-};
-
-// 调用 app 后端 internal 激活接口
-async function notifyAppBackend(params: {
-  address: string;
-  equityType: EquityType;
-  amount: number;
-  txHash: string;
-  activatedAt: Date;
-}) {
-  const appBackendUrl = process.env.APP_BACKEND_URL;
-  const internalApiKey = process.env.INTERNAL_API_KEY;
-
-  if (!appBackendUrl || !internalApiKey) {
-    console.warn('APP_BACKEND_URL or INTERNAL_API_KEY not configured, skipping app backend notification');
-    return;
-  }
-
-  try {
-    const response = await fetch(`${appBackendUrl}/internal/activations`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-internal-key': internalApiKey,
-      },
-      body: JSON.stringify({
-        address: params.address,
-        package: EQUITY_TO_PACKAGE[params.equityType],
-        amountUsdt: params.amount.toString(),
-        activatedAt: params.activatedAt.toISOString(),
-        txHash: params.txHash,
-      }),
-    });
-
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: 'Unknown error' }));
-      
-      // 用户不存在是正常情况（用户还未在 app 中登录），只记录日志
-      if (response.status === 404 && error.code === 'USER_NOT_FOUND') {
-        console.log(`User ${params.address} not found in app backend, skipping activation notification`);
-        return;
-      }
-      
-      // 其他错误才需要记录
-      console.error('Failed to notify app backend:', error);
-      throw new Error(`App backend returned ${response.status}: ${JSON.stringify(error)}`);
-    }
-
-    console.log('Successfully notified app backend for activation:', params.address);
-  } catch (error) {
-    console.error('Error notifying app backend:', error);
-    // 不抛出错误，避免影响主流程
-  }
+interface ActivationSplitDescription {
+  kind: string;
+  package: string;
+  dev_type: EquityType;
+  amountUsdt: string;
+  batchTransferContract: string;
+  transferList: ActivationTransferItem[];
 }
 
-
+/**
+ * 确认激活付款（链上 Disperse 批量转账）。
+ *
+ * 流程：前端用 quoteId（PENDING 交易）发起一笔批量转账后，带 { quoteId, txHash } 回调本接口。
+ * 本接口读取该交易 description 中保存的 transferList（金额校验依据），核验链上交易，
+ * 通过后落库并通知 app/backend 记录激活。
+ */
 export async function POST(req: NextRequest) {
-
   try {
     const body = await req.json();
-    const { txHash, dev_address, dev_referralCode, dev_type } = body;
+    const { quoteId, txHash } = body as { quoteId?: string; txHash?: string };
 
+    if (!quoteId || typeof quoteId !== 'string') {
+      return NextResponse.json({ error: ErrorCode.INVALID_TRANSACTION }, { status: 400 });
+    }
     if (!txHash || typeof txHash !== 'string') {
-      return NextResponse.json(
-        { error: ErrorCode.INVALID_TRANSACTION },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: ErrorCode.INVALID_TRANSACTION }, { status: 400 });
     }
 
     const isDev = getEnvironment() === DEV_ENV;
-    if (isDev && (!dev_address || !dev_type)) {
-      return NextResponse.json(
-        { error: ErrorCode.INVALID_TRANSACTION },
-        { status: 400 }
-      );
-    }
 
-    // Make sure the hash won't be reused
+    // 防重放：同一 txHash 不可重复处理
     const operationKey = `${txHash}:buyequity`;
     if (operationControl.has(operationKey)) {
-      return NextResponse.json(
-        { error: ErrorCode.DUPLICATED_OPERATION },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: ErrorCode.DUPLICATED_OPERATION }, { status: 400 });
     }
     operationControl.set(operationKey, true, MAX_TIMESTAMP_GAP_MS);
 
-    // Skip transaction verification in development mode
-    let verifyResult: {
-      isValid: boolean;
-      error?: string;
-      fromAddress?: string;
-      referralCode?: string;
-      type?: string;
-    } = {
-      isValid: true,
-      fromAddress: dev_address,
-      referralCode: dev_referralCode,
-      type: dev_type
-    };
+    // 1. 读取报价交易（PENDING + EQUITY），取出 transferList
+    const quoteTx = await prisma.transaction.findUnique({ where: { id: quoteId } });
+    if (!quoteTx || quoteTx.type !== TxFlowType.EQUITY || quoteTx.status !== TxFlowStatus.PENDING) {
+      return NextResponse.json({ error: ErrorCode.INVALID_TRANSACTION }, { status: 400 });
+    }
 
+    let desc: ActivationSplitDescription;
+    try {
+      desc = JSON.parse(quoteTx.description || '{}') as ActivationSplitDescription;
+    } catch {
+      return NextResponse.json({ error: ErrorCode.INVALID_TRANSACTION }, { status: 400 });
+    }
+    if (desc.kind !== 'activation_split' || !Array.isArray(desc.transferList) || !desc.batchTransferContract) {
+      return NextResponse.json({ error: ErrorCode.INVALID_TRANSACTION }, { status: 400 });
+    }
+
+    const walletAddress = quoteTx.fromAddress.toLowerCase();
+
+    // 2. 链上校验（开发环境跳过）
     if (!isDev) {
-      verifyResult = await verifyTokenTransfer(txHash, true);
+      const verifyResult = await verifyBatchActivationTransfer(
+        txHash,
+        desc.transferList,
+        desc.batchTransferContract,
+      );
       if (!verifyResult.isValid) {
-        console.log(`Invalid transaction: ${verifyResult.error}, txHash: ${txHash}`);
-        return NextResponse.json(
-          { error: ErrorCode.INVALID_TRANSACTION },
-          { status: 400 }
-        );
+        console.log(`Invalid activation tx: ${verifyResult.error}, txHash: ${txHash}`);
+        return NextResponse.json({ error: ErrorCode.INVALID_TRANSACTION }, { status: 400 });
+      }
+      // 付款人必须与报价用户一致
+      if (verifyResult.fromAddress && verifyResult.fromAddress.toLowerCase() !== walletAddress) {
+        console.log(`Payer mismatch: tx from ${verifyResult.fromAddress}, expected ${walletAddress}`);
+        return NextResponse.json({ error: ErrorCode.INVALID_TRANSACTION }, { status: 400 });
       }
     }
 
-    if (!verifyResult.fromAddress) {
-      console.log(`fromAddress is empty, txHash: ${txHash}`);
-      return NextResponse.json(
-        { error: ErrorCode.INVALID_TRANSACTION },
-        { status: 400 }
-      );
-    }
-
-    if (!verifyResult.type) {
-      console.log(`type is empty, txHash: ${txHash}`);
-      return NextResponse.json(
-        { error: ErrorCode.INVALID_TRANSACTION },
-        { status: 400 }
-      );
-    }
-    
-    const fromAddress = verifyResult.fromAddress.toLowerCase();
-    const type = verifyResult.type;
-
-    // Use fromAddress as the wallet address
-    const walletAddress = fromAddress;
-
-    let updateResult;
+    // 3. 落库：更新报价交易为 CONFIRMED + 写入 txHash；更新用户 equity
+    const activatedAt = new Date();
     try {
-        updateResult = await updateUserEquity({
-          walletAddress,
-          equityType: type as EquityType,
-          txHash,
-          tx: prisma
+      await prisma.$transaction(async (tx) => {
+        await tx.transaction.update({
+          where: { id: quoteTx.id },
+          data: { txHash, status: TxFlowStatus.CONFIRMED },
         });
+        await tx.user.update({
+          where: { walletAddress },
+          data: { equityType: desc.dev_type, equityActivedAt: activatedAt },
+        });
+      });
     } catch (error) {
-      console.error('Transaction failed:', error);
-      return NextResponse.json(
-        { error: ErrorCode.TRANSACTION_FAILED },
-        { status: 500 }
-      );
+      console.error('Activation persist failed:', error);
+      return NextResponse.json({ error: ErrorCode.TRANSACTION_FAILED }, { status: 500 });
     }
 
-    // 调用 app 后端 internal 激活接口
-    const user = await prisma.user.findUnique({
-      where: { walletAddress },
-      select: { equityActivedAt: true }
-    });
-
-    // 获取交易记录中的金额
-    const transaction = await prisma.transaction.findUnique({
-      where: { id: updateResult.txId },
-      select: { amount: true }
-    });
-
-    await notifyAppBackend({
+    // 4. 通知 app/backend 记录激活（直推/间推奖励已在链上发放，app 端不再重复发放）
+    await notifyActivation({
       address: walletAddress,
-      equityType: type as EquityType,
-      amount: transaction?.amount.toNumber() || 0,
+      package: desc.package,
+      amountUsdt: desc.amountUsdt,
+      activatedAt: activatedAt.toISOString(),
       txHash,
-      activatedAt: user?.equityActivedAt || new Date(),
     });
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error adding points:', error);
-    return NextResponse.json(
-      { error: ErrorCode.TRANSACTION_FAILED },
-      { status: 500 }
-    );
+    console.error('Error confirming activation:', error);
+    return NextResponse.json({ error: ErrorCode.TRANSACTION_FAILED }, { status: 500 });
   }
 }
