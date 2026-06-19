@@ -8,6 +8,7 @@ import {
   getEquityDisplayPrice,
   fetchActivationQuote,
 } from '@/lib/activation-quote';
+import { getShieldSignatureMessage, getRailgunProxyContract } from '@/lib/railgun/shield';
 
 function isEquityType(s: string): s is EquityType {
   return Object.prototype.hasOwnProperty.call(EQUITY_TO_PACKAGE, s);
@@ -53,7 +54,9 @@ export async function POST(req: NextRequest) {
 
     const batchTransferContract = quote.batchTransferContract || (await getBatchTransferContract());
 
-    // 2. 创建 PENDING 交易，transferList 保存到 description（后续金额校验依据）
+    // 2. 创建 PENDING 交易；referralList(0x) 与 shieldList(0zk) 均保存到 description
+    //    （referralList 用于 Disperse 金额校验；shieldList 用于服务端构造 shield calldata 与校验）。
+    const railgunProxyContract = getRailgunProxyContract();
     const transaction = await prisma.transaction.create({
       data: {
         fromAddress: address,
@@ -68,16 +71,24 @@ export async function POST(req: NextRequest) {
           dev_type: equityType,
           amountUsdt: quote.amountUsdt,
           batchTransferContract: batchTransferContract.toLowerCase(),
-          transferList: quote.transferList,
+          referralList: quote.referralList,
+          shieldList: quote.shieldList,
+          shieldTotalUsdt: quote.shieldTotalUsdt,
+          railgunProxyContract: railgunProxyContract.toLowerCase(),
         }),
       },
     });
 
     return NextResponse.json({
       quoteId: transaction.id,
-      transferList: quote.transferList,
-      amountUsdt: quote.amountUsdt,
+      // 推荐奖励：0x Disperse
+      referralList: quote.referralList,
       batchTransferContract: batchTransferContract.toLowerCase(),
+      // 系统份额：RAILGUN shield（0zk 地址不下发，仅返回签名消息与代理合约）
+      shieldTotalUsdt: quote.shieldTotalUsdt,
+      shieldSignatureMessage: getShieldSignatureMessage(),
+      railgunProxyContract: railgunProxyContract.toLowerCase(),
+      amountUsdt: quote.amountUsdt,
     });
   } catch (error) {
     console.error('Error building activation quote:', error);

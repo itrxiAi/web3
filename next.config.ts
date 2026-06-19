@@ -7,7 +7,20 @@ const nextConfig: NextConfig = {
   outputFileTracingRoot: __dirname,
   transpilePackages: ["@reown/appkit", "@reown/appkit-adapter-wagmi"],
   // Reown / WalletConnect：避免服务端打包 pino 等导致 vendor-chunks 引用异常
-  serverExternalPackages: ["pino-pretty", "lokijs", "encoding"],
+  // RAILGUN：@railgun-community/* 与原生 leveldown 仅在服务端运行，作为外部包不进行打包
+  serverExternalPackages: [
+    "pino-pretty",
+    "lokijs",
+    "encoding",
+    "@railgun-community/wallet",
+    "@railgun-community/engine",
+    "@railgun-community/shared-models",
+    "@railgun-community/ffjavascript",
+    "@railgun-community/circomlibjs",
+    "@railgun-community/curve25519-scalarmult-wasm",
+    "@railgun-community/poseidon-hash-wasm",
+    "leveldown",
+  ],
   images: {
     domains: ["localhost", "cdn.simpleicons.org"],
     dangerouslyAllowSVG: true,

@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { DEV_ENV, MAX_TIMESTAMP_GAP_MS } from '@/constants';
 import prisma from '@/lib/prisma';
-import { verifyBatchActivationTransfer, type ActivationTransferItem } from '@/utils/chain';
+import {
+  verifyBatchActivationTransfer,
+  verifyShieldTransfer,
+  type ActivationTransferItem,
+} from '@/utils/chain';
 import { getEnvironment } from '@/lib/config';
 import { EquityType, TxFlowStatus, TxFlowType } from '@prisma/client';
 import { ErrorCode } from '@/lib/errors';
@@ -14,7 +18,12 @@ interface ActivationSplitDescription {
   dev_type: EquityType;
   amountUsdt: string;
   batchTransferContract: string;
-  transferList: ActivationTransferItem[];
+  referralList: ActivationTransferItem[];
+  shieldList: { recipient: string; amount: string }[];
+  shieldTotalUsdt: string;
+  railgunProxyContract: string;
+  /** 服务端在 /shield 构造交易时存档的 calldata（含我方 0zk 接收地址），用于强校验收款人。 */
+  expectedShieldCalldata?: string;
 }
 
 /**
@@ -27,19 +36,24 @@ interface ActivationSplitDescription {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { quoteId, txHash } = body as { quoteId?: string; txHash?: string };
+    const { quoteId, referralTxHash, shieldTxHash } = body as {
+      quoteId?: string;
+      referralTxHash?: string | null;
+      shieldTxHash?: string;
+    };
 
     if (!quoteId || typeof quoteId !== 'string') {
       return NextResponse.json({ error: ErrorCode.INVALID_TRANSACTION }, { status: 400 });
     }
-    if (!txHash || typeof txHash !== 'string') {
+    // 系统份额 shield 交易是必须的；推荐奖励 Disperse 交易仅在存在上级时才有。
+    if (!shieldTxHash || typeof shieldTxHash !== 'string') {
       return NextResponse.json({ error: ErrorCode.INVALID_TRANSACTION }, { status: 400 });
     }
 
     const isDev = getEnvironment() === DEV_ENV;
 
-    // 防重放：同一 txHash 不可重复处理
-    const operationKey = `${txHash}:buyequity`;
+    // 防重放：同一 shield txHash 不可重复处理
+    const operationKey = `${shieldTxHash}:buyequity`;
     if (operationControl.has(operationKey)) {
       return NextResponse.json({ error: ErrorCode.DUPLICATED_OPERATION }, { status: 400 });
     }
@@ -57,7 +71,17 @@ export async function POST(req: NextRequest) {
     } catch {
       return NextResponse.json({ error: ErrorCode.INVALID_TRANSACTION }, { status: 400 });
     }
-    if (desc.kind !== 'activation_split' || !Array.isArray(desc.transferList) || !desc.batchTransferContract) {
+    if (
+      desc.kind !== 'activation_split' ||
+      !Array.isArray(desc.referralList) ||
+      !Array.isArray(desc.shieldList) ||
+      !desc.railgunProxyContract
+    ) {
+      return NextResponse.json({ error: ErrorCode.INVALID_TRANSACTION }, { status: 400 });
+    }
+    // shield calldata 必须已由 /shield 接口生成并存档（否则无法校验收款人，拒绝）
+    if (!desc.expectedShieldCalldata) {
+      console.log('Missing expectedShieldCalldata; shield route not called before confirm');
       return NextResponse.json({ error: ErrorCode.INVALID_TRANSACTION }, { status: 400 });
     }
 
@@ -65,18 +89,39 @@ export async function POST(req: NextRequest) {
 
     // 2. 链上校验（开发环境跳过）
     if (!isDev) {
-      const verifyResult = await verifyBatchActivationTransfer(
-        txHash,
-        desc.transferList,
-        desc.batchTransferContract,
+      // 2a. 推荐奖励 Disperse（仅当存在上级、referralList 非空时需要）
+      if (desc.referralList.length > 0) {
+        if (!referralTxHash || typeof referralTxHash !== 'string') {
+          return NextResponse.json({ error: ErrorCode.INVALID_TRANSACTION }, { status: 400 });
+        }
+        const referralResult = await verifyBatchActivationTransfer(
+          referralTxHash,
+          desc.referralList,
+          desc.batchTransferContract,
+        );
+        if (!referralResult.isValid) {
+          console.log(`Invalid referral tx: ${referralResult.error}, txHash: ${referralTxHash}`);
+          return NextResponse.json({ error: ErrorCode.INVALID_TRANSACTION }, { status: 400 });
+        }
+        if (referralResult.fromAddress && referralResult.fromAddress.toLowerCase() !== walletAddress) {
+          console.log(`Referral payer mismatch: ${referralResult.fromAddress}, expected ${walletAddress}`);
+          return NextResponse.json({ error: ErrorCode.INVALID_TRANSACTION }, { status: 400 });
+        }
+      }
+
+      // 2b. 系统份额 shield
+      const shieldResult = await verifyShieldTransfer(
+        shieldTxHash,
+        desc.railgunProxyContract,
+        desc.shieldTotalUsdt,
+        desc.expectedShieldCalldata,
       );
-      if (!verifyResult.isValid) {
-        console.log(`Invalid activation tx: ${verifyResult.error}, txHash: ${txHash}`);
+      if (!shieldResult.isValid) {
+        console.log(`Invalid shield tx: ${shieldResult.error}, txHash: ${shieldTxHash}`);
         return NextResponse.json({ error: ErrorCode.INVALID_TRANSACTION }, { status: 400 });
       }
-      // 付款人必须与报价用户一致
-      if (verifyResult.fromAddress && verifyResult.fromAddress.toLowerCase() !== walletAddress) {
-        console.log(`Payer mismatch: tx from ${verifyResult.fromAddress}, expected ${walletAddress}`);
+      if (shieldResult.fromAddress && shieldResult.fromAddress.toLowerCase() !== walletAddress) {
+        console.log(`Shield payer mismatch: ${shieldResult.fromAddress}, expected ${walletAddress}`);
         return NextResponse.json({ error: ErrorCode.INVALID_TRANSACTION }, { status: 400 });
       }
     }
@@ -87,7 +132,7 @@ export async function POST(req: NextRequest) {
       await prisma.$transaction(async (tx) => {
         await tx.transaction.update({
           where: { id: quoteTx.id },
-          data: { txHash, status: TxFlowStatus.CONFIRMED },
+          data: { txHash: shieldTxHash, status: TxFlowStatus.CONFIRMED },
         });
         await tx.user.update({
           where: { walletAddress },
@@ -99,13 +144,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: ErrorCode.TRANSACTION_FAILED }, { status: 500 });
     }
 
-    // 4. 通知 app/backend 记录激活（直推/间推奖励已在链上发放，app 端不再重复发放）
+    // 4. 通知 app/backend 记录激活（直推/间推奖励由 app 端在激活回调中按链下账本发放）
     await notifyActivation({
       address: walletAddress,
       package: desc.package,
       amountUsdt: desc.amountUsdt,
       activatedAt: activatedAt.toISOString(),
-      txHash,
+      txHash: shieldTxHash,
     });
 
     return NextResponse.json({ success: true });

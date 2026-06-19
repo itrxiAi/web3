@@ -28,8 +28,18 @@ export interface ActivationTransferItem {
   amount: string;
 }
 
+/** 系统份额 shield 项：接收方为 RAILGUN 私密地址（0zk），金额为 USDT 人类可读字符串。 */
+export interface ActivationShieldItem {
+  recipient: string;
+  amount: string;
+}
+
 export interface ActivationQuoteResult {
-  transferList: ActivationTransferItem[];
+  /** 推荐奖励（直推/间推）：0x 公开地址，走 Disperse 批量转账。 */
+  referralList: ActivationTransferItem[];
+  /** 系统份额（销毁/国库/储备）：0zk 私密地址，走 RAILGUN shield。 */
+  shieldList: ActivationShieldItem[];
+  shieldTotalUsdt: string;
   amountUsdt: string;
   batchTransferContract: string;
 }
@@ -84,7 +94,12 @@ export async function fetchActivationQuote(params: {
   // app/backend 全局 TransformInterceptor 会把响应包成 { data: ... }
   const json = (await response.json()) as { data?: ActivationQuoteResult } & Partial<ActivationQuoteResult>;
   const result = (json.data ?? json) as ActivationQuoteResult;
-  if (!result || !Array.isArray(result.transferList) || !result.amountUsdt) {
+  if (
+    !result ||
+    !Array.isArray(result.referralList) ||
+    !Array.isArray(result.shieldList) ||
+    !result.amountUsdt
+  ) {
     throw new Error('App backend quote returned invalid payload');
   }
   return result;

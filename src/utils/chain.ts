@@ -374,6 +374,117 @@ export async function verifyBatchActivationTransfer(
   }
 }
 
+/**
+ * 校验系统份额的 RAILGUN shield 交易。
+ *
+ * shield 交易调用 RAILGUN 代理合约：合约通过 transferFrom 从付款人拉取 USDT 进私密池。
+ *
+ * ⚠️ 安全要点：shield 的 0zk 接收地址是加密在 calldata 内的，链上事件不可见。仅校验
+ * "USDT 进了代理合约 + 金额" 并不能保证资金进了我们的 0zk 地址（攻击者可自建一笔等额、
+ * 收款人为自己 0zk 的 shield 交易来骗过校验）。因此核心校验是：交易的 input(calldata)
+ * 必须与服务端生成并持久化的 expectedCalldata 完全一致——服务端的 calldata 已将我们的
+ * 0zk 接收地址固化其中，逐字节比对即可证明资金确实进入我方私密地址。
+ *
+ * 校验项：1) 交易成功且 to == 代理合约；2) tx.input === expectedCalldata（强保证收款人）；
+ * 3) 付款人 -> 代理合约 的 USDT Transfer 金额合计约等于期望总额（防御纵深）。
+ *
+ * @param txHash shield 交易哈希
+ * @param proxyContract RAILGUN 代理合约地址
+ * @param expectedTotalUsdt 期望 shield 总额（USDT，人类可读）
+ * @param expectedCalldata 服务端生成并存档的 shield calldata（含我方 0zk 接收地址）
+ */
+export async function verifyShieldTransfer(
+  txHash: string,
+  proxyContract: string,
+  expectedTotalUsdt: string,
+  expectedCalldata: string,
+): Promise<{ isValid: boolean; error?: string; fromAddress?: string }> {
+  try {
+    const existingTx = await prisma.transaction.findFirst({ where: { txHash } });
+    if (existingTx && existingTx.status === TxFlowStatus.CONFIRMED) {
+      return { isValid: false, error: 'Transaction already processed' };
+    }
+
+    const proxy = proxyContract.toLowerCase();
+
+    let receipt = null;
+    const delays = [2000, 4000, 4000, 8000, 8000, 8000];
+    for (let attempt = 0; attempt <= delays.length; attempt++) {
+      try {
+        receipt = await ethereumClient.getTransactionReceipt({ hash: txHash as `0x${string}` });
+        if (receipt) break;
+      } catch {
+        // ignore and retry
+      }
+      if (attempt < delays.length) {
+        await new Promise((r) => setTimeout(r, delays[attempt]));
+      }
+    }
+    if (!receipt) return { isValid: false, error: 'Shield transaction not found' };
+    if (receipt.status !== 'success') return { isValid: false, error: 'Shield transaction failed' };
+    if (receipt.to && receipt.to.toLowerCase() !== proxy) {
+      return { isValid: false, error: 'Transaction did not call RAILGUN proxy contract' };
+    }
+
+    // 付款人 = 交易发起者；同时取 calldata 做强校验
+    let fromAddress: string | undefined;
+    let onChainInput: string | undefined;
+    try {
+      const tx = await ethereumClient.getTransaction({ hash: txHash as `0x${string}` });
+      fromAddress = tx?.from?.toLowerCase();
+      onChainInput = tx?.input?.toLowerCase();
+    } catch {
+      fromAddress = undefined;
+      onChainInput = undefined;
+    }
+
+    // 核心校验：链上 calldata 必须与服务端生成并存档的 calldata 完全一致。
+    // 这保证 shield 的 0zk 接收方就是我方地址（攻击者无法换成自己的 0zk）。
+    const expectedInput = (expectedCalldata || '').toLowerCase();
+    if (!expectedInput || !expectedInput.startsWith('0x')) {
+      return { isValid: false, error: 'Missing expected shield calldata' };
+    }
+    if (!onChainInput) {
+      return { isValid: false, error: 'Failed to read shield transaction calldata' };
+    }
+    if (onChainInput !== expectedInput) {
+      return { isValid: false, error: 'Shield calldata mismatch: recipients not verified' };
+    }
+
+    // 统计 付款人 -> 代理合约 的 USDT Transfer 金额合计
+    let movedToProxy = new decimal(0);
+    for (const log of receipt.logs || []) {
+      if (log.address.toLowerCase() !== USDT_TOKEN_ADDRESS.toLowerCase()) continue;
+      let decoded;
+      try {
+        decoded = decodeEventLog({ abi: ERC20_ABI, data: log.data, topics: log.topics });
+      } catch {
+        continue;
+      }
+      if (decoded.eventName !== 'Transfer' || !decoded.args) continue;
+      const args = decoded.args as unknown as { from: string; to: string; value: bigint };
+      if (args.to.toLowerCase() !== proxy) continue;
+      if (fromAddress && args.from.toLowerCase() !== fromAddress) continue;
+      movedToProxy = movedToProxy.add(new decimal(formatUnits(args.value, TOKEN_USDT_DECIMAL)));
+    }
+
+    // 金额校验：进入代理合约的 USDT 应约等于期望总额（允许 0.5% 手续费 + 0.01 误差）
+    const expected = new decimal(expectedTotalUsdt);
+    const minAccepted = expected.mul(0.99).sub(0.01);
+    if (movedToProxy.lt(minAccepted)) {
+      return {
+        isValid: false,
+        error: `Shield amount mismatch: moved ${movedToProxy.toFixed(2)} < expected ~${expected.toFixed(2)}`,
+      };
+    }
+
+    return { isValid: true, fromAddress };
+  } catch (error) {
+    console.error('Error verifying shield transfer:', error);
+    return { isValid: false, error: `Failed to verify shield: ${error instanceof Error ? error.message : String(error)}` };
+  }
+}
+
 /** 比对期望与实际转账列表：数量一致、按地址排序后逐项地址相同、金额误差 <= 0.01。 */
 function validateActivationTransferList(expected: ActivationTransferItem[], actual: ActivationTransferItem[]): boolean {
   if (expected.length !== actual.length) return false;

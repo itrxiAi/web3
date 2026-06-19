@@ -2,7 +2,12 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useAppKitAccount } from "@reown/appkit/react";
-import { usePublicClient, useWriteContract } from "wagmi";
+import {
+  usePublicClient,
+  useWriteContract,
+  useSignMessage,
+  useSendTransaction,
+} from "wagmi";
 import { parseUnits } from "viem";
 import bs58 from "bs58";
 import {
@@ -25,9 +30,16 @@ export type EquityTierInfo = {
 type TransferItem = { address: string; amount: string };
 type ActivationQuote = {
   quoteId: string;
-  transferList: TransferItem[];
-  amountUsdt: string;
+  /** 推荐奖励（0x），走 Disperse 批量转账。可能为空（无上级）。 */
+  referralList: TransferItem[];
   batchTransferContract: string;
+  /** 系统份额总额（USDT），走 RAILGUN shield。 */
+  shieldTotalUsdt: string;
+  /** 需用户钱包签名的固定消息（派生 shieldPrivateKey）。 */
+  shieldSignatureMessage: string;
+  /** RAILGUN 代理合约（approve / shield 目标）。 */
+  railgunProxyContract: string;
+  amountUsdt: string;
 };
 
 const USDT_DECIMALS = Number(process.env.NEXT_PUBLIC_USDT_DECIMAL ?? 18);
@@ -146,8 +158,10 @@ export function useEquityActivation(options?: EquityActivationOptions) {
   }, [address]);
 
   const publicClient = usePublicClient();
+  const { signMessageAsync } = useSignMessage();
+  const { sendTransactionAsync } = useSendTransaction();
 
-  /** 发起 USDT 授权 + Disperse 批量转账，返回 disperse 交易哈希 */
+  /** 推荐奖励：USDT 授权 + Disperse 批量转账给上级 0x 钱包。返回 disperse 交易哈希。 */
   const approveAndDisperse = useCallback(
     async (quote: ActivationQuote): Promise<string> => {
       if (!address) {
@@ -157,12 +171,12 @@ export function useEquityActivation(options?: EquityActivationOptions) {
       if (!tokenAddress) {
         throw new Error("USDT contract address not found in environment variables");
       }
-      if (!quote.transferList.length) {
-        throw new Error("Empty transfer list");
+      if (!quote.referralList.length) {
+        throw new Error("Empty referral list");
       }
 
-      const recipients = quote.transferList.map((t) => t.address as `0x${string}`);
-      const values = quote.transferList.map((t) => parseUnits(t.amount, USDT_DECIMALS));
+      const recipients = quote.referralList.map((t) => t.address as `0x${string}`);
+      const values = quote.referralList.map((t) => parseUnits(t.amount, USDT_DECIMALS));
       const total = values.reduce((acc, v) => acc + v, BigInt(0));
       const spender = quote.batchTransferContract as `0x${string}`;
 
@@ -187,11 +201,68 @@ export function useEquityActivation(options?: EquityActivationOptions) {
       if (!hash) {
         throw new Error("Transaction failed to return a hash");
       }
-      setTxSignature(hash);
-      setShowTxModal(true);
       return hash;
     },
     [address, publicClient, writeContractAsync]
+  );
+
+  /**
+   * 系统份额：RAILGUN shield 进私密池。
+   * 1) 用户签名 shield 消息；2) 后端用签名+0zk 地址构造 shield calldata；
+   * 3) approve USDT 给代理合约；4) 广播 shield 交易。返回 shield 交易哈希。
+   */
+  const approveAndShield = useCallback(
+    async (quote: ActivationQuote): Promise<string> => {
+      if (!address) {
+        throw new Error("Wallet not connected");
+      }
+      const tokenAddress = process.env.NEXT_PUBLIC_USDT_ADDRESS;
+      if (!tokenAddress) {
+        throw new Error("USDT contract address not found in environment variables");
+      }
+
+      // 1. 用户钱包签名固定消息（派生 shieldPrivateKey）
+      const signature = await signMessageAsync({ message: quote.shieldSignatureMessage });
+
+      // 2. 后端构造 shield calldata（0zk 地址不下发浏览器）
+      const buildRes = await fetch("/api/points/equity/shield", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ quoteId: quote.quoteId, signature }),
+      });
+      if (!buildRes.ok) {
+        const errBody = await buildRes.json().catch(() => ({}));
+        throw new Error(errBody.error || "Failed to build shield transaction");
+      }
+      const { to, data, proxyContract, totalWei } = (await buildRes.json()) as {
+        to: string;
+        data: string;
+        proxyContract: string;
+        totalWei: string;
+      };
+
+      // 3. 授权 USDT 给 RAILGUN 代理合约
+      const approveHash = await writeContractAsync({
+        address: tokenAddress as `0x${string}`,
+        abi: usdtAbi,
+        functionName: "approve",
+        args: [proxyContract as `0x${string}`, BigInt(totalWei)],
+      });
+      if (publicClient && approveHash) {
+        await publicClient.waitForTransactionReceipt({ hash: approveHash });
+      }
+
+      // 4. 广播 shield 交易（原始 calldata）
+      const hash = await sendTransactionAsync({
+        to: to as `0x${string}`,
+        data: data as `0x${string}`,
+      });
+      if (!hash) {
+        throw new Error("Shield transaction failed to return a hash");
+      }
+      return hash;
+    },
+    [address, publicClient, writeContractAsync, signMessageAsync, sendTransactionAsync]
   );
 
   const payEquity = useCallback(
@@ -222,29 +293,36 @@ export function useEquityActivation(options?: EquityActivationOptions) {
         }
         const quote = (await quoteRes.json()) as ActivationQuote;
 
-        // 2. 链上批量转账。
-        //    USE_DEV_MOCK_TX=false：dev/prod 均真实发起交易；
-        //    如需恢复 dev 用随机哈希（不真正上链），将其置为 true 即可。
+        // 2. 链上交易：
+        //    a) 推荐奖励（直推/间推）走 Disperse 公开转账（仅当存在上级时）；
+        //    b) 系统份额（销毁/国库/储备）走 RAILGUN shield 进私密池。
+        //    USE_DEV_MOCK_TX=false：dev/prod 均真实发起交易。
         const USE_DEV_MOCK_TX = false;
-        let txSig: string;
+        let referralTxHash: string | null = null;
+        let shieldTxHash: string;
         if (USE_DEV_MOCK_TX && env?.environment === DEV_ENV) {
           const randomBytes = new Uint8Array(32);
           crypto.getRandomValues(randomBytes);
-          txSig = bs58.encode(randomBytes);
+          shieldTxHash = bs58.encode(randomBytes);
         } else {
-          txSig = await approveAndDisperse(quote);
+          // 先做系统份额 shield，再发推荐奖励 Disperse
+          shieldTxHash = await approveAndShield(quote);
+          if (quote.referralList.length > 0) {
+            referralTxHash = await approveAndDisperse(quote);
+          }
         }
 
-        setTxSignature(txSig);
+        setTxSignature(shieldTxHash);
         setShowTxModal(true);
 
-        // 3. 回调后端确认与校验
+        // 3. 回调后端确认与校验（两笔交易：推荐 Disperse + 系统份额 shield）
         const response = await fetch("/api/points/equity", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             quoteId: quote.quoteId,
-            txHash: txSig,
+            referralTxHash,
+            shieldTxHash,
           }),
         });
 
