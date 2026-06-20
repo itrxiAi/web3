@@ -67,16 +67,39 @@ function createArtifactStore(documentsDir: string): ArtifactStore {
   );
 }
 
+/**
+ * 判断错误是否为 LevelDB 损坏/打不开（应清库重建）。
+ * 典型：OpenError + "IO error" / "MANIFEST" / "no such file or directory" / "corrupt"。
+ */
+function isLevelDbCorruption(err: unknown): boolean {
+  let cur: unknown = err;
+  let depth = 0;
+  while (cur && depth < 8) {
+    const e = cur as { name?: string; message?: string; cause?: unknown };
+    const name = (e?.name ?? '').toLowerCase();
+    const msg = (e?.message ?? '').toLowerCase();
+    if (
+      name.includes('openerror') ||
+      msg.includes('manifest') ||
+      msg.includes('io error') ||
+      msg.includes('corrupt') ||
+      msg.includes('no such file or directory')
+    ) {
+      return true;
+    }
+    cur = e?.cause;
+    depth++;
+  }
+  return false;
+}
+
 let enginePromise: Promise<void> | null = null;
 
 /** 懒加载、进程内单例地初始化 RAILGUN 引擎并加载 BSC provider。 */
 export async function ensureRailgunEngine(): Promise<void> {
   if (enginePromise) return enginePromise;
   enginePromise = (async () => {
-    fs.mkdirSync(ENGINE_DB_PATH, { recursive: true });
     fs.mkdirSync(ENGINE_ARTIFACTS_PATH, { recursive: true });
-
-    const db = LevelDownDB(ENGINE_DB_PATH);
     const artifactStore = createArtifactStore(ENGINE_ARTIFACTS_PATH);
 
     // 在 CJS 上下文内捕获 RAILGUN 内部真实错误（cause 跨 webpack 边界会丢失）
@@ -95,17 +118,34 @@ export async function ensureRailgunEngine(): Promise<void> {
       .map((s) => s.trim())
       .filter(Boolean);
 
-    await startRailgunEngine(
-      'harmonylink',     // walletSource，<=16 字符小写
-      db,
-      false,             // shouldDebug
-      artifactStore,
-      false,             // useNativeArtifacts（nodejs 用 wasm）
-      true,              // skipMerkletreeScans —— shield-only，跳过同步/余额扫描
-      ppoiNodes,         // Private POI 聚合节点（生产请配置自有/社区节点）
-      [],                // customPOILists
-      false,             // verboseScanLogging
-    );
+    const startEngine = async () => {
+      fs.mkdirSync(ENGINE_DB_PATH, { recursive: true });
+      const db = LevelDownDB(ENGINE_DB_PATH);
+      await startRailgunEngine(
+        'harmonylink',     // walletSource，<=16 字符小写
+        db,
+        false,             // shouldDebug
+        artifactStore,
+        false,             // useNativeArtifacts（nodejs 用 wasm）
+        true,              // skipMerkletreeScans —— shield-only，跳过同步/余额扫描
+        ppoiNodes,         // Private POI 聚合节点（生产请配置自有/社区节点）
+        [],                // customPOILists
+        false,             // verboseScanLogging
+      );
+    };
+
+    try {
+      await startEngine();
+    } catch (err) {
+      // 仅在 LevelDB 损坏（如 MANIFEST 丢失导致 OpenError）时清库重建并重试一次。
+      // shield-only 模式下该 db 仅为本地缓存，不含私钥/余额，删除安全。
+      if (!isLevelDbCorruption(err)) throw err;
+      console.warn(
+        `[railgun] engine.db corrupted (${(err as Error)?.message}); wiping ${ENGINE_DB_PATH} and rebuilding once...`,
+      );
+      fs.rmSync(ENGINE_DB_PATH, { recursive: true, force: true });
+      await startEngine();
+    }
 
     // 加载 BSC provider（loadProvider 会读取 RAILGUN 合约与费率）。
     // RPC 冷连接偶发 socket hang up / ECONNRESET，做有限重试。
