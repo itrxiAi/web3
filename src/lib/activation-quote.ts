@@ -77,7 +77,10 @@ export async function fetchActivationQuote(params: {
     throw new Error('APP_BACKEND_URL or INTERNAL_API_KEY not configured');
   }
 
-  const response = await fetch(`${appBackendUrl}/internal/activations/quote`, {
+  const url = `${appBackendUrl}/internal/activations/quote`;
+  console.log('[fetchActivationQuote] POST', url, JSON.stringify(params));
+
+  const response = await fetch(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -86,21 +89,37 @@ export async function fetchActivationQuote(params: {
     body: JSON.stringify(params),
   });
 
+  console.log('[fetchActivationQuote] status', response.status, response.ok);
+
   if (!response.ok) {
     const err = await response.json().catch(() => ({}));
+    console.error('[fetchActivationQuote] error body', JSON.stringify(err));
     throw new Error(err.message || `App backend quote failed: ${response.status}`);
   }
 
-  // app/backend 全局 TransformInterceptor 会把响应包成 { data: ... }
-  const json = (await response.json()) as { data?: ActivationQuoteResult } & Partial<ActivationQuoteResult>;
+  const rawText = await response.text();
+  console.log('[fetchActivationQuote] raw response', rawText);
+
+  let json: { data?: ActivationQuoteResult } & Partial<ActivationQuoteResult>;
+  try {
+    json = JSON.parse(rawText);
+  } catch (e) {
+    throw new Error(`App backend quote returned non-JSON: ${rawText.slice(0, 200)}`);
+  }
+
   const result = (json.data ?? json) as ActivationQuoteResult;
+  console.log('[fetchActivationQuote] result keys', Object.keys(result ?? {}));
+  console.log('[fetchActivationQuote] referralList isArray', Array.isArray(result?.referralList));
+  console.log('[fetchActivationQuote] shieldList isArray', Array.isArray(result?.shieldList));
+  console.log('[fetchActivationQuote] amountUsdt', result?.amountUsdt);
+
   if (
     !result ||
     !Array.isArray(result.referralList) ||
     !Array.isArray(result.shieldList) ||
     !result.amountUsdt
   ) {
-    throw new Error('App backend quote returned invalid payload');
+    throw new Error(`App backend quote returned invalid payload: ${JSON.stringify(result)}`);
   }
   return result;
 }
