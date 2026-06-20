@@ -48,3 +48,6 @@ next-env.d.ts
 # logs
 /logs
 
+# railgun engine runtime data (LevelDB + artifacts)
+/.railgun
+
