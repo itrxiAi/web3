@@ -17,7 +17,7 @@ const menuItems: NavItem[] = [
   { key: "airdrop_detail", href: "/airdrop" },
   { key: "history_records", href: "/history" },
   { key: "about", href: "/about" },
-  { key: "early_consensus", href: "/node" },
+  // { key: "early_consensus", href: "/node" },
   { key: "personal_center", href: "/my" },
   { key: "download_app", href: "https://pub-09029cfd573f4a42b7d6bba0442c3fd2.r2.dev/app/harmonylink-0.2.1.apk" },
   { key: "download_business_plan", href: "/download#business" },
