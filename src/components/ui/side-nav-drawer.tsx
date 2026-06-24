@@ -11,6 +11,10 @@ type NavItem = {
   href: string;
 };
 
+// App 安装包下载地址的兜底值；运行时会从 /api/app-download 拉取最新地址覆盖。
+const FALLBACK_APP_DOWNLOAD_URL =
+  "https://pub-09029cfd573f4a42b7d6bba0442c3fd2.r2.dev/app/harmonylink-0.2.1.apk";
+
 const menuItems: NavItem[] = [
   { key: "home", href: "/" },
   // { key: "home2", href: "/home2" },
@@ -19,7 +23,7 @@ const menuItems: NavItem[] = [
   { key: "about", href: "/about" },
   // { key: "early_consensus", href: "/node" },
   { key: "personal_center", href: "/my" },
-  { key: "download_app", href: "https://pub-09029cfd573f4a42b7d6bba0442c3fd2.r2.dev/app/harmonylink-0.2.1.apk" },
+  { key: "download_app", href: FALLBACK_APP_DOWNLOAD_URL },
   { key: "download_business_plan", href: "/download#business" },
   { key: "download_whitepaper", href: "/download#whitepaper" },
   { key: "account_activation", href: "/activate" },
@@ -130,6 +134,22 @@ export default function SideNavDrawer({
   const t = useTranslations("nav_drawer");
   const [mountedOpen, setMountedOpen] = useState(open);
   const [closing, setClosing] = useState(false);
+  const [appDownloadUrl, setAppDownloadUrl] = useState(FALLBACK_APP_DOWNLOAD_URL);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/app-download", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((data) => {
+        if (!cancelled && data?.url) setAppDownloadUrl(data.url as string);
+      })
+      .catch(() => {
+        /* 保持兜底地址 */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (open) {
@@ -238,15 +258,16 @@ export default function SideNavDrawer({
         <nav className="relative z-10 min-h-0 flex-1 overflow-y-auto  border-white/[0.06] bg-gradient-to-b from-white/[0.05] from-[8%] via-black/55 via-[55%] to-black to-[100%] py-2 backdrop-blur-md">
           <ul className="space-y-0">
             {menuItems.map((item: NavItem) => {
-              const isExternalLink = item.href.startsWith('/documents/') ||
-                item.href.startsWith('http://') ||
-                item.href.startsWith('https://');
+              const href = item.key === "download_app" ? appDownloadUrl : item.href;
+              const isExternalLink = href.startsWith('/documents/') ||
+                href.startsWith('http://') ||
+                href.startsWith('https://');
               const LinkComponent = isExternalLink ? 'a' : Link;
               
               return (
                 <li key={item.key}>
                   <LinkComponent
-                    href={item.href}
+                    href={href}
                     onClick={onClose}
                     className="flex items-center gap-3 px-4 py-3.5 text-[15px] font-medium text-white/95 transition hover:bg-white/[0.06]"
                     {...(isExternalLink && { target: '_blank', rel: 'noopener noreferrer' })}
