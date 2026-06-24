@@ -48,7 +48,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
               <p className="text-purple-400 text-sm break-words">
                 {txSignature ? (
                   <a 
-                    href={`https://etherscan.io/tx/${txSignature}`} 
+                    href={`https://bscscan.com/tx/${txSignature}`} 
                     target="_blank" 
                     rel="noopener noreferrer"
                     className="hover:underline hover:text-purple-300 transition-colors"
