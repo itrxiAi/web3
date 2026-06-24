@@ -226,7 +226,7 @@
   },
   "equity_activation_page": {
     "title": "Kích hoạt tài khoản",
-    "intro": "Người dùng HarmonyLink chọn gói quyền lợi trên trang này để kích hoạt tài khoản. “Kích hoạt” là hoàn tất tạo danh tính on-chain và tương tác giá trị: tại HarmonyLink, người dùng đã kích hoạt = địa chỉ on-chain (danh tính chủ quyền) + nhiên liệu tương tác (gas tối thiểu) + vòng hành động chính, thuộc nhóm người được quyền lợi chính thức của nền tảng.\n\nMỗi gói có quyền lợi khác nhau và đều có hiệu lực 50 ngày. Trong thời hạn, người “đã kích hoạt” được hưởng toàn bộ quyền trong gói; hết hạn muốn có lại quyền tương ứng cần “kích hoạt” lại trên trang này.",
+    "intro": "Người dùng HarmonyLink chọn gói quyền lợi trên trang này để kích hoạt tài khoản. “Kích hoạt” là hoàn tất tạo danh tính on-chain và tương tác giá trị: tại HarmonyLink, người dùng đã kích hoạt = địa chỉ on-chain (danh tính chủ quyền) + nhiên liệu tương tác (gas tối thiểu) + vòng hành động chính, thuộc nhóm người được quyền lợi chính thức của nền tảng.\n\nMỗi gói có quyền lợi khác nhau và đều có hiệu lực 90 ngày. Trong thời hạn, người “đã kích hoạt” được hưởng toàn bộ quyền trong gói; hết hạn muốn có lại quyền tương ứng cần “kích hoạt” lại trên trang này.",
     "table_col_option": "Gói",
     "table_col_benefits": "Quyền lợi hàng ngày",
     "row_benefit_base": "Mỗi ngày: 1 video, 3 thích, 1 bình luận, 10 thích bình luận (chi tiết trong App).",

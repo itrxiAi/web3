@@ -248,7 +248,7 @@
   },
   "equity_activation_page": {
     "title": "Account activation",
-    "intro": "HarmonyLink users choose an equity package on this page to activate their account. “Activation” means completing on-chain identity creation and value interaction: in HarmonyLink, an activated user = on-chain address (sovereign identity) + interaction fuel (minimum gas) + closed-loop key actions, and qualifies as a holder of official platform benefits.\n\nEach package offers different benefits, all with a 50-day validity period. While valid, “activated” users enjoy everything in that package; after it expires, you must activate again on this page to regain the corresponding benefits.",
+    "intro": "HarmonyLink users choose an equity package on this page to activate their account. “Activation” means completing on-chain identity creation and value interaction: in HarmonyLink, an activated user = on-chain address (sovereign identity) + interaction fuel (minimum gas) + closed-loop key actions, and qualifies as a holder of official platform benefits.\n\nEach package offers different benefits, all with a 90-day validity period. While valid, “activated” users enjoy everything in that package; after it expires, you must activate again on this page to regain the corresponding benefits.",
     "table_col_option": "Package",
     "table_col_benefits": "Daily benefits",
     "row_benefit_base": "Daily: 1 video post, 3 likes, 1 comment, 10 comment likes; basic publishing and interaction (see the App for details).",
