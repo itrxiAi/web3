@@ -621,7 +621,7 @@ const AdminStatisticsPage = () => {
       <div className="max-w-7xl mx-auto space-y-6">
         <h1 className="text-2xl font-bold">Admin 管理</h1>
 
-        {false && (<>
+        {(false as boolean) && (<>
         {/* 1) 验证者列表 */}
         <section className="rounded-xl border border-white/20 bg-white/5 p-4 space-y-4">
           <div className="flex items-center justify-between gap-3 flex-wrap">
