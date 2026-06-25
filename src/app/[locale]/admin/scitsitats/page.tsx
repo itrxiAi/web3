@@ -123,6 +123,17 @@ type BannerItem = {
   order: number;
 };
 
+type EqTxItem = {
+  id: string;
+  txHash: string | null;
+  fromAddress: string;
+  toAddress: string;
+  amount: string;
+  tokenType: string;
+  status: string;
+  createdAt: string;
+};
+
 // 昨天的 YYYY-MM-DD（UTC，与后端结算口径一致）
 function yesterdayUTC(): string {
   const d = new Date();
@@ -202,6 +213,25 @@ const AdminStatisticsPage = () => {
   const [bannerSaving, setBannerSaving] = useState(false);
   const [uploadingBanner, setUploadingBanner] = useState(false);
   const [newBanner, setNewBanner] = useState<BannerItem>({ imageUrl: '', linkUrl: '', order: 0 });
+
+  // 10) Equity 确认交易查询
+  const [eqStartDate, setEqStartDate] = useState(() => {
+    const cst = new Date(Date.now() + 8 * 60 * 60 * 1000);
+    cst.setDate(cst.getDate() - 7);
+    return cst.toISOString().slice(0, 16);
+  });
+  const [eqEndDate, setEqEndDate] = useState(() => {
+    const cst = new Date(Date.now() + 8 * 60 * 60 * 1000);
+    return cst.toISOString().slice(0, 16);
+  });
+  const [eqPage, setEqPage] = useState(1);
+  const [eqPageSize] = useState(20);
+  const [eqLoading, setEqLoading] = useState(false);
+  const [eqError, setEqError] = useState('');
+  const [eqCount, setEqCount] = useState<number | null>(null);
+  const [eqTotalAmount, setEqTotalAmount] = useState<string | null>(null);
+  const [eqItems, setEqItems] = useState<EqTxItem[]>([]);
+  const [eqTotalPages, setEqTotalPages] = useState(1);
 
   const fetchArbiters = async (nextPage = arbiterPage) => {
     setArbiterLoading(true);
@@ -551,11 +581,47 @@ const AdminStatisticsPage = () => {
     }
   };
 
+  const fetchEqTransactions = async (nextPage = eqPage) => {
+    setEqLoading(true);
+    setEqError('');
+    try {
+      const toUTC = (localStr: string) => {
+        if (!localStr) return undefined;
+        const [datePart, timePart = '00:00'] = localStr.split('T');
+        const [y, m, d] = datePart.split('-').map(Number);
+        const [h, min] = timePart.split(':').map(Number);
+        return new Date(Date.UTC(y, m - 1, d, h, min) - 8 * 60 * 60 * 1000).toISOString();
+      };
+      const response = await fetch('/api/admin/equity-transactions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          startDate: toUTC(eqStartDate),
+          endDate: toUTC(eqEndDate),
+          page: nextPage,
+          pageSize: eqPageSize,
+        }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data?.error || `Request failed: ${response.status}`);
+      setEqCount(data.count ?? 0);
+      setEqTotalAmount(data.totalAmount ?? '0');
+      setEqItems(data.items || []);
+      setEqTotalPages(data.totalPages || 1);
+      setEqPage(nextPage);
+    } catch (error) {
+      setEqError(error instanceof Error ? error.message : '查询失败');
+    } finally {
+      setEqLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-black text-white p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         <h1 className="text-2xl font-bold">Admin 管理</h1>
 
+        {false && (<>
         {/* 1) 验证者列表 */}
         <section className="rounded-xl border border-white/20 bg-white/5 p-4 space-y-4">
           <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -1317,6 +1383,126 @@ const AdminStatisticsPage = () => {
               </button>
             </div>
           </div>
+        </section>
+        </>)}
+
+        {/* 10) Equity 确认交易查询 */}
+        <section className="rounded-xl border border-white/20 bg-white/5 p-4 space-y-4">
+          <h2 className="text-lg font-semibold">10) Equity 确认交易查询</h2>
+          <p className="text-xs text-white/60">
+            固定条件：type = EQUITY · txHash ≠ null · status = CONFIRMED。时间输入为 UTC+8，列表显示也为 UTC+8。
+          </p>
+
+          <div className="flex flex-wrap gap-3 items-end">
+            <div>
+              <label className="block text-xs text-white/60 mb-1">开始时间（UTC+8）</label>
+              <input
+                type="datetime-local"
+                value={eqStartDate}
+                onChange={(e) => setEqStartDate(e.target.value)}
+                style={{ colorScheme: 'dark' }}
+                className="rounded border border-white/20 bg-black/50 px-3 py-2 text-sm cursor-pointer"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-white/60 mb-1">结束时间（UTC+8）</label>
+              <input
+                type="datetime-local"
+                value={eqEndDate}
+                onChange={(e) => setEqEndDate(e.target.value)}
+                style={{ colorScheme: 'dark' }}
+                className="rounded border border-white/20 bg-black/50 px-3 py-2 text-sm cursor-pointer"
+              />
+            </div>
+            <button
+              onClick={() => void fetchEqTransactions(1)}
+              disabled={eqLoading}
+              className="rounded bg-blue-600 px-4 py-2 text-sm disabled:bg-gray-600"
+            >
+              {eqLoading ? '查询中...' : '查询'}
+            </button>
+          </div>
+
+          {eqError && <p className="text-red-400 text-sm">{eqError}</p>}
+
+          {eqCount !== null && (
+            <div className="flex gap-6 rounded-lg border border-white/20 bg-white/5 px-5 py-3 text-sm">
+              <span>总笔数：<span className="text-yellow-300 font-semibold">{eqCount}</span></span>
+              <span>总金额：<span className="text-green-400 font-semibold">{Number(eqTotalAmount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 })} USDT</span></span>
+            </div>
+          )}
+
+          {eqItems.length > 0 && (
+            <>
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs border-collapse">
+                  <thead>
+                    <tr className="text-left border-b border-white/20">
+                      <th className="py-2 pr-3">ID</th>
+                      <th className="py-2 pr-3">txHash</th>
+                      <th className="py-2 pr-3">from</th>
+                      <th className="py-2 pr-3">to</th>
+                      <th className="py-2 pr-3 text-right">amount</th>
+                      <th className="py-2 pr-3">token</th>
+                      <th className="py-2 pr-3">createdAt (UTC+8)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {eqItems.map((item, idx) => {
+                      const cst = new Date(new Date(item.createdAt).getTime() + 8 * 60 * 60 * 1000);
+                      const cstStr = cst.toISOString().replace('T', ' ').slice(0, 19);
+                      return (
+                        <tr key={item.id} className={idx % 2 === 0 ? 'border-b border-white/10' : 'border-b border-white/5 bg-white/5'}>
+                          <td className="py-2 pr-3 font-mono text-white/60">{item.id.slice(0, 8)}…</td>
+                          <td className="py-2 pr-3 font-mono">
+                            {item.txHash ? (
+                              <a
+                                href={`https://bscscan.com/tx/${item.txHash}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-400 hover:underline"
+                              >
+                                {item.txHash.slice(0, 10)}…
+                              </a>
+                            ) : '-'}
+                          </td>
+                          <td className="py-2 pr-3"><AddressTag address={item.fromAddress} /></td>
+                          <td className="py-2 pr-3"><AddressTag address={item.toAddress} /></td>
+                          <td className="py-2 pr-3 text-right text-green-400">
+                            {Number(item.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 })}
+                          </td>
+                          <td className="py-2 pr-3 text-white/60">{item.tokenType}</td>
+                          <td className="py-2 pr-3 text-white/80">{cstStr}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="flex items-center gap-2 text-sm">
+                <button
+                  onClick={() => void fetchEqTransactions(Math.max(1, eqPage - 1))}
+                  disabled={eqLoading || eqPage <= 1}
+                  className="rounded bg-gray-700 px-3 py-1 disabled:bg-gray-800"
+                >
+                  上一页
+                </button>
+                <span>第 {eqPage} / {eqTotalPages} 页</span>
+                <button
+                  onClick={() => void fetchEqTransactions(Math.min(eqTotalPages, eqPage + 1))}
+                  disabled={eqLoading || eqPage >= eqTotalPages}
+                  className="rounded bg-gray-700 px-3 py-1 disabled:bg-gray-800"
+                >
+                  下一页
+                </button>
+              </div>
+            </>
+          )}
+
+          {eqCount === 0 && !eqLoading && (
+            <p className="text-white/60 text-sm">该时间范围内无符合条件的交易</p>
+          )}
         </section>
       </div>
     </div>
