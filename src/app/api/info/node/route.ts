@@ -1,53 +1,46 @@
 import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
-import { GROUP_TYPE, COMMUNITY_TYPE } from '@/constants'
-import { getCommunityMinLevel, getCommunityNum, getCommunityPriceDisplay, getDividendRewardNodeRatio, getGroupMinLevel, getGroupNum, getGroupPriceDisplay, getReferralDirectRewardRateCommunity, getReferralDirectRewardRateGroup, getStakeCommunityDynamicRewardCap, getStakeCommunityDynamicRewardCapIncrement, getStakeGroupDynamicRewardCap, getStakeGroupDynamicRewardCapIncrement, getBatchTransferContract, getNodeDisperseRecipients } from '@/lib/config'
+import { COMMUNITY_TYPE } from '@/constants'
+import { getCommunityMinLevel, getCommunityNum, getCommunityPriceDisplay, getDividendRewardNodeRatio, getReferralDirectRewardRateCommunity, getStakeCommunityDynamicRewardCap, getStakeCommunityDynamicRewardCapIncrement, getBatchTransferContract, getNodeDisperseRecipients, getVerifier1, getVerifier2 } from '@/lib/config'
+
+const VERIFIER_MAX = 1000
 
 export async function POST() {
   try {
-    // Count users by node type
-    const [communityCount] = await Promise.all([
-      // prisma.user.count({
-      //   where: {
-      //     type: GROUP_TYPE
-      //   }
-      // }),
-      prisma.user.count({
-        where: {
-          type: COMMUNITY_TYPE
-        }
-      })
+    const [verifier1Count, verifier2Count] = await Promise.all([
+      prisma.user.count({ where: { type: COMMUNITY_TYPE, cards: 1 } }),
+      prisma.user.count({ where: { type: COMMUNITY_TYPE, cards: 2 } }),
     ])
-    const groupMax = await getGroupNum()
     const communityMax = await getCommunityNum()
     const batchTransferContract = await getBatchTransferContract()
     const disperseRecipients = await getNodeDisperseRecipients()
+    const v1Price = Number((await getVerifier1()).toString())
+    const v2Price = Number((await getVerifier2()).toString())
 
     return NextResponse.json({
-      // groupNode: {
-      //   price_display: await getGroupPriceDisplay(),
-      //   price_transfer: (await getGroupPriceTransfer()).toFixed(), // Convert to string to avoid scientific notation
-      //   maxNum: groupMax,
-      //   leftNum: groupMax - groupCount,
-      //   referralReward: await getReferralDirectRewardRateGroup(),
-      //   minLevel: await getGroupMinLevel(),
-      //   // communityReward: await getStakeGroupNodeRewardRatio(),
-      //   // incubationReward: await getStakeGroupNodeRewardDifRatio(),
-      //   dynamicRewardCap: await getStakeGroupDynamicRewardCap(),
-      //   dynamicRewardCapIncrement: await getStakeGroupDynamicRewardCapIncrement(),
-      //   dividendReward: await getDividendRewardNodeRatio()
-      // },
       communityNode: {
         price_display: await getCommunityPriceDisplay(),
         maxNum: communityMax,
-        leftNum: communityMax - communityCount,
+        leftNum: communityMax - verifier1Count - verifier2Count,
         referralReward: await getReferralDirectRewardRateCommunity(),
         minLevel: await getCommunityMinLevel(),
-        // communityReward: await getStakeCommunityNodeRewardRatio(),
-        // incubationReward: await getStakeCommunityNodeRewardDifRatio(),
         dynamicRewardCap: await getStakeCommunityDynamicRewardCap(),
         dynamicRewardCapIncrement: await getStakeCommunityDynamicRewardCapIncrement(),
         dividendReward: await getDividendRewardNodeRatio()
+      },
+      verifier1Node: {
+        price_display: v1Price,
+        maxNum: VERIFIER_MAX,
+        leftNum: VERIFIER_MAX - verifier1Count,
+        soldCount: verifier1Count,
+        soldAmount: verifier1Count * v1Price,
+      },
+      verifier2Node: {
+        price_display: v2Price,
+        maxNum: VERIFIER_MAX,
+        leftNum: VERIFIER_MAX - verifier2Count,
+        soldCount: verifier2Count,
+        soldAmount: verifier2Count * v2Price,
       },
       batchTransferContract,
       disperseRecipients,

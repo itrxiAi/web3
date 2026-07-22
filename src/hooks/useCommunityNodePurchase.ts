@@ -24,6 +24,14 @@ export interface NodeDataShape {
   dividendReward: number;
 }
 
+export interface VerifierNodeDataShape {
+  price_display: number;
+  maxNum: number;
+  leftNum: number;
+  soldCount: number;
+  soldAmount: number;
+}
+
 export interface DisperseRecipient {
   address: string;
   ratio: number;
@@ -32,6 +40,8 @@ export interface DisperseRecipient {
 export interface NodesDataShape {
   groupNode: NodeDataShape;
   communityNode: NodeDataShape;
+  verifier1Node?: VerifierNodeDataShape;
+  verifier2Node?: VerifierNodeDataShape;
   batchTransferContract?: string;
   disperseRecipients?: DisperseRecipient[];
 }
@@ -66,6 +76,20 @@ export const FALLBACK_NODE_DATA: NodesDataShape = {
     dynamicRewardCap: 4000,
     dynamicRewardCapIncrement: 50,
     dividendReward: 0.01,
+  },
+  verifier1Node: {
+    price_display: 500,
+    maxNum: 1000,
+    leftNum: 1000,
+    soldCount: 0,
+    soldAmount: 0,
+  },
+  verifier2Node: {
+    price_display: 1000,
+    maxNum: 1000,
+    leftNum: 1000,
+    soldCount: 0,
+    soldAmount: 0,
   },
 };
 
@@ -123,7 +147,29 @@ function normalizeNodesPayload(raw: unknown): NodesDataShape | null {
     ? (data.disperseRecipients as DisperseRecipient[]).filter(r => r.address && Number.isFinite(r.ratio))
     : undefined;
 
-  return { groupNode, communityNode, batchTransferContract, disperseRecipients };
+  const v1 = data.verifier1Node as Record<string, unknown> | undefined;
+  const verifier1Node: VerifierNodeDataShape | undefined = v1
+    ? {
+      price_display: coerceNumber(v1.price_display, FALLBACK_NODE_DATA.verifier1Node!.price_display),
+      maxNum: coerceNumber(v1.maxNum, FALLBACK_NODE_DATA.verifier1Node!.maxNum),
+      leftNum: coerceNumber(v1.leftNum, FALLBACK_NODE_DATA.verifier1Node!.leftNum),
+      soldCount: coerceNumber(v1.soldCount, 0),
+      soldAmount: coerceNumber(v1.soldAmount, 0),
+    }
+    : undefined;
+
+  const v2 = data.verifier2Node as Record<string, unknown> | undefined;
+  const verifier2Node: VerifierNodeDataShape | undefined = v2
+    ? {
+      price_display: coerceNumber(v2.price_display, FALLBACK_NODE_DATA.verifier2Node!.price_display),
+      maxNum: coerceNumber(v2.maxNum, FALLBACK_NODE_DATA.verifier2Node!.maxNum),
+      leftNum: coerceNumber(v2.leftNum, FALLBACK_NODE_DATA.verifier2Node!.leftNum),
+      soldCount: coerceNumber(v2.soldCount, 0),
+      soldAmount: coerceNumber(v2.soldAmount, 0),
+    }
+    : undefined;
+
+  return { groupNode, communityNode, verifier1Node, verifier2Node, batchTransferContract, disperseRecipients };
 }
 
 const usdtAbi = [

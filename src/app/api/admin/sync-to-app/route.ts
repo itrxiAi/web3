@@ -89,7 +89,9 @@ export async function POST(req: NextRequest) {
             hakcard: u.cards,
             tribute: String(u.points),
             inviterAddress: u.superior ? u.superior.toLowerCase() : null,
-            nodeType: u.type || 'NORMAL',
+            nodeType: u.type === UserType.COMMUNITY
+              ? (u.cards === 1 ? 'VERIFIER1' : u.cards === 2 ? 'VERIFIER2' : 'NORMAL')
+              : (u.type || 'NORMAL'),
           }),
         });
         const json = await resp.json().catch(() => ({}));

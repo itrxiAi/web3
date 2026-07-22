@@ -869,10 +869,8 @@ const NodeMarket: React.FC<NodeMarketProps> = ({
   const { address } = useAppKitAccount();
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const verifierOptions = [
-    { type: VERIFIER_1, price: 500, cards: 1, points: 100 },
-    { type: VERIFIER_2, price: 1000, cards: 2, points: 250 },
-    // { type: VERIFIER_3, price: 5000, cards: 10, points: 1500 },
-    // { type: VERIFIER_4, price: 10000, cards: 20, points: 3500 },
+    { type: VERIFIER_1, price: 500, name: "VIP", dividend: "2%", taskPack: "100u" },
+    { type: VERIFIER_2, price: 1000, name: "SVIP", dividend: "3%", taskPack: "300u" },
   ] as const;
   const [selectedOption, setSelectedOption] = useState<(typeof verifierOptions)[number]>(
     verifierOptions[0]
@@ -882,15 +880,14 @@ const NodeMarket: React.FC<NodeMarketProps> = ({
     return <LoadingSpinner />;
   }
 
-  const leftNum = nodeData.communityNode.leftNum;
+  const v1Data = nodeData.verifier1Node;
+  const v2Data = nodeData.verifier2Node;
 
-  const benefits = [
-    tSub("benefit_1"),
-    tSub("benefit_2"),
-    tSub("benefit_3"),
-    tSub("benefit_4"),
-    tSub("benefit_5"),
-  ];
+  const getNodeData = (type: string) => {
+    if (type === VERIFIER_1) return v1Data;
+    if (type === VERIFIER_2) return v2Data;
+    return undefined;
+  };
 
   return (
     <div className="relative min-h-screen overflow-hidden text-white">
@@ -912,7 +909,7 @@ const NodeMarket: React.FC<NodeMarketProps> = ({
           </p>
 
           <div className="space-y-1.5">
-            {benefits.map((benefit, i) => (
+            {[tSub("benefit_1"), tSub("benefit_2"), tSub("benefit_3")].map((benefit, i) => (
               <div key={i} className="flex items-start gap-2.5">
                 <span
                   className="mt-0.5 flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full bg-black text-[10px] font-bold leading-none text-white"
@@ -932,51 +929,95 @@ const NodeMarket: React.FC<NodeMarketProps> = ({
           </p>
         </div>
 
-        {/* Urgency */}
-        <p
-          className="mb-1 text-center text-sm font-semibold"
-          style={{ color: "#f0507a" }}
-        >
-          {tSub("urgency")}
-        </p>
+        {/* VIP / SVIP Cards */}
+        <div className="mb-6 flex flex-col gap-4">
+          {verifierOptions.map((option) => {
+            const nodeInfo = getNodeData(option.type);
+            const soldCount = nodeInfo?.soldCount ?? 0;
+            const maxNum = nodeInfo?.maxNum ?? 1000;
+            const soldAmount = nodeInfo?.soldAmount ?? 0;
+            const progress = maxNum > 0 ? (soldCount / maxNum) * 100 : 0;
+            const isDisabled = userInfo?.type === "COMMUNITY" || !userInfo?.superior || soldCount >= maxNum;
 
-        {/* 4 Price Buttons */}
-        <div className="mb-6 flex flex-col gap-3">
-          {verifierOptions.map((option) => (
-            <button
-              key={option.type}
-              onClick={() => {
-                if (!address) {
-                  triggerWalletConnect();
-                  return;
-                }
-                setSelectedOption(option);
-                setShowConfirmModal(true);
-              }}
-              disabled={userInfo?.type === "COMMUNITY" || !userInfo?.superior}
-              className="py-3 text-center text-sm font-bold text-white"
-              style={
-                userInfo?.type === "COMMUNITY" || leftNum === 0 || !userInfo?.superior
-                  ? {
-                      borderRadius: "8px",
-                      background: "rgba(80,80,80,0.5)",
-                      boxShadow: "none",
+            return (
+              <div
+                key={option.type}
+                className="rounded-[10px] p-4"
+                style={{
+                  backgroundImage: "linear-gradient(0deg, #e50e0f 0%, #680a71 100%)",
+                }}
+              >
+                {/* Header */}
+                <div className="mb-3 flex items-center justify-between">
+                  <span className="text-lg font-bold text-white">
+                    {option.name} {tSub("node")}
+                  </span>
+                  <span className="text-sm font-bold text-white">
+                    {option.price} USDT
+                  </span>
+                </div>
+
+                {/* Benefits */}
+                <div className="mb-3 space-y-1.5 text-xs text-white">
+                  <div className="flex items-start gap-2">
+                    <span className="mt-0.5 flex h-[16px] w-[16px] shrink-0 items-center justify-center rounded-full bg-black text-[9px] font-bold leading-none text-white">1</span>
+                    <span>{tSub("vip_benefit_dividend", { rate: option.dividend })}</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="mt-0.5 flex h-[16px] w-[16px] shrink-0 items-center justify-center rounded-full bg-black text-[9px] font-bold leading-none text-white">2</span>
+                    <span>{tSub("vip_benefit_taskpack", { amount: option.taskPack })}</span>
+                  </div>
+                </div>
+
+                {/* Progress Bar */}
+                <div className="mb-3">
+                  <div className="mb-1 flex items-center justify-between text-[11px] text-white/80">
+                    <span>{tSub("sold_count", { count: soldCount, total: maxNum })}</span>
+                    <span>{tSub("sold_amount", { amount: soldAmount })}</span>
+                  </div>
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-black/40">
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-yellow-400 to-orange-500 transition-all"
+                      style={{ width: `${Math.min(progress, 100)}%` }}
+                    />
+                  </div>
+                  <div className="mt-1 text-right text-[10px] text-white/60">
+                    {progress.toFixed(1)}% / {tSub("total_shares", { total: maxNum })}
+                  </div>
+                </div>
+
+                {/* Purchase Button */}
+                <button
+                  onClick={() => {
+                    if (!address) {
+                      triggerWalletConnect();
+                      return;
                     }
-                  : {
-                      borderRadius: "8px",
-                      backgroundImage: "linear-gradient(0deg, #e50e0f 0%, #680a71 100%)",
-                      boxShadow: "0 4px 24px rgba(229, 14, 15, 0.35)",
-                    }
-              }
-            >
-              {option.price} USDT -
-              {" "}
-              {tSub("verifier_benefits", {
-                cards: option.cards,
-                points: option.points,
-              })}
-            </button>
-          ))}
+                    setSelectedOption(option);
+                    setShowConfirmModal(true);
+                  }}
+                  disabled={isDisabled}
+                  className="w-full py-3 text-center text-sm font-bold text-white"
+                  style={
+                    isDisabled
+                      ? {
+                          borderRadius: "8px",
+                          background: "rgba(80,80,80,0.5)",
+                          boxShadow: "none",
+                        }
+                      : {
+                          borderRadius: "8px",
+                          backgroundImage: "linear-gradient(0deg, #e50e0f 0%, #680a71 100%)",
+                          boxShadow: "0 4px 24px rgba(229, 14, 15, 0.35)",
+                          border: "1px solid rgba(255,255,255,0.2)",
+                        }
+                  }
+                >
+                  {soldCount >= maxNum ? tSub("sold_out") : tSub("cta")}
+                </button>
+              </div>
+            );
+          })}
         </div>
 
         {/* Footer Notes */}
