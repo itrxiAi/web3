@@ -555,7 +555,7 @@ function StakingContent(): React.ReactElement {
       // we can safely convert it to BigInt
       const decimals =
         tokenType === TokenType.USDT
-          ? Number(process.env.NEXT_PUBLIC_USDT_DECIMAL)
+          ? 18
           : Number(process.env.NEXT_PUBLIC_TOKEN_DECIMAL);
       const amountInWei = BigInt(amount * Math.pow(10, decimals));
 

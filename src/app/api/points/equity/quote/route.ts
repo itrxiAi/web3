@@ -14,6 +14,14 @@ function isEquityType(s: string): s is EquityType {
   return Object.prototype.hasOwnProperty.call(EQUITY_TO_PACKAGE, s);
 }
 
+type ShieldType = 'railgun' | 'disperse';
+
+function detectShieldType(shieldList: { recipient: string }[]): ShieldType {
+  if (!shieldList.length) return 'railgun';
+  const first = shieldList[0].recipient.trim();
+  return first.startsWith('0zk') ? 'railgun' : 'disperse';
+}
+
 /**
  * 激活付款拆分报价。
  *
@@ -54,9 +62,12 @@ export async function POST(req: NextRequest) {
 
     const batchTransferContract = quote.batchTransferContract || (await getBatchTransferContract());
 
-    // 2. 创建 PENDING 交易；referralList(0x) 与 shieldList(0zk) 均保存到 description
-    //    （referralList 用于 Disperse 金额校验；shieldList 用于服务端构造 shield calldata 与校验）。
+    // 检测 shieldList 地址类型：0zk → RAILGUN shield，0x → Disperse 批量转账
+    const shieldType = detectShieldType(quote.shieldList);
     const railgunProxyContract = getRailgunProxyContract();
+
+    // 2. 创建 PENDING 交易；referralList(0x) 与 shieldList 均保存到 description
+    //    （referralList 用于 Disperse 金额校验；shieldList 用于服务端构造 shield calldata 与校验）。
     const transaction = await prisma.transaction.create({
       data: {
         fromAddress: address,
@@ -75,20 +86,34 @@ export async function POST(req: NextRequest) {
           shieldList: quote.shieldList,
           shieldTotalUsdt: quote.shieldTotalUsdt,
           railgunProxyContract: railgunProxyContract.toLowerCase(),
+          shieldType,
         }),
       },
     });
 
-    return NextResponse.json({
+    const baseResponse = {
       quoteId: transaction.id,
-      // 推荐奖励：0x Disperse
+      // 推荐奖励：0x Disperse（当前恒为空）
       referralList: quote.referralList,
       batchTransferContract: batchTransferContract.toLowerCase(),
-      // 系统份额：RAILGUN shield（0zk 地址不下发，仅返回签名消息与代理合约）
       shieldTotalUsdt: quote.shieldTotalUsdt,
+      amountUsdt: quote.amountUsdt,
+      shieldType,
+    };
+
+    if (shieldType === 'disperse') {
+      // 0x 公开地址：直接下发 shieldList 作为 Disperse 转账列表
+      return NextResponse.json({
+        ...baseResponse,
+        shieldList: quote.shieldList,
+      });
+    }
+
+    // 0zk 私密地址：不下发地址，仅返回签名消息与代理合约
+    return NextResponse.json({
+      ...baseResponse,
       shieldSignatureMessage: getShieldSignatureMessage(),
       railgunProxyContract: railgunProxyContract.toLowerCase(),
-      amountUsdt: quote.amountUsdt,
     });
   } catch (error) {
     console.error('Error building activation quote:', error);

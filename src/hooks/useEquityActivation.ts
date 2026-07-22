@@ -24,25 +24,30 @@ import { triggerWalletConnect } from "@/components/ui/wallet-ref";
 export type EquityTierInfo = {
   dev_type: MembershipType;
   price_display: string;
-  price_transfer: string;
 };
 
 type TransferItem = { address: string; amount: string };
+type ShieldListItem = { recipient: string; amount: string };
+type ShieldType = 'railgun' | 'disperse';
 type ActivationQuote = {
   quoteId: string;
   /** 推荐奖励（0x），走 Disperse 批量转账。可能为空（无上级）。 */
   referralList: TransferItem[];
   batchTransferContract: string;
-  /** 系统份额总额（USDT），走 RAILGUN shield。 */
+  /** 系统份额总额（USDT）。 */
   shieldTotalUsdt: string;
-  /** 需用户钱包签名的固定消息（派生 shieldPrivateKey）。 */
-  shieldSignatureMessage: string;
-  /** RAILGUN 代理合约（approve / shield 目标）。 */
-  railgunProxyContract: string;
+  /** shieldType === 'railgun' 时：需用户钱包签名的固定消息。 */
+  shieldSignatureMessage?: string;
+  /** shieldType === 'railgun' 时：RAILGUN 代理合约。 */
+  railgunProxyContract?: string;
+  /** shieldType === 'disperse' 时：0x 地址转账列表。 */
+  shieldList?: ShieldListItem[];
+  /** 系统份额转账类型：railgun（混币器）或 disperse（批量转账）。 */
+  shieldType: ShieldType;
   amountUsdt: string;
 };
 
-const USDT_DECIMALS = Number(process.env.NEXT_PUBLIC_USDT_DECIMAL ?? 18);
+const USDT_DECIMALS = 18;
 
 const usdtAbi = [
   {
@@ -161,9 +166,9 @@ export function useEquityActivation(options?: EquityActivationOptions) {
   const { signMessageAsync } = useSignMessage();
   const { sendTransactionAsync } = useSendTransaction();
 
-  /** 推荐奖励：USDT 授权 + Disperse 批量转账给上级 0x 钱包。返回 disperse 交易哈希。 */
+  /** Disperse 批量转账：USDT 授权 + disperseToken 拆分给 0x 接收者。返回交易哈希。 */
   const approveAndDisperse = useCallback(
-    async (quote: ActivationQuote): Promise<string> => {
+    async (items: TransferItem[], spender: string): Promise<string> => {
       if (!address) {
         throw new Error("Wallet not connected");
       }
@@ -171,21 +176,20 @@ export function useEquityActivation(options?: EquityActivationOptions) {
       if (!tokenAddress) {
         throw new Error("USDT contract address not found in environment variables");
       }
-      if (!quote.referralList.length) {
-        throw new Error("Empty referral list");
+      if (!items.length) {
+        throw new Error("Empty transfer list");
       }
 
-      const recipients = quote.referralList.map((t) => t.address as `0x${string}`);
-      const values = quote.referralList.map((t) => parseUnits(t.amount, USDT_DECIMALS));
+      const recipients = items.map((t) => t.address as `0x${string}`);
+      const values = items.map((t) => parseUnits(t.amount, USDT_DECIMALS));
       const total = values.reduce((acc, v) => acc + v, BigInt(0));
-      const spender = quote.batchTransferContract as `0x${string}`;
 
       // 1. 授权批量转账合约支配 USDT
       const approveHash = await writeContractAsync({
         address: tokenAddress as `0x${string}`,
         abi: usdtAbi,
         functionName: "approve",
-        args: [spender, total],
+        args: [spender as `0x${string}`, total],
       });
       if (publicClient && approveHash) {
         await publicClient.waitForTransactionReceipt({ hash: approveHash });
@@ -193,7 +197,7 @@ export function useEquityActivation(options?: EquityActivationOptions) {
 
       // 2. 调用 disperseToken 一笔拆分给所有接收者
       const hash = await writeContractAsync({
-        address: spender,
+        address: spender as `0x${string}`,
         abi: disperseAbi,
         functionName: "disperseToken",
         args: [tokenAddress as `0x${string}`, recipients, values],
@@ -222,6 +226,9 @@ export function useEquityActivation(options?: EquityActivationOptions) {
       }
 
       // 1. 用户钱包签名固定消息（派生 shieldPrivateKey）
+      if (!quote.shieldSignatureMessage) {
+        throw new Error("Missing shield signature message");
+      }
       const signature = await signMessageAsync({ message: quote.shieldSignatureMessage });
 
       // 2. 后端构造 shield calldata（0zk 地址不下发浏览器）
@@ -293,10 +300,10 @@ export function useEquityActivation(options?: EquityActivationOptions) {
         }
         const quote = (await quoteRes.json()) as ActivationQuote;
 
-        // 2. 链上交易：
-        //    a) 推荐奖励（直推/间推）走 Disperse 公开转账（仅当存在上级时）；
-        //    b) 系统份额（销毁/国库/储备）走 RAILGUN shield 进私密池。
-        //    USE_DEV_MOCK_TX=false：dev/prod 均真实发起交易。
+        // 2. 链上交易：根据 shieldType 自适应路由
+        //    shieldType === 'railgun'：系统份额走 RAILGUN shield 进私密池
+        //    shieldType === 'disperse'：系统份额走 Disperse 批量转账给 0x 地址
+        //    referralList（推荐奖励）当前恒为空，保留兼容。
         const USE_DEV_MOCK_TX = false;
         let referralTxHash: string | null = null;
         let shieldTxHash: string;
@@ -304,11 +311,18 @@ export function useEquityActivation(options?: EquityActivationOptions) {
           const randomBytes = new Uint8Array(32);
           crypto.getRandomValues(randomBytes);
           shieldTxHash = bs58.encode(randomBytes);
+        } else if (quote.shieldType === 'disperse') {
+          // 0x 公开地址：走 Disperse 批量转账
+          const shieldItems = (quote.shieldList ?? []).map((it) => ({ address: it.recipient, amount: it.amount }));
+          shieldTxHash = await approveAndDisperse(shieldItems, quote.batchTransferContract);
+          if (quote.referralList.length > 0) {
+            referralTxHash = await approveAndDisperse(quote.referralList, quote.batchTransferContract);
+          }
         } else {
-          // 先做系统份额 shield，再发推荐奖励 Disperse
+          // 0zk 私密地址：走 RAILGUN shield
           shieldTxHash = await approveAndShield(quote);
           if (quote.referralList.length > 0) {
-            referralTxHash = await approveAndDisperse(quote);
+            referralTxHash = await approveAndDisperse(quote.referralList, quote.batchTransferContract);
           }
         }
 
@@ -342,7 +356,7 @@ export function useEquityActivation(options?: EquityActivationOptions) {
         setIsPaying(false);
       }
     },
-    [address, env, isPaying, approveAndDisperse]
+    [address, env, isPaying, approveAndDisperse, approveAndShield]
   );
 
   return {

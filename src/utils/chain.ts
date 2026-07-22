@@ -5,7 +5,7 @@ import { MEMO_PROGRAM_ID, GROUP_TYPE, COMMUNITY_TYPE, MembershipType, NORMAL_TYP
 import { EquityType, TokenType, TxFlowStatus } from '@prisma/client';
 import decimal from 'decimal.js';
 import prisma from '@/lib/prisma';
-import { getCommunityPriceDisplay, getCommunityPriceTransfer, getGroupPriceDisplay, getGroupPriceTransfer, getHotWalletAddress, getHotWalletKeypair, getBurningAddress, getEquityBasePriceDisplay, getEquityPlusPriceDisplay, getEquityPremiumPriceDisplay, getEquityExpertPriceDisplay, getEquityVipPriceDisplay, getVerifier1, getVerifier2, getVerifier3, getVerifier4 } from '@/lib/config';
+import { getCommunityPriceDisplay, getGroupPriceDisplay, getHotWalletAddress, getHotWalletKeypair, getBurningAddress, getEquityBasePriceDisplay, getEquityPlusPriceDisplay, getEquityPremiumPriceDisplay, getEquityExpertPriceDisplay, getEquityVipPriceDisplay, getVerifier1, getVerifier2, getVerifier3, getVerifier4 } from '@/lib/config';
 import { getCurrentPrice } from './lbank';
 import { truncateNumber } from './common';
 // Ethereum imports
@@ -19,7 +19,7 @@ export const SOLANA_RPC_URL = process.env.PRIVATE_SOLANA_RPC_URL || 'https://api
 const TOKEN_ADDRESS = process.env.NEXT_PUBLIC_TOKEN_ADDRESS!; // TOKEN token address
 const USDT_TOKEN_ADDRESS = process.env.NEXT_PUBLIC_USDT_ADDRESS!;
 
-const TOKEN_USDT_DECIMAL = Number(process.env.NEXT_PUBLIC_USDT_DECIMAL || 18);
+const TOKEN_USDT_DECIMAL = 18;
 const TOKEN_DECIMAL = Number(process.env.NEXT_PUBLIC_TOKEN_DECIMAL || 18);
 
 

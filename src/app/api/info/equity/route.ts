@@ -1,15 +1,10 @@
 import { NextResponse } from "next/server";
 import {
   getEquityBasePriceDisplay,
-  getEquityBasePriceTransfer,
   getEquityPlusPriceDisplay,
-  getEquityPlusPriceTransfer,
   getEquityPremiumPriceDisplay,
-  getEquityPremiumPriceTransfer,
   getEquityExpertPriceDisplay,
-  getEquityExpertPriceTransfer,
   getEquityVipPriceDisplay,
-  getEquityVipPriceTransfer,
 } from "@/lib/config";
 import {
   EQUITY_BASE_TYPE,
@@ -21,17 +16,12 @@ import {
 
 export async function POST() {
   try {
-    const [baseD, plusD, premD, expertD, vipD, baseT, plusT, premT, expertT, vipT] = await Promise.all([
+    const [baseD, plusD, premD, expertD, vipD] = await Promise.all([
       getEquityBasePriceDisplay(),
       getEquityPlusPriceDisplay(),
       getEquityPremiumPriceDisplay(),
       getEquityExpertPriceDisplay(),
       getEquityVipPriceDisplay(),
-      getEquityBasePriceTransfer(),
-      getEquityPlusPriceTransfer(),
-      getEquityPremiumPriceTransfer(),
-      getEquityExpertPriceTransfer(),
-      getEquityVipPriceTransfer(),
     ]);
 
     return NextResponse.json({
@@ -39,27 +29,22 @@ export async function POST() {
         {
           dev_type: EQUITY_BASE_TYPE,
           price_display: baseD.toString(),
-          price_transfer: baseT.toFixed(0),
         },
         {
           dev_type: EQUITY_PLUS_TYPE,
           price_display: plusD.toString(),
-          price_transfer: plusT.toFixed(0),
         },
         {
           dev_type: EQUITY_PREMIUM_TYPE,
           price_display: premD.toString(),
-          price_transfer: premT.toFixed(0),
         },
         {
           dev_type: EQUITY_EXPERT_TYPE,
           price_display: expertD.toString(),
-          price_transfer: expertT.toFixed(0),
         },
         {
           dev_type: EQUITY_VIP_TYPE,
           price_display: vipD.toString(),
-          price_transfer: vipT.toFixed(0),
         },
       ],
     });

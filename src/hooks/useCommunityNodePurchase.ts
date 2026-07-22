@@ -14,7 +14,6 @@ import { triggerWalletConnect } from "@/components/ui/wallet-ref";
 
 export interface NodeDataShape {
   price_display: number;
-  price_transfer: number;
   maxNum: number;
   leftNum: number;
   referralReward: number;
@@ -36,12 +35,11 @@ export interface EnvShape {
 }
 
 /** 接口失败或仅返回 communityNode 时用于展示与认购金额计算（与 config 默认价对齐） */
-const USDT_DECIMAL = Number(process.env.NEXT_PUBLIC_USDT_DECIMAL ?? 6);
+const USDT_DECIMAL = 18;
 
 export const FALLBACK_NODE_DATA: NodesDataShape = {
   groupNode: {
     price_display: 500,
-    price_transfer: 500 * 10 ** USDT_DECIMAL,
     maxNum: 2000,
     leftNum: 2000,
     referralReward: 0.1,
@@ -53,7 +51,6 @@ export const FALLBACK_NODE_DATA: NodesDataShape = {
   },
   communityNode: {
     price_display: 2000,
-    price_transfer: 2000 * 10 ** USDT_DECIMAL,
     maxNum: 200,
     leftNum: 200,
     referralReward: 0.1,
@@ -83,7 +80,6 @@ function normalizeNodesPayload(raw: unknown): NodesDataShape | null {
 
   const communityNode: NodeDataShape = {
     price_display: coerceNumber(c.price_display, FALLBACK_NODE_DATA.communityNode.price_display),
-    price_transfer: coerceNumber(c.price_transfer, FALLBACK_NODE_DATA.communityNode.price_transfer),
     maxNum: coerceNumber(c.maxNum, FALLBACK_NODE_DATA.communityNode.maxNum),
     leftNum: coerceNumber(c.leftNum, FALLBACK_NODE_DATA.communityNode.leftNum),
     referralReward: coerceNumber(c.referralReward, FALLBACK_NODE_DATA.communityNode.referralReward),
@@ -101,7 +97,6 @@ function normalizeNodesPayload(raw: unknown): NodesDataShape | null {
   const groupNode: NodeDataShape = g
     ? {
       price_display: coerceNumber(g.price_display, FALLBACK_NODE_DATA.groupNode.price_display),
-      price_transfer: coerceNumber(g.price_transfer, FALLBACK_NODE_DATA.groupNode.price_transfer),
       maxNum: coerceNumber(g.maxNum, FALLBACK_NODE_DATA.groupNode.maxNum),
       leftNum: coerceNumber(g.leftNum, FALLBACK_NODE_DATA.groupNode.leftNum),
       referralReward: coerceNumber(g.referralReward, FALLBACK_NODE_DATA.groupNode.referralReward),

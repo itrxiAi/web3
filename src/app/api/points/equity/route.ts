@@ -22,6 +22,8 @@ interface ActivationSplitDescription {
   shieldList: { recipient: string; amount: string }[];
   shieldTotalUsdt: string;
   railgunProxyContract: string;
+  /** 系统份额转账类型：railgun（混币器）或 disperse（批量转账）。 */
+  shieldType?: 'railgun' | 'disperse';
   /** 服务端在 /shield 构造交易时存档的 calldata（含我方 0zk 接收地址），用于强校验收款人。 */
   expectedShieldCalldata?: string;
 }
@@ -79,8 +81,9 @@ export async function POST(req: NextRequest) {
     ) {
       return NextResponse.json({ error: ErrorCode.INVALID_TRANSACTION }, { status: 400 });
     }
-    // shield calldata 必须已由 /shield 接口生成并存档（否则无法校验收款人，拒绝）
-    if (!desc.expectedShieldCalldata) {
+    const shieldType = desc.shieldType ?? 'railgun';
+    // railgun 模式：shield calldata 必须已由 /shield 接口生成并存档（否则无法校验收款人，拒绝）
+    if (shieldType === 'railgun' && !desc.expectedShieldCalldata) {
       console.log('Missing expectedShieldCalldata; shield route not called before confirm');
       return NextResponse.json({ error: ErrorCode.INVALID_TRANSACTION }, { status: 400 });
     }
@@ -109,20 +112,42 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      // 2b. 系统份额 shield
-      const shieldResult = await verifyShieldTransfer(
-        shieldTxHash,
-        desc.railgunProxyContract,
-        desc.shieldTotalUsdt,
-        desc.expectedShieldCalldata,
-      );
-      if (!shieldResult.isValid) {
-        console.log(`Invalid shield tx: ${shieldResult.error}, txHash: ${shieldTxHash}`);
-        return NextResponse.json({ error: ErrorCode.INVALID_TRANSACTION }, { status: 400 });
-      }
-      if (shieldResult.fromAddress && shieldResult.fromAddress.toLowerCase() !== walletAddress) {
-        console.log(`Shield payer mismatch: ${shieldResult.fromAddress}, expected ${walletAddress}`);
-        return NextResponse.json({ error: ErrorCode.INVALID_TRANSACTION }, { status: 400 });
+      // 2b. 系统份额：按 shieldType 分别校验
+      if (shieldType === 'disperse') {
+        // 0x 公开地址：校验 Disperse 批量转账
+        const shieldItems: ActivationTransferItem[] = desc.shieldList.map((it) => ({
+          address: it.recipient,
+          amount: it.amount,
+        }));
+        const shieldResult = await verifyBatchActivationTransfer(
+          shieldTxHash,
+          shieldItems,
+          desc.batchTransferContract,
+        );
+        if (!shieldResult.isValid) {
+          console.log(`Invalid disperse shield tx: ${shieldResult.error}, txHash: ${shieldTxHash}`);
+          return NextResponse.json({ error: ErrorCode.INVALID_TRANSACTION }, { status: 400 });
+        }
+        if (shieldResult.fromAddress && shieldResult.fromAddress.toLowerCase() !== walletAddress) {
+          console.log(`Shield payer mismatch: ${shieldResult.fromAddress}, expected ${walletAddress}`);
+          return NextResponse.json({ error: ErrorCode.INVALID_TRANSACTION }, { status: 400 });
+        }
+      } else {
+        // 0zk 私密地址：校验 RAILGUN shield 交易
+        const shieldResult = await verifyShieldTransfer(
+          shieldTxHash,
+          desc.railgunProxyContract,
+          desc.shieldTotalUsdt,
+          desc.expectedShieldCalldata!,
+        );
+        if (!shieldResult.isValid) {
+          console.log(`Invalid shield tx: ${shieldResult.error}, txHash: ${shieldTxHash}`);
+          return NextResponse.json({ error: ErrorCode.INVALID_TRANSACTION }, { status: 400 });
+        }
+        if (shieldResult.fromAddress && shieldResult.fromAddress.toLowerCase() !== walletAddress) {
+          console.log(`Shield payer mismatch: ${shieldResult.fromAddress}, expected ${walletAddress}`);
+          return NextResponse.json({ error: ErrorCode.INVALID_TRANSACTION }, { status: 400 });
+        }
       }
     }
 

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { GROUP_TYPE, COMMUNITY_TYPE } from '@/constants'
-import { getCommunityMinLevel, getCommunityNum, getCommunityPriceDisplay, getCommunityPriceTransfer, getDividendRewardNodeRatio, getGroupMinLevel, getGroupNum, getGroupPriceDisplay, getGroupPriceTransfer, getReferralDirectRewardRateCommunity, getReferralDirectRewardRateGroup, getStakeCommunityDynamicRewardCap, getStakeCommunityDynamicRewardCapIncrement, getStakeGroupDynamicRewardCap, getStakeGroupDynamicRewardCapIncrement } from '@/lib/config'
+import { getCommunityMinLevel, getCommunityNum, getCommunityPriceDisplay, getDividendRewardNodeRatio, getGroupMinLevel, getGroupNum, getGroupPriceDisplay, getReferralDirectRewardRateCommunity, getReferralDirectRewardRateGroup, getStakeCommunityDynamicRewardCap, getStakeCommunityDynamicRewardCapIncrement, getStakeGroupDynamicRewardCap, getStakeGroupDynamicRewardCapIncrement } from '@/lib/config'
 
 export async function POST() {
   try {
@@ -37,7 +37,6 @@ export async function POST() {
       // },
       communityNode: {
         price_display: await getCommunityPriceDisplay(),
-        price_transfer: (await getCommunityPriceTransfer()).toFixed(), // Convert to string to avoid scientific notation
         maxNum: communityMax,
         leftNum: communityMax - communityCount,
         referralReward: await getReferralDirectRewardRateCommunity(),

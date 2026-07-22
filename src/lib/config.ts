@@ -10,7 +10,7 @@ import prisma from '@/lib/prisma';
 if (typeof window !== 'undefined') {
     throw new Error('This file should only be imported on the server side');
 }
-const TOKEN_USDT_DECIMAL = Number(process.env.NEXT_PUBLIC_USDT_DECIMAL || 6);
+const USDT_DECIMALS = 18;
 
 // Simple cache object
 const configCache = new Map<string, string>();
@@ -18,21 +18,12 @@ const configCache = new Map<string, string>();
 const GROUP_PRICE_DISPLAY = "GROUP_PRICE";
 const COMMUNITY_PRICE_DISPLAY = "COMMUNITY_PRICE";
 
-const GROUP_PRICE_TRANSFER = "GROUP_PRICE_TRANSFER";
-const COMMUNITY_PRICE_TRANSFER = "COMMUNITY_PRICE_TRANSFER";
-
 // Equity Price
 const EQUITY_BASE_PRICE_DISPLAY = "EQUITY_BASE_PRICE_DISPLAY";
 const EQUITY_PLUS_PRICE_DISPLAY = "EQUITY_PLUS_PRICE_DISPLAY";
 const EQUITY_PREMIUM_PRICE_DISPLAY = "EQUITY_PREMIUM_PRICE_DISPLAY"
 const EQUITY_EXPERT_PRICE_DISPLAY = "EQUITY_EXPERT_PRICE_DISPLAY";
 const EQUITY_VIP_PRICE_DISPLAY = "EQUITY_VIP_PRICE_DISPLAY";
-
-const EQUITY_BASE_PRICE_TRANSFER = "EQUITY_BASE_PRICE_TRANSFER";
-const EQUITY_PLUS_PRICE_TRANSFER = "EQUITY_PLUS_PRICE_TRANSFER";
-const EQUITY_PREMIUM_PRICE_TRANSFER = "EQUITY_PREMIUM_PRICE_TRANSFER"
-const EQUITY_EXPERT_PRICE_TRANSFER = "EQUITY_EXPERT_PRICE_TRANSFER";
-const EQUITY_VIP_PRICE_TRANSFER = "EQUITY_VIP_PRICE_TRANSFER"
 
 const GROUP_NUM = "GROUP_NUM"; //800
 const COMMUNITY_NUM = "COMMUNITY_NUM"; //200
@@ -412,16 +403,6 @@ export async function getVerifier4(): Promise<decimal> {
     return new decimal(10000);
 }
 
-export async function getGroupPriceTransfer(): Promise<decimal> {
-    const price = await getConfig(GROUP_PRICE_TRANSFER);
-    return new decimal(price || 500).mul(new decimal(10).pow(new decimal(TOKEN_USDT_DECIMAL)));
-}
-
-export async function getCommunityPriceTransfer(): Promise<decimal> {
-    const price = await getConfig(COMMUNITY_PRICE_TRANSFER);
-    return new decimal(price || 1000).mul(new decimal(10).pow(new decimal(TOKEN_USDT_DECIMAL)));
-}
-
 // Equity price
 export async function getEquityBasePriceDisplay(): Promise<decimal> {
     const price = await getConfig(EQUITY_BASE_PRICE_DISPLAY);
@@ -446,31 +427,6 @@ export async function getEquityExpertPriceDisplay(): Promise<decimal> {
 export async function getEquityVipPriceDisplay(): Promise<decimal> {
     const price = await getConfig(EQUITY_VIP_PRICE_DISPLAY);
     return new decimal(price || 10000);
-}
-
-export async function getEquityBasePriceTransfer(): Promise<decimal> {
-    const price = await getConfig(EQUITY_BASE_PRICE_TRANSFER);
-    return new decimal(price || 100).mul(new decimal(10).pow(new decimal(TOKEN_USDT_DECIMAL)));
-}
-
-export async function getEquityPlusPriceTransfer(): Promise<decimal> {
-    const price = await getConfig(EQUITY_PLUS_PRICE_TRANSFER);
-    return new decimal(price || 500).mul(new decimal(10).pow(new decimal(TOKEN_USDT_DECIMAL)));
-}
-
-export async function getEquityPremiumPriceTransfer(): Promise<decimal> {
-    const price = await getConfig(EQUITY_PREMIUM_PRICE_TRANSFER);
-    return new decimal(price || 1000).mul(new decimal(10).pow(new decimal(TOKEN_USDT_DECIMAL)));
-}
-
-export async function getEquityExpertPriceTransfer(): Promise<decimal> {
-    const price = await getConfig(EQUITY_EXPERT_PRICE_TRANSFER);
-    return new decimal(price || 5000).mul(new decimal(10).pow(new decimal(TOKEN_USDT_DECIMAL)));
-}
-
-export async function getEquityVipPriceTransfer(): Promise<decimal> {
-    const price = await getConfig(EQUITY_VIP_PRICE_TRANSFER);
-    return new decimal(price || 10000).mul(new decimal(10).pow(new decimal(TOKEN_USDT_DECIMAL)));
 }
 
 export async function getMinWithdrawUsdtAmount(): Promise<decimal> {

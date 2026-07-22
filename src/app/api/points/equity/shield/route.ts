@@ -6,12 +6,13 @@ import { ErrorCode } from '@/lib/errors';
 import { buildShieldTransaction, type ShieldRecipientWei } from '@/lib/railgun/shield';
 
 const USDT_ADDRESS = process.env.NEXT_PUBLIC_USDT_ADDRESS as string;
-const USDT_DECIMALS = Number(process.env.NEXT_PUBLIC_USDT_DECIMAL || 18);
+const USDT_DECIMALS = 18;
 
 interface ActivationSplitDescription {
   kind: string;
   shieldList?: { recipient: string; amount: string }[];
   shieldTotalUsdt?: string;
+  shieldType?: 'railgun' | 'disperse';
 }
 
 /**
@@ -50,6 +51,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: ErrorCode.INVALID_TRANSACTION }, { status: 400 });
     }
     if (desc.kind !== 'activation_split' || !Array.isArray(desc.shieldList) || !desc.shieldList.length) {
+      return NextResponse.json({ error: ErrorCode.INVALID_TRANSACTION }, { status: 400 });
+    }
+    // disperse 模式不需要构造 RAILGUN shield calldata，直接拒绝
+    if (desc.shieldType === 'disperse') {
       return NextResponse.json({ error: ErrorCode.INVALID_TRANSACTION }, { status: 400 });
     }
 
