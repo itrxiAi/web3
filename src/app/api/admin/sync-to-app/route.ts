@@ -89,6 +89,7 @@ export async function POST(req: NextRequest) {
             hakcard: u.cards,
             tribute: String(u.points),
             inviterAddress: u.superior ? u.superior.toLowerCase() : null,
+            nodeType: u.type || 'NORMAL',
           }),
         });
         const json = await resp.json().catch(() => ({}));
