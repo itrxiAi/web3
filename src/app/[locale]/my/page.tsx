@@ -36,6 +36,10 @@ interface UserInfo {
   equityType: EquityType | null;
   cards: number;
   points: number;
+  directVipCount?: number;
+  directSvipCount?: number;
+  allVipCount?: number;
+  allSvipCount?: number;
 }
 
 interface DirectReferral {
@@ -728,6 +732,37 @@ function MyContent() {
                 <div className="flex items-center justify-between">
                   <p className="text-xs text-white/80">{t("fee_dividend")}</p>
                   <p className="text-2xl font-bold text-white">{userInfo?.cards === 1 ? "2%" : userInfo?.cards === 2 ? "3%" : "0%"}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* VIP/SVIP Referral Counts Section */}
+          <div className="mb-8">
+            <div
+              className="p-5"
+              style={{
+                opacity: 0.78,
+                borderRadius: "15px",
+                backgroundImage: "linear-gradient(0deg, #e30e10 0%, #690a71 100%)",
+              }}
+            >
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-white/80">{t("direct_vip")}</p>
+                  <p className="text-2xl font-bold text-white">{userInfo?.directVipCount ?? 0}</p>
+                </div>
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-white/80">{t("direct_svip")}</p>
+                  <p className="text-2xl font-bold text-white">{userInfo?.directSvipCount ?? 0}</p>
+                </div>
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-white/80">{t("all_vip")}</p>
+                  <p className="text-2xl font-bold text-white">{userInfo?.allVipCount ?? 0}</p>
+                </div>
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-white/80">{t("all_svip")}</p>
+                  <p className="text-2xl font-bold text-white">{userInfo?.allSvipCount ?? 0}</p>
                 </div>
               </div>
             </div>

@@ -6,6 +6,7 @@ import { ErrorCode } from '@/lib/errors';
 //import { getUserLevel, getUserTotalPerformance } from '@/lib/userCache';
 import { getActivePercent } from '@/lib/user';
 import { UserType } from '@prisma/client';
+import { COMMUNITY_TYPE } from '@/constants';
 
 /**
  * Get user points
@@ -98,6 +99,22 @@ export async function GET(req: NextRequest) {
       })
       superior_referral_code = superiorInfo?.referralCode || null;
     }
+
+    // Count VIP/SVIP for direct referrals and all subordinates
+    const userPath = userInfo.path ?? '';
+    const subordinatePathPrefix = userPath ? `${userPath}.` : '';
+
+    const [
+      directVipCount, directSvipCount,
+      allVipCount, allSvipCount,
+    ] = subordinatePathPrefix
+      ? await Promise.all([
+          prisma.user.count({ where: { superior: walletAddress, type: COMMUNITY_TYPE, cards: 1 } }),
+          prisma.user.count({ where: { superior: walletAddress, type: COMMUNITY_TYPE, cards: 2 } }),
+          prisma.user.count({ where: { path: { startsWith: subordinatePathPrefix }, type: COMMUNITY_TYPE, cards: 1 } }),
+          prisma.user.count({ where: { path: { startsWith: subordinatePathPrefix }, type: COMMUNITY_TYPE, cards: 2 } }),
+        ])
+      : [0, 0, 0, 0];
     
 
     // Calculate withdrawable amounts
@@ -126,6 +143,10 @@ export async function GET(req: NextRequest) {
       is_special: false,
       cards: userInfo.cards ?? 0,
       points: userInfo.points ?? 0,
+      directVipCount,
+      directSvipCount,
+      allVipCount,
+      allSvipCount,
     });
   } catch (error) {
     console.error('Error getting points:', error);
