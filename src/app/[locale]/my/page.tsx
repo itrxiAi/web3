@@ -7,6 +7,7 @@ import Image from "next/image";
 import Link from "next/link";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { EquityType, TokenType, TxFlowType, UserType } from "@prisma/client";
+import { VERIFIER_1, VERIFIER_2 } from "@/constants";
 import { generateOperationHash } from "@/utils/auth";
 import bs58 from "bs58";
 import { triggerWalletConnect } from "@/components/ui/wallet-ref";
@@ -95,28 +96,14 @@ function MyContent() {
     }
   }, [address]);
 
-  const roleTypes = [
-    {
-      type: UserType.COMMUNITY,
-      label: tUserType("COMMUNITY"),
-      icon: "/images/v2/my/COMMUNITY-node.png",
-    },
-    {
-      type: UserType.COMMUNITY,
-      label: tUserType("GALAXY"),
-      icon: "/images/v2/my/GALAXY-node.png",
-    },
-    {
-      type: UserType.COMMUNITY,
-      label: tUserType("GROUP"),
-      icon: "/images/v2/my/GROUP-node.png",
-    },
-    {
-      type: UserType.NORMAL,
-      label: tUserType("NORMAL"),
-      icon: "/images/v2/my/NORMAL-node.png",
+  const getRoleLabel = () => {
+    if (userInfo?.type === UserType.COMMUNITY) {
+      if (userInfo?.cards === 1) return tUserType(VERIFIER_1);
+      if (userInfo?.cards === 2) return tUserType(VERIFIER_2);
+      return tUserType("COMMUNITY");
     }
-  ];
+    return tUserType("NORMAL");
+  };
   const [showTokenTypeDropdown, setShowTokenTypeDropdown] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [recommenderError, setRecommenderError] = useState<string | null>(null);
@@ -516,19 +503,14 @@ function MyContent() {
   // Benefits data for the grid
   const benefitsData = [
     {
-      key: "activate_tier",
-      label: t("activate_tier"),
-      icon: "☆",
-    },
-    {
-      key: "verifier_identity",
-      label: t("verifier_identity"),
-      icon: "◉",
-    },
-    {
-      key: "trading_dividends",
-      label: t("trading_dividends"),
+      key: "fee_dividend",
+      label: t("fee_dividend"),
       icon: "$",
+    },
+    {
+      key: "task_pack",
+      label: t("task_pack"),
+      icon: "◉",
     }/* ,
     {
       key: "team_level_t2",
@@ -544,9 +526,8 @@ function MyContent() {
 
   function BenefitCircleIcon({ iconKey, label, isActivated }: { iconKey: string; label: string; isActivated: boolean }) {
     let iconSrc = "";
-    if (iconKey === "activate_tier") iconSrc = "/imgs/my/1.png";
-    else if (iconKey === "verifier_identity") iconSrc = "/imgs/my/2.png";
-    else if (iconKey === "trading_dividends") iconSrc = "/imgs/my/3.png";
+    if (iconKey === "fee_dividend") iconSrc = "/imgs/my/3.png";
+    else if (iconKey === "task_pack") iconSrc = "/imgs/my/2.png";
     else if (iconKey === "team_level_t2") iconSrc = "/imgs/my/4.png";
     else if (iconKey === "ad_revenue") iconSrc = "/imgs/my/5.png";
 
@@ -628,10 +609,7 @@ function MyContent() {
                   </span>
                   {address ? (
                     <>
-                      {userInfo?.type === UserType.COMMUNITY
-                        ? (userInfo?.equityType ? t("activated") : t("unactivated")) + "/"
-                        : ""}
-                      {roleTypes.find((item) => item.type === userInfo?.type)?.label || tUserType(UserType.NORMAL)}
+                      {getRoleLabel()}
                     </>
                   ) : ( 
                     "--"
@@ -744,12 +722,12 @@ function MyContent() {
             >
               <div className="flex flex-col gap-4">
                 <div className="flex items-center justify-between">
-                  <p className="text-xs text-white/80">{t("hakcard")}</p>
-                  <p className="text-2xl font-bold text-white">{userInfo?.cards || 0}</p>
+                  <p className="text-xs text-white/80">{t("task_pack")}</p>
+                  <p className="text-2xl font-bold text-white">{userInfo?.cards === 1 ? "100u" : userInfo?.cards === 2 ? "300u" : "0u"}</p>
                 </div>
                 <div className="flex items-center justify-between">
-                  <p className="text-xs text-white/80">{t("verifier_points")}</p>
-                  <p className="text-2xl font-bold text-white">{userInfo?.points || 0}</p>
+                  <p className="text-xs text-white/80">{t("fee_dividend")}</p>
+                  <p className="text-2xl font-bold text-white">{userInfo?.cards === 1 ? "2%" : userInfo?.cards === 2 ? "3%" : "0%"}</p>
                 </div>
               </div>
             </div>
@@ -775,7 +753,7 @@ function MyContent() {
 
               {/* Row 1: 3 items */}
               <div className="flex justify-around mb-5">
-                {benefitsData.slice(0, 3).map((benefit) => (
+                {benefitsData.map((benefit) => (
                   <BenefitCircleIcon 
                     key={benefit.key} 
                     iconKey={benefit.key} 
@@ -785,17 +763,6 @@ function MyContent() {
                 ))}
               </div>
 
-              {/* Row 2: 2 items centered */}
-              {/* <div className="flex justify-around mx-auto" style={{ width: "66%" }}>
-                {benefitsData.slice(3).map((benefit) => (
-                  <BenefitCircleIcon 
-                    key={benefit.key} 
-                    iconKey={benefit.key} 
-                    label={benefit.label} 
-                    isActivated={userInfo?.type === UserType.COMMUNITY || false}
-                  />
-                ))}
-              </div> */}
             </div>
           </div>
 

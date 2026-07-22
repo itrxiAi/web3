@@ -95,11 +95,26 @@
       "engine_title": "生态引擎",
       "engine_body": "五大引擎协同驱动：创作者激励、链上治理、跨链互操作、开放金融与开发者工具，持续为生态注入增长动能。",
       "engine_cards": [
-        { "title": "创作者经济", "desc": "激励优质内容与社区互动" },
-        { "title": "链上治理", "desc": "透明规则与社区决策" },
-        { "title": "跨链互操作", "desc": "资产与数据多链流转" },
-        { "title": "开放金融", "desc": "可组合的金融原语" },
-        { "title": "开发者生态", "desc": "SDK、钱包与工具链" }
+        {
+          "title": "创作者经济",
+          "desc": "激励优质内容与社区互动"
+        },
+        {
+          "title": "链上治理",
+          "desc": "透明规则与社区决策"
+        },
+        {
+          "title": "跨链互操作",
+          "desc": "资产与数据多链流转"
+        },
+        {
+          "title": "开放金融",
+          "desc": "可组合的金融原语"
+        },
+        {
+          "title": "开发者生态",
+          "desc": "SDK、钱包与工具链"
+        }
       ],
       "orbit_title": "生态星系",
       "orbit_subtitle": "全球伙伴与协议共同围绕 HarmonyLink 轨道协作",
@@ -304,7 +319,9 @@
   "user_type": {
     "NORMAL": "普通用户",
     "GROUP": "行星节点",
-    "COMMUNITY": "鉴定者",
+    "COMMUNITY": "节点用户",
+    "VERIFIER1": "VIP",
+    "VERIFIER2": "SVIP",
     "common": "普通",
     "SYSTEM_INIT": "系统创始人节点",
     "COMMUNITY_INIT": "社区创始人节点",
@@ -593,8 +610,8 @@
     "user_id": "用户ID",
     "personal_center": "个人中心",
     "my_benefits": "我的权益",
-    "hakcard": "HAKCARD",
-    "verifier_points": "鉴定值",
+    "task_pack": "任务包",
+    "fee_dividend": "手续费分红",
     "my_directs": "我的直推",
     "direct_sequence": "序号",
     "direct_address": "地址",

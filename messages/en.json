@@ -307,11 +307,13 @@
   "user_type": {
     "NORMAL": "Inactive Node",
     "GROUP": "Planetary Node",
-    "COMMUNITY": "Validator",
+    "COMMUNITY": "Node User",
     "common": "Common",
     "SYSTEM_INIT": "System Founder Node",
     "COMMUNITY_INIT": "Community Founder Node",
-    "GALAXY": "Galaxy Node"
+    "GALAXY": "Galaxy Node",
+    "VERIFIER1": "VIP",
+    "VERIFIER2": "SVIP"
   },
   "tx_type": {
     "NODE_REWARD": "Node Earnings",
@@ -592,8 +594,8 @@
     "user_id": "User ID",
     "personal_center": "Personal Center",
     "my_benefits": "My Benefits",
-    "hakcard": "HAKCARD",
-    "verifier_points": "Verifier Points",
+    "task_pack": "Task Pack",
+    "fee_dividend": "Fee Dividend",
     "my_directs": "My Directs",
     "direct_sequence": "No.",
     "direct_address": "Address",
