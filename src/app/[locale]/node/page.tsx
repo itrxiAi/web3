@@ -871,8 +871,8 @@ const NodeMarket: React.FC<NodeMarketProps> = ({
   const verifierOptions = [
     { type: VERIFIER_1, price: 500, cards: 1, points: 100 },
     { type: VERIFIER_2, price: 1000, cards: 2, points: 250 },
-    { type: VERIFIER_3, price: 5000, cards: 10, points: 1500 },
-    { type: VERIFIER_4, price: 10000, cards: 20, points: 3500 },
+    // { type: VERIFIER_3, price: 5000, cards: 10, points: 1500 },
+    // { type: VERIFIER_4, price: 10000, cards: 20, points: 3500 },
   ] as const;
   const [selectedOption, setSelectedOption] = useState<(typeof verifierOptions)[number]>(
     verifierOptions[0]

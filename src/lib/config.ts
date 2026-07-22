@@ -373,6 +373,32 @@ export async function getBurningAddress(): Promise<string> {
     return await getHotWalletAddress()
 }
 
+const NODE_DISPERSE_RECIPIENTS = "NODE_DISPERSE_RECIPIENTS";
+
+/**
+ * 节点认购批量转账接收列表，从 Config 表读取。
+ * JSON 格式：[{"address":"0x...","pct":50},{"address":"0x...","pct":50}]
+ * pct 为百分比（0~100），按各项 pct 归一化后分配金额。
+ */
+export async function getNodeDisperseRecipients(): Promise<{ address: string; ratio: number }[]> {
+    const raw = await getConfig(NODE_DISPERSE_RECIPIENTS);
+    if (!raw) return [];
+    try {
+        const list = JSON.parse(raw);
+        if (!Array.isArray(list)) return [];
+        const total = list.reduce((sum: number, item: any) => sum + (Number(item.pct) || 0), 0);
+        if (total <= 0) return [];
+        return list
+            .filter((item: any) => item && typeof item.address === 'string' && Number(item.pct) > 0)
+            .map((item: any) => ({
+                address: item.address.trim(),
+                ratio: Number(item.pct) / total,
+            }));
+    } catch {
+        return [];
+    }
+}
+
 export function getEnvironment(): string {
     return process.env.NODE_ENV || PROD_ENV;
 }

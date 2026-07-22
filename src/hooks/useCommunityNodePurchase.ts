@@ -24,9 +24,16 @@ export interface NodeDataShape {
   dividendReward: number;
 }
 
+export interface DisperseRecipient {
+  address: string;
+  ratio: number;
+}
+
 export interface NodesDataShape {
   groupNode: NodeDataShape;
   communityNode: NodeDataShape;
+  batchTransferContract?: string;
+  disperseRecipients?: DisperseRecipient[];
 }
 
 export interface EnvShape {
@@ -111,10 +118,25 @@ function normalizeNodesPayload(raw: unknown): NodesDataShape | null {
     }
     : { ...FALLBACK_NODE_DATA.groupNode };
 
-  return { groupNode, communityNode };
+  const batchTransferContract = typeof data.batchTransferContract === "string" ? data.batchTransferContract : undefined;
+  const disperseRecipients = Array.isArray(data.disperseRecipients)
+    ? (data.disperseRecipients as DisperseRecipient[]).filter(r => r.address && Number.isFinite(r.ratio))
+    : undefined;
+
+  return { groupNode, communityNode, batchTransferContract, disperseRecipients };
 }
 
 const usdtAbi = [
+  {
+    name: "approve",
+    type: "function",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "spender", type: "address" },
+      { name: "value", type: "uint256" },
+    ],
+    outputs: [{ name: "", type: "bool" }],
+  },
   {
     name: "transfer",
     type: "function",
@@ -124,6 +146,20 @@ const usdtAbi = [
       { name: "value", type: "uint256" },
     ],
     outputs: [{ name: "", type: "bool" }],
+  },
+] as const;
+
+const disperseAbi = [
+  {
+    name: "disperseToken",
+    type: "function",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "token", type: "address" },
+      { name: "recipients", type: "address[]" },
+      { name: "values", type: "uint256[]" },
+    ],
+    outputs: [],
   },
 ] as const;
 
@@ -194,21 +230,63 @@ export function useCommunityNodePurchase(options?: CommunityPurchaseOptions) {
       if (!address) {
         throw new Error("Wallet not connected");
       }
-      if (!env?.hotWalletAddress) {
-        throw new Error("Hot wallet address environment variable is not set");
-      }
       const tokenAddress = process.env.NEXT_PUBLIC_USDT_ADDRESS;
       if (!tokenAddress) {
         throw new Error("USDT contract address not found in environment variables");
       }
 
-      const amountInWei = BigInt(amount);
+      const recipients = nodeData?.disperseRecipients;
+      const batchContract = nodeData?.batchTransferContract;
 
-      const hash = await writeContractAsync({
+      // 如果没有配置批量转账接收列表，回退到单笔转账到 hotWallet
+      if (!recipients || !recipients.length || !batchContract) {
+        if (!env?.hotWalletAddress) {
+          throw new Error("Hot wallet address environment variable is not set");
+        }
+        const amountInWei = BigInt(amount);
+        const hash = await writeContractAsync({
+          address: tokenAddress as `0x${string}`,
+          abi: usdtAbi,
+          functionName: "transfer",
+          args: [env.hotWalletAddress as `0x${string}`, amountInWei],
+        });
+        if (!hash) {
+          throw new Error("Transaction failed to return a hash");
+        }
+        setTxSignature(hash);
+        setShowTxModal(true);
+        return hash;
+      }
+
+      // 批量转账：approve + disperseToken
+      const total = BigInt(amount);
+      const recipientAddrs = recipients.map(r => r.address as `0x${string}`);
+      const values = recipients.map(r => BigInt(Math.floor(amount * r.ratio)));
+
+      // 修正尾差：确保 values 之和等于 total
+      const sumValues = values.reduce((acc, v) => acc + v, BigInt(0));
+      const diff = total - sumValues;
+      if (diff !== BigInt(0)) {
+        values[0] += diff;
+      }
+
+      // 1. 授权批量转账合约支配 USDT
+      const approveHash = await writeContractAsync({
         address: tokenAddress as `0x${string}`,
         abi: usdtAbi,
-        functionName: "transfer",
-        args: [env.hotWalletAddress as `0x${string}`, amountInWei],
+        functionName: "approve",
+        args: [batchContract as `0x${string}`, total],
+      });
+      if (!approveHash) {
+        throw new Error("Approve transaction failed to return a hash");
+      }
+
+      // 2. 调用 disperseToken 拆分给所有接收者
+      const hash = await writeContractAsync({
+        address: batchContract as `0x${string}`,
+        abi: disperseAbi,
+        functionName: "disperseToken",
+        args: [tokenAddress as `0x${string}`, recipientAddrs, values],
       });
       if (!hash) {
         throw new Error("Transaction failed to return a hash");
@@ -217,7 +295,7 @@ export function useCommunityNodePurchase(options?: CommunityPurchaseOptions) {
       setShowTxModal(true);
       return hash;
     },
-    [address, env, writeContractAsync]
+    [address, env, nodeData, writeContractAsync]
   );
 
   const handleCommunity = useCallback(

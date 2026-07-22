@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { GROUP_TYPE, COMMUNITY_TYPE } from '@/constants'
-import { getCommunityMinLevel, getCommunityNum, getCommunityPriceDisplay, getDividendRewardNodeRatio, getGroupMinLevel, getGroupNum, getGroupPriceDisplay, getReferralDirectRewardRateCommunity, getReferralDirectRewardRateGroup, getStakeCommunityDynamicRewardCap, getStakeCommunityDynamicRewardCapIncrement, getStakeGroupDynamicRewardCap, getStakeGroupDynamicRewardCapIncrement } from '@/lib/config'
+import { getCommunityMinLevel, getCommunityNum, getCommunityPriceDisplay, getDividendRewardNodeRatio, getGroupMinLevel, getGroupNum, getGroupPriceDisplay, getReferralDirectRewardRateCommunity, getReferralDirectRewardRateGroup, getStakeCommunityDynamicRewardCap, getStakeCommunityDynamicRewardCapIncrement, getStakeGroupDynamicRewardCap, getStakeGroupDynamicRewardCapIncrement, getBatchTransferContract, getNodeDisperseRecipients } from '@/lib/config'
 
 export async function POST() {
   try {
@@ -20,6 +20,8 @@ export async function POST() {
     ])
     const groupMax = await getGroupNum()
     const communityMax = await getCommunityNum()
+    const batchTransferContract = await getBatchTransferContract()
+    const disperseRecipients = await getNodeDisperseRecipients()
 
     return NextResponse.json({
       // groupNode: {
@@ -46,7 +48,9 @@ export async function POST() {
         dynamicRewardCap: await getStakeCommunityDynamicRewardCap(),
         dynamicRewardCapIncrement: await getStakeCommunityDynamicRewardCapIncrement(),
         dividendReward: await getDividendRewardNodeRatio()
-      }
+      },
+      batchTransferContract,
+      disperseRecipients,
     })
   } catch (error) {
     console.error('Error fetching node info:', error)

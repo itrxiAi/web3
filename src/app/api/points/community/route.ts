@@ -2,11 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { DEV_ENV, MAX_TIMESTAMP_GAP_MS, MembershipType } from '@/constants';
 import prisma from '@/lib/prisma';
 import { updateUserType } from '@/lib/user';
-import { verifyTokenTransfer } from '@/utils/chain';
-import { getEnvironment } from '@/lib/config';
+import { verifyTokenTransfer, verifyBatchActivationTransfer, type ActivationTransferItem } from '@/utils/chain';
+import { getEnvironment, getBatchTransferContract, getNodeDisperseRecipients, getVerifier1, getVerifier2 } from '@/lib/config';
 import { UserType } from '@prisma/client';
 import { ErrorCode } from '@/lib/errors';
 import { operationControl } from '@/utils/auth';
+import decimal from 'decimal.js';
 
 
 export async function POST(req: NextRequest) {
@@ -48,13 +49,53 @@ export async function POST(req: NextRequest) {
     };
 
     if (!isDev) {
-      verifyResult = await verifyTokenTransfer(txHash);
-      if (!verifyResult.isValid) {
-        console.log(`Invalid transaction: ${verifyResult.error}, txHash: ${txHash}`);
-        return NextResponse.json(
-          { error: ErrorCode.INVALID_TRANSACTION },
-          { status: 400 }
-        );
+      // 检查是否配置了批量转账接收列表
+      const disperseRecipients = await getNodeDisperseRecipients();
+      const batchContract = await getBatchTransferContract();
+
+      if (disperseRecipients.length > 0) {
+        // 批量转账模式：根据价格和比例构造期望转账列表
+        const priceMap: Record<string, number> = {
+          VERIFIER1: Number((await getVerifier1()).toString()),
+          VERIFIER2: Number((await getVerifier2()).toString()),
+        };
+        const price = priceMap[dev_type];
+        if (!price) {
+          return NextResponse.json(
+            { error: ErrorCode.INVALID_TRANSACTION },
+            { status: 400 }
+          );
+        }
+
+        const expectedList: ActivationTransferItem[] = disperseRecipients.map(r => ({
+          address: r.address.toLowerCase(),
+          amount: new decimal(price).mul(r.ratio).toDecimalPlaces(2, decimal.ROUND_DOWN).toFixed(2),
+        }));
+
+        const batchResult = await verifyBatchActivationTransfer(txHash, expectedList, batchContract);
+        if (!batchResult.isValid) {
+          console.log(`Invalid batch transaction: ${batchResult.error}, txHash: ${txHash}`);
+          return NextResponse.json(
+            { error: ErrorCode.INVALID_TRANSACTION },
+            { status: 400 }
+          );
+        }
+        verifyResult = {
+          isValid: true,
+          fromAddress: batchResult.fromAddress,
+          referralCode: dev_referralCode,
+          type: dev_type,
+        };
+      } else {
+        // 回退到单笔转账校验
+        verifyResult = await verifyTokenTransfer(txHash);
+        if (!verifyResult.isValid) {
+          console.log(`Invalid transaction: ${verifyResult.error}, txHash: ${txHash}`);
+          return NextResponse.json(
+            { error: ErrorCode.INVALID_TRANSACTION },
+            { status: 400 }
+          );
+        }
       }
     }
 
