@@ -21,7 +21,7 @@ const menuItems: NavItem[] = [
   { key: "airdrop_detail", href: "/airdrop" },
   { key: "history_records", href: "/history" },
   { key: "about", href: "/about" },
-  // { key: "early_consensus", href: "/node" },
+  { key: "early_consensus", href: "/node" },
   { key: "personal_center", href: "/my" },
   { key: "download_app", href: FALLBACK_APP_DOWNLOAD_URL },
   { key: "download_business_plan", href: "/download#business" },
