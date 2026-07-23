@@ -9,26 +9,17 @@ import globeIcon from '@/public/images/globe-icon.svg'
 
 import enFlag from '@/public/images/flags/en.svg'
 import zhFlag from '@/public/images/flags/zh.svg'
-import jaFlag from '@/public/images/flags/ja.svg'
-import koFlag from '@/public/images/flags/ko.svg'
-import arFlag from '@/public/images/flags/ar.svg'
 
 type Locale = (typeof routing.locales)[number]
 
 const languageMap: Record<Locale, { name: string; flag: typeof enFlag }> = {
   zh: { name: '简体中文', flag: zhFlag },
   en: { name: 'English', flag: enFlag },
-  ja: { name: '日本語', flag: jaFlag },
-  ko: { name: '한국어', flag: koFlag },
-  ar: { name: 'العربية', flag: arFlag },
 }
 
 const localeShortCode: Record<Locale, string> = {
   zh: 'CN',
   en: 'EN',
-  ja: 'JA',
-  ko: 'KO',
-  ar: 'AR',
 }
 
 export default function LanguageSelector({
