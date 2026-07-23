@@ -3,10 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useAppKitAccount } from "@reown/appkit/react";
 import { useWriteContract } from "wagmi";
-import bs58 from "bs58";
 import {
   COMMUNITY_TYPE,
-  DEV_ENV,
   GROUP_TYPE,
   type MembershipType,
 } from "@/constants";
@@ -382,14 +380,7 @@ export function useCommunityNodePurchase(options?: CommunityPurchaseOptions) {
         }
 
         let txSig: string;
-        if (env?.environment === DEV_ENV) {
-          console.warn("Using mock transaction hash in development mode");
-          const randomBytes = new Uint8Array(32);
-          crypto.getRandomValues(randomBytes);
-          txSig = bs58.encode(randomBytes);
-        } else {
-          txSig = await transferTokens(amountToTransfer);
-        }
+        txSig = await transferTokens(amountToTransfer);
 
         setTxSignature(txSig);
         setShowTxModal(true);

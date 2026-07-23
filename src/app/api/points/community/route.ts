@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { DEV_ENV, MAX_TIMESTAMP_GAP_MS, MembershipType } from '@/constants';
+import { MAX_TIMESTAMP_GAP_MS, MembershipType } from '@/constants';
 import prisma from '@/lib/prisma';
 import { updateUserType } from '@/lib/user';
 import { verifyTokenTransfer, verifyBatchActivationTransfer, type ActivationTransferItem } from '@/utils/chain';
-import { getEnvironment, getBatchTransferContract, getNodeDisperseRecipients, getVerifier1, getVerifier2 } from '@/lib/config';
+import { getBatchTransferContract, getNodeDisperseRecipients, getVerifier1, getVerifier2 } from '@/lib/config';
 import { UserType } from '@prisma/client';
 import { ErrorCode } from '@/lib/errors';
 import { operationControl } from '@/utils/auth';
@@ -33,69 +33,61 @@ export async function POST(req: NextRequest) {
     }
     operationControl.set(operationKey, true, MAX_TIMESTAMP_GAP_MS);
 
-    // Skip transaction verification in development mode
-    const isDev = getEnvironment() === DEV_ENV;
+    // Verify transaction on-chain
     let verifyResult: {
       isValid: boolean;
       error?: string;
       fromAddress?: string;
       referralCode?: string;
       type?: string;
-    } = {
-      isValid: true,
-      fromAddress: dev_address,
-      referralCode: dev_referralCode,
-      type: dev_type
     };
 
-    if (!isDev) {
-      // 检查是否配置了批量转账接收列表
-      const disperseRecipients = await getNodeDisperseRecipients();
-      const batchContract = await getBatchTransferContract();
+    // 检查是否配置了批量转账接收列表
+    const disperseRecipients = await getNodeDisperseRecipients();
+    const batchContract = await getBatchTransferContract();
 
-      if (disperseRecipients.length > 0) {
-        // 批量转账模式：根据价格和比例构造期望转账列表
-        const priceMap: Record<string, number> = {
-          VERIFIER1: Number((await getVerifier1()).toString()),
-          VERIFIER2: Number((await getVerifier2()).toString()),
-        };
-        const price = priceMap[dev_type];
-        if (!price) {
-          return NextResponse.json(
-            { error: ErrorCode.INVALID_TRANSACTION },
-            { status: 400 }
-          );
-        }
+    if (disperseRecipients.length > 0) {
+      // 批量转账模式：根据价格和比例构造期望转账列表
+      const priceMap: Record<string, number> = {
+        VERIFIER1: Number((await getVerifier1()).toString()),
+        VERIFIER2: Number((await getVerifier2()).toString()),
+      };
+      const price = priceMap[dev_type];
+      if (!price) {
+        return NextResponse.json(
+          { error: ErrorCode.INVALID_TRANSACTION },
+          { status: 400 }
+        );
+      }
 
-        const expectedList: ActivationTransferItem[] = disperseRecipients.map(r => ({
-          address: r.address.toLowerCase(),
-          amount: new decimal(price).mul(r.ratio).toDecimalPlaces(2, decimal.ROUND_DOWN).toFixed(2),
-        }));
+      const expectedList: ActivationTransferItem[] = disperseRecipients.map(r => ({
+        address: r.address.toLowerCase(),
+        amount: new decimal(price).mul(r.ratio).toDecimalPlaces(2, decimal.ROUND_DOWN).toFixed(2),
+      }));
 
-        const batchResult = await verifyBatchActivationTransfer(txHash, expectedList, batchContract);
-        if (!batchResult.isValid) {
-          console.log(`Invalid batch transaction: ${batchResult.error}, txHash: ${txHash}`);
-          return NextResponse.json(
-            { error: ErrorCode.INVALID_TRANSACTION },
-            { status: 400 }
-          );
-        }
-        verifyResult = {
-          isValid: true,
-          fromAddress: batchResult.fromAddress,
-          referralCode: dev_referralCode,
-          type: dev_type,
-        };
-      } else {
-        // 回退到单笔转账校验
-        verifyResult = await verifyTokenTransfer(txHash);
-        if (!verifyResult.isValid) {
-          console.log(`Invalid transaction: ${verifyResult.error}, txHash: ${txHash}`);
-          return NextResponse.json(
-            { error: ErrorCode.INVALID_TRANSACTION },
-            { status: 400 }
-          );
-        }
+      const batchResult = await verifyBatchActivationTransfer(txHash, expectedList, batchContract);
+      if (!batchResult.isValid) {
+        console.log(`Invalid batch transaction: ${batchResult.error}, txHash: ${txHash}`);
+        return NextResponse.json(
+          { error: ErrorCode.INVALID_TRANSACTION },
+          { status: 400 }
+        );
+      }
+      verifyResult = {
+        isValid: true,
+        fromAddress: batchResult.fromAddress,
+        referralCode: dev_referralCode,
+        type: dev_type,
+      };
+    } else {
+      // 回退到单笔转账校验
+      verifyResult = await verifyTokenTransfer(txHash);
+      if (!verifyResult.isValid) {
+        console.log(`Invalid transaction: ${verifyResult.error}, txHash: ${txHash}`);
+        return NextResponse.json(
+          { error: ErrorCode.INVALID_TRANSACTION },
+          { status: 400 }
+        );
       }
     }
 
