@@ -418,6 +418,8 @@
     "unactivated": "普通用户",
     "invite": "邀请好友",
     "buy_now": "立即购买",
+    "pool_title": "HAK/USDT 流动性池",
+    "pool_loading": "加载中…",
     "node_reward_data": "节点奖励",
     "node_reward": "节点推荐奖励",
     "community_reward": "节点社区奖励",

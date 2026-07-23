@@ -24,6 +24,7 @@ import {
 } from "@/hooks/useCommunityNodePurchase";
 import { TransactionModal } from "@/components/TransactionModal";
 import { NodeConfirmModal } from "@/components/NodeConfirmModal";
+import { PoolInfo } from "@/components/PoolInfo";
 import { RecommenderAlertModal } from "@/components/RecommenderAlertModal";
 import { TokenType, TxFlowStatus, UserType } from "@prisma/client";
 import { truncateDecimals } from "@/utils/common";
@@ -896,6 +897,9 @@ const NodeMarket: React.FC<NodeMarketProps> = ({
         <h1 className="mb-6 text-center text-xl font-bold text-white">
           {tSub("title")}
         </h1>
+
+        {/* Pool Info — HAK/USDT 流动性池 */}
+        <PoolInfo />
 
         {/* Content Card — 权益说明 */}
         <div

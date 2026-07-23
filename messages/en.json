@@ -393,6 +393,8 @@
     "unactivated": "Not Activated",
     "invite": "Invite Friends",
     "buy_now": "Buy Now",
+    "pool_title": "HAK/USDT Liquidity Pool",
+    "pool_loading": "Loading…",
     "node_reward_data": "Node Rewards",
     "node_reward": "Node Referral Reward",
     "community_reward": "Node Community Reward",
