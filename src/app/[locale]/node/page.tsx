@@ -937,7 +937,7 @@ const NodeMarket: React.FC<NodeMarketProps> = ({
             const maxNum = nodeInfo?.maxNum ?? 1000;
             const soldAmount = nodeInfo?.soldAmount ?? 0;
             const progress = maxNum > 0 ? (soldCount / maxNum) * 100 : 0;
-            const isDisabled = userInfo?.type === "COMMUNITY" || !userInfo?.superior || soldCount >= maxNum;
+            const isDisabled = userInfo?.type === "COMMUNITY" || soldCount >= maxNum;
 
             return (
               <div
