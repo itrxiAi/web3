@@ -16,20 +16,6 @@ const PAIR_ABI = [
     ],
     stateMutability: "view",
   },
-  {
-    type: "function",
-    name: "token0",
-    inputs: [],
-    outputs: [{ type: "address" }],
-    stateMutability: "view",
-  },
-  {
-    type: "function",
-    name: "token1",
-    inputs: [],
-    outputs: [{ type: "address" }],
-    stateMutability: "view",
-  },
 ] as const;
 
 function formatReserve(value: bigint, decimals = 18): string {
@@ -44,8 +30,6 @@ export const PoolInfo: React.FC = () => {
   const t = useTranslations("node");
 
   const pairAddress = process.env.NEXT_PUBLIC_PAIR_ADDRESS as `0x${string}` | undefined;
-  const hakAddress = process.env.NEXT_PUBLIC_TOKEN_ADDRESS as `0x${string}` | undefined;
-  const usdtAddress = process.env.NEXT_PUBLIC_USDT_ADDRESS as `0x${string}` | undefined;
 
   const { data: reservesData, isLoading } = useReadContract({
     address: pairAddress,
@@ -53,15 +37,9 @@ export const PoolInfo: React.FC = () => {
     functionName: "getReserves",
   });
 
-  const { data: token0Data } = useReadContract({
-    address: pairAddress,
-    abi: PAIR_ABI,
-    functionName: "token0",
-  });
-
   if (!pairAddress) return null;
 
-  if (isLoading || !reservesData || !token0Data) {
+  if (isLoading || !reservesData) {
     return (
       <div className="mb-5 rounded-[10px] border border-purple-500/20 bg-black/40 p-4">
         <div className="mb-2 text-sm font-bold text-white">
@@ -74,14 +52,17 @@ export const PoolInfo: React.FC = () => {
 
   const reserve0 = (reservesData as readonly bigint[])[0];
   const reserve1 = (reservesData as readonly bigint[])[1];
-  const token0 = token0Data as string;
 
-  const isHakToken0 = hakAddress && token0.toLowerCase() === hakAddress.toLowerCase();
+  const r0Float = Number(reserve0) / Math.pow(10, 18);
+  const r1Float = Number(reserve1) / Math.pow(10, 18);
+
+  // 价格低的是 HAK，高的是 USDT
+  const isHakToken0 = r0Float <= r1Float;
   const hakReserve = isHakToken0 ? reserve0 : reserve1;
   const usdtReserve = isHakToken0 ? reserve1 : reserve0;
 
-  const hakFloat = Number(hakReserve) / Math.pow(10, 18);
-  const usdtFloat = Number(usdtReserve) / Math.pow(10, 18);
+  const hakFloat = isHakToken0 ? r0Float : r1Float;
+  const usdtFloat = isHakToken0 ? r1Float : r0Float;
   const price = hakFloat > 0 ? usdtFloat / hakFloat : 0;
   const priceStr = price >= 0.01 ? price.toFixed(4) : price.toExponential(2);
 
