@@ -20,6 +20,7 @@ import {
   type MembershipType,
 } from "@/constants";
 import { triggerWalletConnect } from "@/components/ui/wallet-ref";
+import { getTokenAddress } from "@/lib/tokens";
 
 export type EquityTierInfo = {
   dev_type: MembershipType;
@@ -181,13 +182,6 @@ export function useEquityActivation(options?: EquityActivationOptions) {
   const publicClient = usePublicClient();
   const { signMessageAsync } = useSignMessage();
   const { sendTransactionAsync } = useSendTransaction();
-
-  /** 根据 token 名称获取对应的合约地址 */
-  const getTokenAddress = (token: string): string => {
-    if (token === "HAK") return process.env.NEXT_PUBLIC_TOKEN_ADDRESS!;
-    if (token === "HAKP") return process.env.NEXT_PUBLIC_HAKP_ADDRESS!;
-    return process.env.NEXT_PUBLIC_USDT_ADDRESS!;
-  };
 
   /** Disperse 批量转账：按币种分组，每种币 approve，然后一笔 multiDisperse 搞定。返回交易哈希。 */
   const approveAndDisperse = useCallback(

@@ -11,6 +11,7 @@ import { EquityType, TxFlowStatus, TxFlowType } from '@prisma/client';
 import { ErrorCode } from '@/lib/errors';
 import { operationControl } from '@/utils/auth';
 import { notifyActivation } from '@/lib/activation-quote';
+import { getTokenAddress } from '@/lib/tokens';
 
 interface ActivationSplitDescription {
   kind: string;
@@ -113,12 +114,6 @@ export async function POST(req: NextRequest) {
       }
 
       // 2b. 系统份额：按 shieldType 分别校验
-      // 根据 token 名称解析合约地址
-      const getTokenAddress = (token: string): string => {
-        if (token === 'HAK') return process.env.NEXT_PUBLIC_TOKEN_ADDRESS!;
-        if (token === 'HAKP') return process.env.NEXT_PUBLIC_HAKP_ADDRESS!;
-        return process.env.NEXT_PUBLIC_USDT_ADDRESS!;
-      };
 
       if (shieldType === 'disperse') {
         // 0x 公开地址：DualDisperse 多币种批量转账校验

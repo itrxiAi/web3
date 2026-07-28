@@ -4,6 +4,7 @@ import prisma from '@/lib/prisma';
 import { TxFlowType, TxFlowStatus } from '@prisma/client';
 import { ErrorCode } from '@/lib/errors';
 import { buildShieldTransaction, type ShieldRecipientWei } from '@/lib/railgun/shield';
+import { getTokenAddress } from '@/lib/tokens';
 
 const USDT_DECIMALS = 18;
 
@@ -53,13 +54,6 @@ export async function POST(req: NextRequest) {
     if (desc.shieldType === 'disperse') {
       return NextResponse.json({ error: ErrorCode.INVALID_TRANSACTION }, { status: 400 });
     }
-
-    // 根据 token 名称解析合约地址
-    const getTokenAddress = (token: string): string => {
-      if (token === 'HAK') return process.env.NEXT_PUBLIC_TOKEN_ADDRESS!;
-      if (token === 'HAKP') return process.env.NEXT_PUBLIC_HAKP_ADDRESS!;
-      return process.env.NEXT_PUBLIC_USDT_ADDRESS!;
-    };
 
     const recipients: ShieldRecipientWei[] = desc.shieldList.map((it) => ({
       recipient: it.recipient,

@@ -3,6 +3,7 @@ import { bsc } from 'viem/chains';
 import { MEMO_PROGRAM_ID, GROUP_TYPE, COMMUNITY_TYPE, MembershipType, NORMAL_TYPE, DEV_ENV, MAX_TRANSACTION_TIMEOUT_MS, EQUITY_BASE_TYPE, EQUITY_PLUS_TYPE, EQUITY_PREMIUM_TYPE, EQUITY_EXPERT_TYPE, EQUITY_VIP_TYPE, VERIFIER_1, VERIFIER_2, VERIFIER_3, VERIFIER_4 } from '@/constants';
 
 import { EquityType, TokenType, TxFlowStatus } from '@prisma/client';
+import { getTokenAddress } from '@/lib/tokens';
 import decimal from 'decimal.js';
 import prisma from '@/lib/prisma';
 import { getCommunityPriceDisplay, getGroupPriceDisplay, getHotWalletAddress, getHotWalletKeypair, getBurningAddress, getEquityBasePriceDisplay, getEquityPlusPriceDisplay, getEquityPremiumPriceDisplay, getEquityExpertPriceDisplay, getEquityVipPriceDisplay, getVerifier1, getVerifier2, getVerifier3, getVerifier4 } from '@/lib/config';
@@ -21,13 +22,6 @@ const USDT_TOKEN_ADDRESS = process.env.NEXT_PUBLIC_USDT_ADDRESS!;
 
 const TOKEN_USDT_DECIMAL = 18;
 const TOKEN_DECIMAL = Number(process.env.NEXT_PUBLIC_TOKEN_DECIMAL || 18);
-
-/** 根据 token 名称获取对应的合约地址 */
-function getTokenAddressByName(token: string): string {
-  if (token === 'HAK') return TOKEN_ADDRESS;
-  if (token === 'HAKP') return process.env.NEXT_PUBLIC_HAKP_ADDRESS || TOKEN_ADDRESS;
-  return USDT_TOKEN_ADDRESS;
-}
 
 
 
@@ -352,7 +346,7 @@ export async function verifyBatchActivationTransfer(
     const tokenAddressSet = new Set<string>();
     if (isMultiToken) {
       for (const it of expectedList) {
-        if (it.token) tokenAddressSet.add(getTokenAddressByName(it.token).toLowerCase());
+        if (it.token) tokenAddressSet.add(getTokenAddress(it.token).toLowerCase());
       }
     }
     const singleTokenAddr = (tokenAddress || USDT_TOKEN_ADDRESS).toLowerCase();
@@ -386,7 +380,7 @@ export async function verifyBatchActivationTransfer(
     // 4. 比对转账列表（地址 + 金额，允许 0.01 误差）
     //    多币种模式：将 expected 中的 token 名称统一转为小写地址，与 actual 一致
     const normalizedExpected = isMultiToken
-      ? expectedList.map((it) => ({ ...it, token: getTokenAddressByName(it.token!).toLowerCase() }))
+      ? expectedList.map((it) => ({ ...it, token: getTokenAddress(it.token!).toLowerCase() }))
       : expectedList;
     if (!validateActivationTransferList(normalizedExpected, actual)) {
       return { isValid: false, error: 'Transfer list does not match' };
