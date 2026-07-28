@@ -5,13 +5,12 @@ import { TxFlowType, TxFlowStatus } from '@prisma/client';
 import { ErrorCode } from '@/lib/errors';
 import { buildShieldTransaction, type ShieldRecipientWei } from '@/lib/railgun/shield';
 
-const USDT_ADDRESS = process.env.NEXT_PUBLIC_USDT_ADDRESS as string;
 const USDT_DECIMALS = 18;
 
 interface ActivationSplitDescription {
   kind: string;
-  shieldList?: { recipient: string; amount: string }[];
-  shieldTotalUsdt?: string;
+  shieldList?: { recipient: string; amount: string; token: string }[];
+  shieldTotal?: { token: string; amount: string }[];
   shieldType?: 'railgun' | 'disperse';
 }
 
@@ -35,9 +34,6 @@ export async function POST(req: NextRequest) {
     if (!signature || typeof signature !== 'string' || !signature.startsWith('0x')) {
       return NextResponse.json({ error: ErrorCode.INVALID_TRANSACTION }, { status: 400 });
     }
-    if (!USDT_ADDRESS) {
-      return NextResponse.json({ error: ErrorCode.TRANSACTION_FAILED }, { status: 500 });
-    }
 
     const quoteTx = await prisma.transaction.findUnique({ where: { id: quoteId } });
     if (!quoteTx || quoteTx.type !== TxFlowType.EQUITY || quoteTx.status !== TxFlowStatus.PENDING) {
@@ -58,14 +54,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: ErrorCode.INVALID_TRANSACTION }, { status: 400 });
     }
 
+    // 根据 token 名称解析合约地址
+    const getTokenAddress = (token: string): string => {
+      if (token === 'HAK') return process.env.NEXT_PUBLIC_TOKEN_ADDRESS!;
+      if (token === 'HAKP') return process.env.NEXT_PUBLIC_HAKP_ADDRESS!;
+      return process.env.NEXT_PUBLIC_USDT_ADDRESS!;
+    };
+
     const recipients: ShieldRecipientWei[] = desc.shieldList.map((it) => ({
       recipient: it.recipient,
       amountWei: parseUnits(it.amount, USDT_DECIMALS),
+      tokenAddress: getTokenAddress(it.token),
     }));
 
-    const { to, data, proxyContract, totalWei } = await buildShieldTransaction({
+    const { to, data, proxyContract, tokens } = await buildShieldTransaction({
       signature,
-      tokenAddress: USDT_ADDRESS,
       recipients,
     });
 
@@ -87,7 +90,7 @@ export async function POST(req: NextRequest) {
       to,
       data,
       proxyContract,
-      totalWei: totalWei.toString(),
+      tokens: tokens.map((t) => ({ token: t.token, totalWei: t.totalWei.toString() })),
     });
   } catch (error) {
     console.error('Error building shield transaction:', error);

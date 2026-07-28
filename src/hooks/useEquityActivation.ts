@@ -26,16 +26,17 @@ export type EquityTierInfo = {
   price_display: string;
 };
 
-type TransferItem = { address: string; amount: string };
-type ShieldListItem = { recipient: string; amount: string };
+type TransferItem = { address: string; amount: string; token: string };
+type ShieldListItem = { recipient: string; amount: string; token: string };
+type TokenTotal = { token: string; amount: string };
 type ShieldType = 'railgun' | 'disperse';
 type ActivationQuote = {
   quoteId: string;
   /** 推荐奖励（0x），走 Disperse 批量转账。可能为空（无上级）。 */
   referralList: TransferItem[];
   batchTransferContract: string;
-  /** 系统份额总额（USDT）。 */
-  shieldTotalUsdt: string;
+  /** 按币种汇总的 shield 金额。 */
+  shieldTotal: TokenTotal[];
   /** shieldType === 'railgun' 时：需用户钱包签名的固定消息。 */
   shieldSignatureMessage?: string;
   /** shieldType === 'railgun' 时：RAILGUN 代理合约。 */
@@ -72,6 +73,21 @@ const disperseAbi = [
       { name: "token", type: "address" },
       { name: "recipients", type: "address[]" },
       { name: "values", type: "uint256[]" },
+    ],
+    outputs: [],
+  },
+] as const;
+
+// DualDisperse: multiDisperse(tokens[], recipients[][], values[][])
+const multiDisperseAbi = [
+  {
+    name: "multiDisperse",
+    type: "function",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "tokens", type: "address[]" },
+      { name: "recipients", type: "address[][]" },
+      { name: "values", type: "uint256[][]" },
     ],
     outputs: [],
   },
@@ -166,41 +182,67 @@ export function useEquityActivation(options?: EquityActivationOptions) {
   const { signMessageAsync } = useSignMessage();
   const { sendTransactionAsync } = useSendTransaction();
 
-  /** Disperse 批量转账：USDT 授权 + disperseToken 拆分给 0x 接收者。返回交易哈希。 */
+  /** 根据 token 名称获取对应的合约地址 */
+  const getTokenAddress = (token: string): string => {
+    if (token === "HAK") return process.env.NEXT_PUBLIC_TOKEN_ADDRESS!;
+    if (token === "HAKP") return process.env.NEXT_PUBLIC_HAKP_ADDRESS!;
+    return process.env.NEXT_PUBLIC_USDT_ADDRESS!;
+  };
+
+  /** Disperse 批量转账：按币种分组，每种币 approve，然后一笔 multiDisperse 搞定。返回交易哈希。 */
   const approveAndDisperse = useCallback(
     async (items: TransferItem[], spender: string): Promise<string> => {
       if (!address) {
         throw new Error("Wallet not connected");
       }
-      const tokenAddress = process.env.NEXT_PUBLIC_USDT_ADDRESS;
-      if (!tokenAddress) {
-        throw new Error("USDT contract address not found in environment variables");
-      }
       if (!items.length) {
         throw new Error("Empty transfer list");
       }
 
-      const recipients = items.map((t) => t.address as `0x${string}`);
-      const values = items.map((t) => parseUnits(t.amount, USDT_DECIMALS));
-      const total = values.reduce((acc, v) => acc + v, BigInt(0));
-
-      // 1. 授权批量转账合约支配 USDT
-      const approveHash = await writeContractAsync({
-        address: tokenAddress as `0x${string}`,
-        abi: usdtAbi,
-        functionName: "approve",
-        args: [spender as `0x${string}`, total],
-      });
-      if (publicClient && approveHash) {
-        await publicClient.waitForTransactionReceipt({ hash: approveHash });
+      // 按 token 分组
+      const groups = new Map<string, TransferItem[]>();
+      for (const it of items) {
+        const arr = groups.get(it.token) ?? [];
+        arr.push(it);
+        groups.set(it.token, arr);
       }
 
-      // 2. 调用 disperseToken 一笔拆分给所有接收者
+      // 1. 每种币各 approve 给聚合合约
+      const tokenAddresses: `0x${string}`[] = [];
+      const recipientsGroups: `0x${string}`[][] = [];
+      const valuesGroups: bigint[][] = [];
+
+      for (const [token, groupItems] of groups) {
+        const tokenAddress = getTokenAddress(token);
+        if (!tokenAddress) {
+          throw new Error(`${token} contract address not found in environment variables`);
+        }
+
+        const recipients = groupItems.map((t) => t.address as `0x${string}`);
+        const values = groupItems.map((t) => parseUnits(t.amount, USDT_DECIMALS));
+        const total = values.reduce((acc, v) => acc + v, BigInt(0));
+
+        const approveHash = await writeContractAsync({
+          address: tokenAddress as `0x${string}`,
+          abi: usdtAbi,
+          functionName: "approve",
+          args: [spender as `0x${string}`, total],
+        });
+        if (publicClient && approveHash) {
+          await publicClient.waitForTransactionReceipt({ hash: approveHash });
+        }
+
+        tokenAddresses.push(tokenAddress as `0x${string}`);
+        recipientsGroups.push(recipients);
+        valuesGroups.push(values);
+      }
+
+      // 2. 一笔 multiDisperse 搞定所有币种
       const hash = await writeContractAsync({
         address: spender as `0x${string}`,
-        abi: disperseAbi,
-        functionName: "disperseToken",
-        args: [tokenAddress as `0x${string}`, recipients, values],
+        abi: multiDisperseAbi,
+        functionName: "multiDisperse",
+        args: [tokenAddresses, recipientsGroups, valuesGroups],
       });
       if (!hash) {
         throw new Error("Transaction failed to return a hash");
@@ -211,18 +253,14 @@ export function useEquityActivation(options?: EquityActivationOptions) {
   );
 
   /**
-   * 系统份额：RAILGUN shield 进私密池。
+   * 系统份额：RAILGUN shield 进私密池（多币种）。
    * 1) 用户签名 shield 消息；2) 后端用签名+0zk 地址构造 shield calldata；
-   * 3) approve USDT 给代理合约；4) 广播 shield 交易。返回 shield 交易哈希。
+   * 3) 每种币各 approve 给代理合约；4) 广播 shield 交易。返回 shield 交易哈希。
    */
   const approveAndShield = useCallback(
     async (quote: ActivationQuote): Promise<string> => {
       if (!address) {
         throw new Error("Wallet not connected");
-      }
-      const tokenAddress = process.env.NEXT_PUBLIC_USDT_ADDRESS;
-      if (!tokenAddress) {
-        throw new Error("USDT contract address not found in environment variables");
       }
 
       // 1. 用户钱包签名固定消息（派生 shieldPrivateKey）
@@ -241,25 +279,31 @@ export function useEquityActivation(options?: EquityActivationOptions) {
         const errBody = await buildRes.json().catch(() => ({}));
         throw new Error(errBody.error || "Failed to build shield transaction");
       }
-      const { to, data, proxyContract, totalWei } = (await buildRes.json()) as {
+      const { to, data, proxyContract, tokens } = (await buildRes.json()) as {
         to: string;
         data: string;
         proxyContract: string;
-        totalWei: string;
+        tokens: { token: string; totalWei: string }[];
       };
 
-      // 3. 授权 USDT 给 RAILGUN 代理合约
-      const approveHash = await writeContractAsync({
-        address: tokenAddress as `0x${string}`,
-        abi: usdtAbi,
-        functionName: "approve",
-        args: [proxyContract as `0x${string}`, BigInt(totalWei)],
-      });
-      if (publicClient && approveHash) {
-        await publicClient.waitForTransactionReceipt({ hash: approveHash });
+      // 3. 每种币各 approve 给 RAILGUN 代理合约
+      for (const { token, totalWei } of tokens) {
+        const tokenAddress = getTokenAddress(token);
+        if (!tokenAddress) {
+          throw new Error(`${token} contract address not found in environment variables`);
+        }
+        const approveHash = await writeContractAsync({
+          address: tokenAddress as `0x${string}`,
+          abi: usdtAbi,
+          functionName: "approve",
+          args: [proxyContract as `0x${string}`, BigInt(totalWei)],
+        });
+        if (publicClient && approveHash) {
+          await publicClient.waitForTransactionReceipt({ hash: approveHash });
+        }
       }
 
-      // 4. 广播 shield 交易（原始 calldata）
+      // 4. 广播 shield 交易（一笔包含所有币种）
       const hash = await sendTransactionAsync({
         to: to as `0x${string}`,
         data: data as `0x${string}`,
@@ -312,8 +356,8 @@ export function useEquityActivation(options?: EquityActivationOptions) {
           crypto.getRandomValues(randomBytes);
           shieldTxHash = bs58.encode(randomBytes);
         } else if (quote.shieldType === 'disperse') {
-          // 0x 公开地址：走 Disperse 批量转账
-          const shieldItems = (quote.shieldList ?? []).map((it) => ({ address: it.recipient, amount: it.amount }));
+          // 0x 公开地址：走 Disperse 批量转账（多币种分组）
+          const shieldItems = (quote.shieldList ?? []).map((it) => ({ address: it.recipient, amount: it.amount, token: it.token }));
           shieldTxHash = await approveAndDisperse(shieldItems, quote.batchTransferContract);
           if (quote.referralList.length > 0) {
             referralTxHash = await approveAndDisperse(quote.referralList, quote.batchTransferContract);

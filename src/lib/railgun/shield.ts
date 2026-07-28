@@ -11,10 +11,11 @@ import {
 } from '@railgun-community/shared-models';
 import { ensureRailgunEngine, RAILGUN_NETWORK } from './engine';
 
-/** 一笔 shield 的接收项：RAILGUN 私密地址（0zk）+ USDT 数量（最小单位 wei）。 */
+/** 一笔 shield 的接收项：RAILGUN 私密地址（0zk）+ 数量（最小单位 wei）+ 币种。 */
 export interface ShieldRecipientWei {
   recipient: string; // 0zk...
   amountWei: bigint;
+  tokenAddress: string;
 }
 
 /** 前端需要用户用钱包签名的固定消息（用于派生 shieldPrivateKey）。 */
@@ -28,20 +29,18 @@ export function getRailgunProxyContract(): string {
 }
 
 /**
- * 在服务端构造 shield 交易 calldata。
+ * 在服务端构造 shield 交易 calldata（支持多币种）。
  *
  * 0zk 接收地址只存在于服务端、绝不下发到浏览器；浏览器只拿到 { to, data } 去用 MetaMask 广播。
  *
  * @param signature 用户用钱包对 getShieldSignatureMessage() 的签名（前端 MetaMask 产出）
- * @param tokenAddress USDT 合约地址
- * @param recipients   各 0zk 接收方与金额（wei）
+ * @param recipients   各 0zk 接收方、金额（wei）与币种合约地址
  */
 export async function buildShieldTransaction(params: {
   signature: string;
-  tokenAddress: string;
   recipients: ShieldRecipientWei[];
-}): Promise<{ to: string; data: string; proxyContract: string; totalWei: bigint }> {
-  const { signature, tokenAddress, recipients } = params;
+}): Promise<{ to: string; data: string; proxyContract: string; tokens: { token: string; totalWei: bigint }[] }> {
+  const { signature, recipients } = params;
   if (!recipients.length) throw new Error('Empty shield recipients');
 
   await ensureRailgunEngine();
@@ -50,7 +49,7 @@ export async function buildShieldTransaction(params: {
   const shieldPrivateKey = keccak256(signature);
 
   const erc20AmountRecipients: RailgunERC20AmountRecipient[] = recipients.map((r) => ({
-    tokenAddress,
+    tokenAddress: r.tokenAddress,
     amount: r.amountWei,
     recipientAddress: r.recipient,
   }));
@@ -64,13 +63,21 @@ export async function buildShieldTransaction(params: {
     undefined, // gasDetails：留空，由钱包估算 gasLimit
   );
 
-  const totalWei = recipients.reduce((acc, r) => acc + r.amountWei, BigInt(0));
+  // 按币种汇总 totalWei
+  const tokenMap = new Map<string, bigint>();
+  for (const r of recipients) {
+    tokenMap.set(r.tokenAddress, (tokenMap.get(r.tokenAddress) ?? BigInt(0)) + r.amountWei);
+  }
+  const tokens = Array.from(tokenMap.entries()).map(([tokenAddress, totalWei]) => ({
+    token: tokenAddress,
+    totalWei,
+  }));
 
   return {
     to: transaction.to as string,
     data: transaction.data as string,
     proxyContract: getRailgunProxyContract(),
-    totalWei,
+    tokens,
   };
 }
 

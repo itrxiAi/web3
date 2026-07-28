@@ -22,6 +22,13 @@ const USDT_TOKEN_ADDRESS = process.env.NEXT_PUBLIC_USDT_ADDRESS!;
 const TOKEN_USDT_DECIMAL = 18;
 const TOKEN_DECIMAL = Number(process.env.NEXT_PUBLIC_TOKEN_DECIMAL || 18);
 
+/** 根据 token 名称获取对应的合约地址 */
+function getTokenAddressByName(token: string): string {
+  if (token === 'HAK') return TOKEN_ADDRESS;
+  if (token === 'HAKP') return process.env.NEXT_PUBLIC_HAKP_ADDRESS || TOKEN_ADDRESS;
+  return USDT_TOKEN_ADDRESS;
+}
+
 
 
 // Ethereum configuration
@@ -281,22 +288,26 @@ export async function verifyChainTransfer(txHash: string, tokenType: TokenType):
   };
 }
 
-/** 转账项：接收地址 + USDT 金额（人类可读，带 2 位小数的字符串） */
+/** 转账项：接收地址 + 金额（人类可读，带 2 位小数的字符串）+ 币种名称 */
 export interface ActivationTransferItem {
   address: string;
   amount: string;
+  token?: string;
 }
 
 /**
- * 校验用户激活的链上批量转账（Disperse 模式，与社区解锁一致）。
+ * 校验用户激活的链上批量转账（Disperse / DualDisperse 模式）。
  *
- * 期望该交易调用了批量转账合约 `disperseToken`：先 transferFrom(user -> 合约) 总额，
+ * 期望该交易调用了批量转账合约 `disperseToken` 或 `multiDisperse`：先 transferFrom(user -> 合约) 总额，
  * 再由合约 transfer(合约 -> 各接收者)。因此只统计 `from == 合约地址` 的 Transfer 事件，
  * 并与后端返回、保存在 Transaction.description 里的 transferList 逐项比对。
  *
+ * 支持单币种（tokenAddress 参数）和多币种（expectedList 中带 token 字段）两种模式。
+ *
  * @param txHash 交易哈希
- * @param expectedList 后端拼接的期望转账列表（address + amount）
+ * @param expectedList 后端拼接的期望转账列表（address + amount + 可选 token）
  * @param contractAddress 批量转账合约地址
+ * @param tokenAddress 单币种模式时的 token 合约地址（多币种时留空，按 expectedList 中 token 字段解析）
  */
 export async function verifyBatchActivationTransfer(
   txHash: string,
@@ -336,10 +347,24 @@ export async function verifyBatchActivationTransfer(
     }
 
     // 3. 解析从合约发出的 Transfer 事件（合约 -> 接收者）
-    const effectiveTokenAddress = (tokenAddress || USDT_TOKEN_ADDRESS).toLowerCase();
+    //    多币种模式：收集所有 token 的 Transfer 事件；单币种模式：只收集指定 token
+    const isMultiToken = expectedList.some((it) => it.token);
+    const tokenAddressSet = new Set<string>();
+    if (isMultiToken) {
+      for (const it of expectedList) {
+        if (it.token) tokenAddressSet.add(getTokenAddressByName(it.token).toLowerCase());
+      }
+    }
+    const singleTokenAddr = (tokenAddress || USDT_TOKEN_ADDRESS).toLowerCase();
+
     const actual: ActivationTransferItem[] = [];
     for (const log of receipt.logs || []) {
-      if (log.address.toLowerCase() !== effectiveTokenAddress) continue;
+      const logTokenAddr = log.address.toLowerCase();
+      if (isMultiToken) {
+        if (!tokenAddressSet.has(logTokenAddr)) continue;
+      } else {
+        if (logTokenAddr !== singleTokenAddr) continue;
+      }
       let decoded;
       try {
         decoded = decodeEventLog({ abi: ERC20_ABI, data: log.data, topics: log.topics });
@@ -349,14 +374,21 @@ export async function verifyBatchActivationTransfer(
       if (decoded.eventName !== 'Transfer' || !decoded.args) continue;
       const args = decoded.args as unknown as { from: string; to: string; value: bigint };
       if (args.from.toLowerCase() !== contract) continue; // 仅统计合约 -> 接收者
+      // 多币种模式：记录 token 地址作为标识，用于区分同地址不同币种的转账
+      const tokenName = isMultiToken ? logTokenAddr : undefined;
       actual.push({
         address: args.to.toLowerCase(),
         amount: new decimal(formatUnits(args.value, TOKEN_USDT_DECIMAL)).toDecimalPlaces(2, decimal.ROUND_DOWN).toFixed(2),
+        token: tokenName,
       });
     }
 
-    // 4. 比对转账列表（地址 + 金额，允许 0.01 USDT 误差）
-    if (!validateActivationTransferList(expectedList, actual)) {
+    // 4. 比对转账列表（地址 + 金额，允许 0.01 误差）
+    //    多币种模式：将 expected 中的 token 名称统一转为小写地址，与 actual 一致
+    const normalizedExpected = isMultiToken
+      ? expectedList.map((it) => ({ ...it, token: getTokenAddressByName(it.token!).toLowerCase() }))
+      : expectedList;
+    if (!validateActivationTransferList(normalizedExpected, actual)) {
       return { isValid: false, error: 'Transfer list does not match' };
     }
 
@@ -388,17 +420,17 @@ export async function verifyBatchActivationTransfer(
  * 0zk 接收地址固化其中，逐字节比对即可证明资金确实进入我方私密地址。
  *
  * 校验项：1) 交易成功且 to == 代理合约；2) tx.input === expectedCalldata（强保证收款人）；
- * 3) 付款人 -> 代理合约 的 USDT Transfer 金额合计约等于期望总额（防御纵深）。
+ * 3) 付款人 -> 代理合约 的各币种 Transfer 金额合计约等于期望总额（防御纵深）。
  *
  * @param txHash shield 交易哈希
  * @param proxyContract RAILGUN 代理合约地址
- * @param expectedTotalUsdt 期望 shield 总额（USDT，人类可读）
+ * @param expectedTokens 各币种期望 shield 总额（tokenAddress + amount，人类可读）
  * @param expectedCalldata 服务端生成并存档的 shield calldata（含我方 0zk 接收地址）
  */
 export async function verifyShieldTransfer(
   txHash: string,
   proxyContract: string,
-  expectedTotalUsdt: string,
+  expectedTokens: { tokenAddress: string; amount: string }[],
   expectedCalldata: string,
 ): Promise<{ isValid: boolean; error?: string; fromAddress?: string }> {
   try {
@@ -453,31 +485,34 @@ export async function verifyShieldTransfer(
       return { isValid: false, error: 'Shield calldata mismatch: recipients not verified' };
     }
 
-    // 统计 付款人 -> 代理合约 的 USDT Transfer 金额合计
-    let movedToProxy = new decimal(0);
-    for (const log of receipt.logs || []) {
-      if (log.address.toLowerCase() !== USDT_TOKEN_ADDRESS.toLowerCase()) continue;
-      let decoded;
-      try {
-        decoded = decodeEventLog({ abi: ERC20_ABI, data: log.data, topics: log.topics });
-      } catch {
-        continue;
+    // 统计 付款人 -> 代理合约 的各币种 Transfer 金额合计
+    for (const expectedToken of expectedTokens) {
+      const tokenAddrLower = expectedToken.tokenAddress.toLowerCase();
+      let movedToProxy = new decimal(0);
+      for (const log of receipt.logs || []) {
+        if (log.address.toLowerCase() !== tokenAddrLower) continue;
+        let decoded;
+        try {
+          decoded = decodeEventLog({ abi: ERC20_ABI, data: log.data, topics: log.topics });
+        } catch {
+          continue;
+        }
+        if (decoded.eventName !== 'Transfer' || !decoded.args) continue;
+        const args = decoded.args as unknown as { from: string; to: string; value: bigint };
+        if (args.to.toLowerCase() !== proxy) continue;
+        if (fromAddress && args.from.toLowerCase() !== fromAddress) continue;
+        movedToProxy = movedToProxy.add(new decimal(formatUnits(args.value, TOKEN_USDT_DECIMAL)));
       }
-      if (decoded.eventName !== 'Transfer' || !decoded.args) continue;
-      const args = decoded.args as unknown as { from: string; to: string; value: bigint };
-      if (args.to.toLowerCase() !== proxy) continue;
-      if (fromAddress && args.from.toLowerCase() !== fromAddress) continue;
-      movedToProxy = movedToProxy.add(new decimal(formatUnits(args.value, TOKEN_USDT_DECIMAL)));
-    }
 
-    // 金额校验：进入代理合约的 USDT 应约等于期望总额（允许 0.5% 手续费 + 0.01 误差）
-    const expected = new decimal(expectedTotalUsdt);
-    const minAccepted = expected.mul(0.99).sub(0.01);
-    if (movedToProxy.lt(minAccepted)) {
-      return {
-        isValid: false,
-        error: `Shield amount mismatch: moved ${movedToProxy.toFixed(2)} < expected ~${expected.toFixed(2)}`,
-      };
+      // 金额校验：进入代理合约的该币种应约等于期望总额（允许 0.5% 手续费 + 0.01 误差）
+      const expected = new decimal(expectedToken.amount);
+      const minAccepted = expected.mul(0.99).sub(0.01);
+      if (movedToProxy.lt(minAccepted)) {
+        return {
+          isValid: false,
+          error: `Shield amount mismatch for token ${expectedToken.tokenAddress}: moved ${movedToProxy.toFixed(2)} < expected ~${expected.toFixed(2)}`,
+        };
+      }
     }
 
     return { isValid: true, fromAddress };
@@ -487,14 +522,20 @@ export async function verifyShieldTransfer(
   }
 }
 
-/** 比对期望与实际转账列表：数量一致、按地址排序后逐项地址相同、金额误差 <= 0.01。 */
+/** 比对期望与实际转账列表：数量一致、按 (address,token) 排序后逐项地址相同、金额误差 <= 0.01。 */
 function validateActivationTransferList(expected: ActivationTransferItem[], actual: ActivationTransferItem[]): boolean {
   if (expected.length !== actual.length) return false;
-  const byAddr = (a: ActivationTransferItem, b: ActivationTransferItem) => a.address.localeCompare(b.address);
-  const exp = [...expected].sort(byAddr);
-  const act = [...actual].sort(byAddr);
+  // 多币种模式：按 (address:token) 排序；单币种模式：按 address 排序
+  const byKey = (a: ActivationTransferItem, b: ActivationTransferItem) => {
+    const ka = `${a.address}:${a.token ?? ''}`;
+    const kb = `${b.address}:${b.token ?? ''}`;
+    return ka.localeCompare(kb);
+  };
+  const exp = [...expected].sort(byKey);
+  const act = [...actual].sort(byKey);
   for (let i = 0; i < exp.length; i++) {
     if (exp[i].address.toLowerCase() !== act[i].address.toLowerCase()) return false;
+    if ((exp[i].token ?? '') !== (act[i].token ?? '')) return false;
     const diff = Math.abs(parseFloat(exp[i].amount) - parseFloat(act[i].amount));
     if (diff > 0.01) return false;
   }

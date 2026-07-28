@@ -26,11 +26,19 @@ export const EQUITY_TO_PACKAGE: Record<EquityType, string> = {
 export interface ActivationTransferItem {
   address: string;
   amount: string;
+  token: string;
 }
 
-/** 系统份额 shield 项：接收方为 RAILGUN 私密地址（0zk），金额为 USDT 人类可读字符串。 */
+/** 系统份额 shield 项：接收方为 RAILGUN 私密地址（0zk），金额为人类可读字符串。 */
 export interface ActivationShieldItem {
   recipient: string;
+  amount: string;
+  token: string;
+}
+
+/** 按币种汇总的 shield 金额，前端用于 approve 授权。 */
+export interface TokenTotal {
+  token: string;
   amount: string;
 }
 
@@ -39,8 +47,9 @@ export interface ActivationQuoteResult {
   referralList: ActivationTransferItem[];
   /** 系统份额（销毁/国库/储备）：0zk 私密地址，走 RAILGUN shield。 */
   shieldList: ActivationShieldItem[];
-  shieldTotalUsdt: string;
-  amountUsdt: string;
+  /** 按币种汇总的 shield 金额，前端用于 approve 授权。 */
+  shieldTotal: TokenTotal[];
+  /** Disperse 批量转账合约地址。 */
   batchTransferContract: string;
 }
 
@@ -111,13 +120,13 @@ export async function fetchActivationQuote(params: {
   console.log('[fetchActivationQuote] result keys', Object.keys(result ?? {}));
   console.log('[fetchActivationQuote] referralList isArray', Array.isArray(result?.referralList));
   console.log('[fetchActivationQuote] shieldList isArray', Array.isArray(result?.shieldList));
-  console.log('[fetchActivationQuote] amountUsdt', result?.amountUsdt);
+  console.log('[fetchActivationQuote] shieldTotal isArray', Array.isArray(result?.shieldTotal));
 
   if (
     !result ||
     !Array.isArray(result.referralList) ||
     !Array.isArray(result.shieldList) ||
-    !result.amountUsdt
+    !Array.isArray(result.shieldTotal)
   ) {
     throw new Error(`App backend quote returned invalid payload: ${JSON.stringify(result)}`);
   }

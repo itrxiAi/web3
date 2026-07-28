@@ -19,8 +19,8 @@ interface ActivationSplitDescription {
   amountUsdt: string;
   batchTransferContract: string;
   referralList: ActivationTransferItem[];
-  shieldList: { recipient: string; amount: string }[];
-  shieldTotalUsdt: string;
+  shieldList: { recipient: string; amount: string; token: string }[];
+  shieldTotal: { token: string; amount: string }[];
   railgunProxyContract: string;
   /** 系统份额转账类型：railgun（混币器）或 disperse（批量转账）。 */
   shieldType?: 'railgun' | 'disperse';
@@ -113,11 +113,19 @@ export async function POST(req: NextRequest) {
       }
 
       // 2b. 系统份额：按 shieldType 分别校验
+      // 根据 token 名称解析合约地址
+      const getTokenAddress = (token: string): string => {
+        if (token === 'HAK') return process.env.NEXT_PUBLIC_TOKEN_ADDRESS!;
+        if (token === 'HAKP') return process.env.NEXT_PUBLIC_HAKP_ADDRESS!;
+        return process.env.NEXT_PUBLIC_USDT_ADDRESS!;
+      };
+
       if (shieldType === 'disperse') {
-        // 0x 公开地址：校验 Disperse 批量转账
+        // 0x 公开地址：DualDisperse 多币种批量转账校验
         const shieldItems: ActivationTransferItem[] = desc.shieldList.map((it) => ({
           address: it.recipient,
           amount: it.amount,
+          token: it.token,
         }));
         const shieldResult = await verifyBatchActivationTransfer(
           shieldTxHash,
@@ -133,11 +141,15 @@ export async function POST(req: NextRequest) {
           return NextResponse.json({ error: ErrorCode.INVALID_TRANSACTION }, { status: 400 });
         }
       } else {
-        // 0zk 私密地址：校验 RAILGUN shield 交易
+        // 0zk 私密地址：校验 RAILGUN shield 交易（多币种）
+        const expectedTokens = (desc.shieldTotal ?? []).map((st) => ({
+          tokenAddress: getTokenAddress(st.token),
+          amount: st.amount,
+        }));
         const shieldResult = await verifyShieldTransfer(
           shieldTxHash,
           desc.railgunProxyContract,
-          desc.shieldTotalUsdt,
+          expectedTokens,
           desc.expectedShieldCalldata!,
         );
         if (!shieldResult.isValid) {

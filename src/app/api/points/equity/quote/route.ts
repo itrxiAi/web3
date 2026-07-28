@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
       data: {
         fromAddress: address,
         toAddress: batchTransferContract.toLowerCase(),
-        amount: quote.amountUsdt,
+        amount: priceDisplay,
         tokenType: TokenType.USDT,
         type: TxFlowType.EQUITY,
         status: TxFlowStatus.PENDING,
@@ -80,11 +80,11 @@ export async function POST(req: NextRequest) {
           kind: 'activation_split',
           package: pkg,
           dev_type: equityType,
-          amountUsdt: quote.amountUsdt,
+          amountUsdt: amountUsdt,
           batchTransferContract: batchTransferContract.toLowerCase(),
           referralList: quote.referralList,
           shieldList: quote.shieldList,
-          shieldTotalUsdt: quote.shieldTotalUsdt,
+          shieldTotal: quote.shieldTotal,
           railgunProxyContract: railgunProxyContract.toLowerCase(),
           shieldType,
         }),
@@ -96,8 +96,8 @@ export async function POST(req: NextRequest) {
       // 推荐奖励：0x Disperse（当前恒为空）
       referralList: quote.referralList,
       batchTransferContract: batchTransferContract.toLowerCase(),
-      shieldTotalUsdt: quote.shieldTotalUsdt,
-      amountUsdt: quote.amountUsdt,
+      shieldTotal: quote.shieldTotal,
+      amountUsdt,
       shieldType,
     };
 
