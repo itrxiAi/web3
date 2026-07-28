@@ -45,6 +45,7 @@ enum TxFlowStatus {
 enum TokenType {
   USDT
   HAK
+  HAKP
 }
 
 enum UserType {

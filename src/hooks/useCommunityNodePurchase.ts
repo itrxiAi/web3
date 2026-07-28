@@ -270,13 +270,15 @@ export function useCommunityNodePurchase(options?: CommunityPurchaseOptions) {
   }, []);
 
   const transferTokens = useCallback(
-    async (amount: number): Promise<string> => {
+    async (amount: number, tokenType: "USDT" | "HAKP" = "USDT"): Promise<string> => {
       if (!address) {
         throw new Error("Wallet not connected");
       }
-      const tokenAddress = process.env.NEXT_PUBLIC_USDT_ADDRESS;
+      const tokenAddress = tokenType === "HAKP"
+        ? process.env.NEXT_PUBLIC_HAKP_ADDRESS
+        : process.env.NEXT_PUBLIC_USDT_ADDRESS;
       if (!tokenAddress) {
-        throw new Error("USDT contract address not found in environment variables");
+        throw new Error(`${tokenType} contract address not found in environment variables`);
       }
 
       const recipients = nodeData?.disperseRecipients;
@@ -343,7 +345,7 @@ export function useCommunityNodePurchase(options?: CommunityPurchaseOptions) {
   );
 
   const handleCommunity = useCallback(
-    async (type: MembershipType, priceInUsd: number, recommender: string) => {
+    async (type: MembershipType, priceInUsd: number, recommender: string, tokenType: "USDT" | "HAKP" = "USDT") => {
       if (!address) {
         triggerWalletConnect();
         return;
@@ -380,7 +382,7 @@ export function useCommunityNodePurchase(options?: CommunityPurchaseOptions) {
         }
 
         let txSig: string;
-        txSig = await transferTokens(amountToTransfer);
+        txSig = await transferTokens(amountToTransfer, tokenType);
 
         setTxSignature(txSig);
         setShowTxModal(true);
@@ -393,6 +395,7 @@ export function useCommunityNodePurchase(options?: CommunityPurchaseOptions) {
             dev_address: address.toString(),
             dev_referralCode: recommender,
             dev_type: type,
+            dev_tokenType: tokenType,
           }),
         });
 

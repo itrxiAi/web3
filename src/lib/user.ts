@@ -128,12 +128,14 @@ export async function updateUserType({
   walletAddress,
   type,
   txHash,
-  tx
+  tx,
+  tokenType = TokenType.USDT,
 }: {
   walletAddress: string;
   type: MembershipType;
   txHash: string;
   tx: Prisma.TransactionClient;
+  tokenType?: TokenType;
 }) {
   let amount = 0;
   //let userType: UserType = type as UserType; // 默认使用传入的类型，确保不会为 null
@@ -196,7 +198,7 @@ export async function updateUserType({
       fromAddress: walletAddress,
       toAddress: (await getHotWalletAddress()).toString(),
       amount: amount,
-      tokenType: TokenType.USDT,
+      tokenType: tokenType,
       type: TxFlowType.PURCHASE,
       status: TxFlowStatus.PENDING
     }

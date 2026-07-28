@@ -1,17 +1,36 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useAppKitAccount } from "@reown/appkit/react";
 import { useReadContract } from "wagmi";
 import { useTranslations } from "next-intl";
 
+export type PaymentToken = "USDT" | "HAKP";
+
 interface NodeConfirmModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: () => void;
+  onConfirm: (token: PaymentToken) => void;
   isBigNode: boolean;
   price: string;
 }
+
+const erc20Abi = [
+  {
+    type: "function",
+    name: "balanceOf",
+    inputs: [{ type: "address" }],
+    outputs: [{ type: "uint256" }],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "decimals",
+    inputs: [],
+    outputs: [{ type: "uint8" }],
+    stateMutability: "view",
+  },
+] as const;
 
 export const NodeConfirmModal: React.FC<NodeConfirmModalProps> = ({
   isOpen,
@@ -22,45 +41,26 @@ export const NodeConfirmModal: React.FC<NodeConfirmModalProps> = ({
 }) => {
   const t = useTranslations("node");
   const { address } = useAppKitAccount();
-  
-  // USDT token address on BSC
+  const [selectedToken, setSelectedToken] = useState<PaymentToken>("USDT");
+
+  // Token addresses on BSC
   const usdtAddress = "0x55d398326f99059fF775485246999027B3197955" as `0x${string}`;
-  
-  // Get USDT balance using useReadContract
+  const hakpAddress = (process.env.NEXT_PUBLIC_HAKP_ADDRESS || "") as `0x${string}`;
+
+  const currentTokenAddress = selectedToken === "HAKP" ? hakpAddress : usdtAddress;
+
+  // Get selected token balance
   const { data: balanceData, isLoading } = useReadContract({
-    address: usdtAddress,
-    abi: [
-      {
-        type: "function",
-        name: "balanceOf",
-        inputs: [{ type: "address" }],
-        outputs: [{ type: "uint256" }],
-        stateMutability: "view",
-      },
-      {
-        type: "function",
-        name: "decimals",
-        inputs: [],
-        outputs: [{ type: "uint8" }],
-        stateMutability: "view",
-      },
-    ],
+    address: currentTokenAddress,
+    abi: erc20Abi,
     functionName: "balanceOf",
     args: address ? [address as `0x${string}`] : undefined,
   });
 
   // Get decimals
   const { data: decimalsData } = useReadContract({
-    address: usdtAddress,
-    abi: [
-      {
-        type: "function",
-        name: "decimals",
-        inputs: [],
-        outputs: [{ type: "uint8" }],
-        stateMutability: "view",
-      },
-    ],
+    address: currentTokenAddress,
+    abi: erc20Abi,
     functionName: "decimals",
   });
 
@@ -103,19 +103,46 @@ export const NodeConfirmModal: React.FC<NodeConfirmModalProps> = ({
           style={{ color: "rgba(255,255,255,0.88)" }}
         >
           {t("confirm_purchase_spend_prefix")}
-          <span className="font-bold text-white"> {price} USDT </span>
+          <span className="font-bold text-white"> {price} {selectedToken} </span>
           {t("confirm_purchase_spend_suffix")}
         </p>
 
+        {/* Token Selector */}
+        <div className="mb-4 flex gap-2">
+          {(["USDT", "HAKP"] as PaymentToken[]).map((token) => (
+            <button
+              key={token}
+              type="button"
+              onClick={() => setSelectedToken(token)}
+              className="flex-1 py-2 text-center text-sm font-bold rounded-lg transition-all"
+              style={
+                selectedToken === token
+                  ? {
+                      background: "linear-gradient(0deg, #e50e0f 0%, #680a71 100%)",
+                      color: "#fff",
+                      border: "1px solid rgba(255,255,255,0.3)",
+                    }
+                  : {
+                      background: "rgba(255,255,255,0.05)",
+                      color: "rgba(255,255,255,0.5)",
+                      border: "1px solid rgba(255,255,255,0.1)",
+                    }
+              }
+            >
+              {token}
+            </button>
+          ))}
+        </div>
+
         {/* Balance */}
         <p className="mb-6 text-xs" style={{ color: "rgba(255,255,255,0.45)" }}>
-          {t("confirm_purchase_balance", { balance: isLoading ? "…" : formattedBalance })}
+          {t("confirm_purchase_balance", { balance: isLoading ? "…" : formattedBalance })} {selectedToken}
         </p>
 
         {/* Confirm Button */}
         <button
           type="button"
-          onClick={onConfirm}
+          onClick={() => onConfirm(selectedToken)}
           className="mb-4 w-full py-4 text-center text-lg font-bold text-white"
           style={{
             borderRadius: "10px",

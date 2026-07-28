@@ -302,6 +302,7 @@ export async function verifyBatchActivationTransfer(
   txHash: string,
   expectedList: ActivationTransferItem[],
   contractAddress: string,
+  tokenAddress?: string,
 ): Promise<{ isValid: boolean; error?: string; fromAddress?: string }> {
   try {
     // 幂等：交易不可重复使用
@@ -334,10 +335,11 @@ export async function verifyBatchActivationTransfer(
       return { isValid: false, error: 'Transaction did not call batch transfer contract' };
     }
 
-    // 3. 解析从合约发出的 USDT Transfer 事件（合约 -> 接收者）
+    // 3. 解析从合约发出的 Transfer 事件（合约 -> 接收者）
+    const effectiveTokenAddress = (tokenAddress || USDT_TOKEN_ADDRESS).toLowerCase();
     const actual: ActivationTransferItem[] = [];
     for (const log of receipt.logs || []) {
-      if (log.address.toLowerCase() !== USDT_TOKEN_ADDRESS.toLowerCase()) continue;
+      if (log.address.toLowerCase() !== effectiveTokenAddress) continue;
       let decoded;
       try {
         decoded = decodeEventLog({ abi: ERC20_ABI, data: log.data, topics: log.topics });

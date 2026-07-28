@@ -27,6 +27,7 @@ import { NodeConfirmModal } from "@/components/NodeConfirmModal";
 import { PoolInfo } from "@/components/PoolInfo";
 import { RecommenderAlertModal } from "@/components/RecommenderAlertModal";
 import { TokenType, TxFlowStatus, UserType } from "@prisma/client";
+import type { PaymentToken } from "@/components/NodeConfirmModal";
 import { truncateDecimals } from "@/utils/common";
 import decimal from "decimal.js";
 import BorderCustom from "@/components/ui/border-custom";
@@ -45,7 +46,8 @@ interface NodeCardProps {
   handleCommunity?: (
     type: MembershipType,
     price: number,
-    recommender: string
+    recommender: string,
+    tokenType?: "USDT" | "HAKP"
   ) => Promise<void>;
 }
 
@@ -191,12 +193,12 @@ const NodeCard: React.FC<NodeCardProps> = ({
       <NodeConfirmModal
         isOpen={showConfirmModal}
         onClose={() => setShowConfirmModal(false)}
-        onConfirm={() => {
+        onConfirm={(token: PaymentToken) => {
           setShowConfirmModal(false);
           const membershipType =
             nodeType === UserType.COMMUNITY ? COMMUNITY_TYPE : GROUP_TYPE;
           const numericPrice = Number(price);
-          handleCommunity?.(membershipType, numericPrice, "");
+          handleCommunity?.(membershipType, numericPrice, "", token);
         }}
         isBigNode={nodeType === UserType.COMMUNITY}
         price={price}
@@ -857,7 +859,8 @@ interface NodeMarketProps {
   handleCommunity: (
     type: MembershipType,
     price: number,
-    recommender: string
+    recommender: string,
+    tokenType?: "USDT" | "HAKP"
   ) => Promise<void>;
 }
 
@@ -1037,12 +1040,13 @@ const NodeMarket: React.FC<NodeMarketProps> = ({
       <NodeConfirmModal
         isOpen={showConfirmModal}
         onClose={() => setShowConfirmModal(false)}
-        onConfirm={() => {
+        onConfirm={(token: PaymentToken) => {
           setShowConfirmModal(false);
           void handleCommunity(
             selectedOption.type,
             selectedOption.price,
-            ""
+            "",
+            token
           );
         }}
         isBigNode={false}

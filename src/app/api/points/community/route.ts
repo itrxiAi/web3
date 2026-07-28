@@ -4,7 +4,7 @@ import prisma from '@/lib/prisma';
 import { updateUserType } from '@/lib/user';
 import { verifyTokenTransfer, verifyBatchActivationTransfer, type ActivationTransferItem } from '@/utils/chain';
 import { getBatchTransferContract, getNodeDisperseRecipients, getVerifier1, getVerifier2 } from '@/lib/config';
-import { UserType } from '@prisma/client';
+import { UserType, TokenType } from '@prisma/client';
 import { ErrorCode } from '@/lib/errors';
 import { operationControl } from '@/utils/auth';
 import decimal from 'decimal.js';
@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { txHash, dev_address, dev_referralCode, dev_type } = body;
+    const { txHash, dev_address, dev_referralCode, dev_type, dev_tokenType } = body;
 
     if (!txHash) {
       return NextResponse.json(
@@ -65,7 +65,10 @@ export async function POST(req: NextRequest) {
         amount: new decimal(price).mul(r.ratio).toDecimalPlaces(2, decimal.ROUND_DOWN).toFixed(2),
       }));
 
-      const batchResult = await verifyBatchActivationTransfer(txHash, expectedList, batchContract);
+      const tokenAddress = dev_tokenType === 'HAKP'
+        ? process.env.NEXT_PUBLIC_HAKP_ADDRESS
+        : process.env.NEXT_PUBLIC_USDT_ADDRESS;
+      const batchResult = await verifyBatchActivationTransfer(txHash, expectedList, batchContract, tokenAddress);
       if (!batchResult.isValid) {
         console.log(`Invalid batch transaction: ${batchResult.error}, txHash: ${txHash}`);
         return NextResponse.json(
@@ -118,7 +121,8 @@ export async function POST(req: NextRequest) {
           walletAddress,
           type: type as MembershipType,
           txHash,
-          tx: prisma
+          tx: prisma,
+          tokenType: (dev_tokenType === 'HAKP' ? TokenType.HAKP : TokenType.USDT) as TokenType,
         });
     } catch (error) {
       console.error('Transaction failed:', error);
