@@ -1,19 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
-import { getWithdrawInnerFee, getWithdrawTokenFeeRatio } from '@/lib/config';
 import decimal from 'decimal.js';
 import { ErrorCode } from '@/lib/errors';
-//import { getUserLevel, getUserTotalPerformance } from '@/lib/userCache';
-import { getActivePercent } from '@/lib/user';
-import { UserType } from '@prisma/client';
-import { COMMUNITY_TYPE } from '@/constants';
 
-/**
- * Get user points
- */
 export async function GET(req: NextRequest) {
   try {
-    // Get wallet address from query params
     const { searchParams } = new URL(req.url);
     const tmpAddress = searchParams.get('address');
     if (!tmpAddress) {
@@ -24,129 +14,78 @@ export async function GET(req: NextRequest) {
     }
     const walletAddress = tmpAddress.toLowerCase();
 
-    // Get user info and balance
-    const userInfo = await prisma.user.findUnique({
-      where: { walletAddress: walletAddress },
-      select: {
-        id: true,
-        type: true,
-        referralCode: true,
-        superior: true,
-        path: true,
-        createdAt: true,
-        purchaseAt: true,
-        equityActivedAt: true,
-        equityType: true,
-        cards: true,
-        points: true,
+    const appBackendUrl = process.env.APP_BACKEND_URL;
+    if (!appBackendUrl) {
+      return NextResponse.json(
+        { error: ErrorCode.SERVER_ERROR },
+        { status: 500 }
+      );
+    }
+
+    const response = await fetch(
+      `${appBackendUrl}/internal/users/${walletAddress}/detail`
+    );
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        return NextResponse.json({
+          id: null,
+          referral_code: null,
+          superior_referral_code: null,
+          type: null,
+          level: 0,
+          performance: new decimal(0),
+          usdt_points: new decimal(0),
+          token_points: new decimal(0),
+          usdt_withdrawable: new decimal(0),
+          token_withdrawable: new decimal(0),
+          token_locked_points: new decimal(0),
+          token_staked_points: new decimal(0),
+          stake_reward_cap: new decimal(0),
+          stake_dynamic_reward_cap: new decimal(0),
+          active_percent: 0,
+          is_special: false,
+          equityType: null,
+          cards: 0,
+          points: 0,
+        });
       }
-    })
-    // const userLevel = await getUserLevel(walletAddress)
-    // const performance = await getUserTotalPerformance(walletAddress)
-    const performance = new decimal(0);
-    let activePercent = 100;
-    // if (userInfo?.type == UserType.GALAXY && !userInfo?.interest_active) {
-    //   activePercent = await getActivePercent({
-    //     walletAddress,
-    //     userType: userInfo?.type || UserType.GROUP
-    //   })
-    // }
-
-    // const userBalance = await prisma.user_balance.findUnique({
-    //   where: { address: walletAddress },
-    //   select: {
-    //     usdt_points: true,
-    //     token_points: true,
-    //     token_locked_points: true,
-    //     token_staked_points: true,
-    //     stake_reward_cap: true,
-    //     stake_dynamic_reward_cap: true
-    //   }
-    // })
-
-    if (!userInfo) {
-      return NextResponse.json({
-        id: null,
-        referral_code: null,
-        superior_referral_code: null,
-        type: null,
-        level: 0,
-        performance: new decimal(0),
-        usdt_points: new decimal(0),
-        token_points: new decimal(0),
-        usdt_withdrawable: new decimal(0),
-        token_withdrawable: new decimal(0),
-        token_locked_points: new decimal(0),
-        token_staked_points: new decimal(0),
-        stake_reward_cap: new decimal(0),
-        stake_dynamic_reward_cap: new decimal(0),
-        active_percent: 0,
-        is_special: false,
-        equityType: null,
-        cards: 0,
-        points: 0,
-      });
+      return NextResponse.json(
+        { error: ErrorCode.SERVER_ERROR },
+        { status: 500 }
+      );
     }
 
-    let superior_referral_code: string | null = null;
+    const data = await response.json();
+    const user = data.user;
+    const directInvitees = data.directInvitees ?? [];
 
-    if (userInfo.superior) {
-      const superiorInfo = await prisma.user.findUnique({
-        where: { walletAddress: userInfo.superior },
-        select: {
-          referralCode: true
-        }
-      })
-      superior_referral_code = superiorInfo?.referralCode || null;
-    }
+    const superior_referral_code = user.ancestors?.length
+      ? user.ancestors[user.ancestors.length - 1]?.shortCode ?? null
+      : null;
 
-    // Count VIP/SVIP for direct referrals and all subordinates
-    const userPath = userInfo.path ?? '';
-    const subordinatePathPrefix = userPath ? `${userPath}.` : '';
-
-    const [
-      directVipCount, directSvipCount,
-      allVipCount, allSvipCount,
-    ] = subordinatePathPrefix
-      ? await Promise.all([
-          prisma.user.count({ where: { superior: walletAddress, type: COMMUNITY_TYPE, cards: 1 } }),
-          prisma.user.count({ where: { superior: walletAddress, type: COMMUNITY_TYPE, cards: 2 } }),
-          prisma.user.count({ where: { path: { startsWith: subordinatePathPrefix }, type: COMMUNITY_TYPE, cards: 1 } }),
-          prisma.user.count({ where: { path: { startsWith: subordinatePathPrefix }, type: COMMUNITY_TYPE, cards: 2 } }),
-        ])
-      : [0, 0, 0, 0];
-    
-
-    // Calculate withdrawable amounts
-    //const usdt_withdrawable = Math.max(0, new decimal(userBalance?.usdt_points || 0).dividedBy(new decimal(1 + await getWithdrawTokenFeeRatio())).toNumber());
-    //const token_withdrawable = Math.max(0, new decimal(userBalance?.token_points || 0).dividedBy(new decimal(1 + await getWithdrawTokenFeeRatio())).toNumber());
+    const directVipCount = directInvitees.filter((d: any) => d.nodeType === 'VERIFIER1').length;
+    const directSvipCount = directInvitees.filter((d: any) => d.nodeType === 'VERIFIER2').length;
 
     return NextResponse.json({
-      ...userInfo,
-      // Set interest_active to true if usertype is not GALAXY
-      //interest_active: userInfo?.type !== UserType.GALAXY ? true : userInfo?.interest_active,
-      //level: userLevel,
-      performance: performance,
-      active_percent: activePercent,
-      referral_code: userInfo.referralCode,
+      id: user.id,
+      referral_code: user.shortCode,
       superior_referral_code,
-      // ...userBalance || {
-      //   usdt_points: new decimal(0),
-      //   token_points: new decimal(0),
-      //   token_locked_points: new decimal(0),
-      //   token_staked_points: new decimal(0),
-      //   stake_reward_cap: new decimal(0),
-      //   stake_dynamic_reward_cap: new decimal(0)
-      // },
-      // usdt_withdrawable: new decimal(usdt_withdrawable),
-      // token_withdrawable: new decimal(token_withdrawable),
+      type: user.nodeType,
+      level: 0,
+      performance: new decimal(user.performance ?? 0),
+      active_percent: 100,
       is_special: false,
-      cards: userInfo.cards ?? 0,
-      points: userInfo.points ?? 0,
+      equityType: user.activation?.package ?? null,
+      cards: user.hakcard ?? 0,
+      points: user.tribute ?? 0,
+      createdAt: user.createdAt,
+      purchaseAt: user.activation?.activatedAt ?? null,
+      equityActivedAt: user.activation?.activatedAt ?? null,
       directVipCount,
       directSvipCount,
-      allVipCount,
-      allSvipCount,
+      allVipCount: user.allVipCount ?? 0,
+      allSvipCount: user.allSvipCount ?? 0,
     });
   } catch (error) {
     console.error('Error getting points:', error);

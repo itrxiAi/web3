@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { MAX_TIMESTAMP_GAP_MS, MembershipType } from '@/constants';
+import { MAX_TIMESTAMP_GAP_MS } from '@/constants';
 import prisma from '@/lib/prisma';
-import { updateUserType } from '@/lib/user';
 import { verifyTokenTransfer, verifyBatchActivationTransfer, type ActivationTransferItem } from '@/utils/chain';
-import { getBatchTransferContract, getNodeDisperseRecipients, getVerifier1, getVerifier2 } from '@/lib/config';
-import { UserType, TokenType } from '@prisma/client';
+import { getBatchTransferContract, getNodeDisperseRecipients, getVerifier1, getVerifier2, getHotWalletAddress } from '@/lib/config';
+import { TxFlowType, TxFlowStatus, TokenType } from '@prisma/client';
 import { ErrorCode } from '@/lib/errors';
 import { operationControl } from '@/utils/auth';
 import decimal from 'decimal.js';
@@ -117,15 +116,19 @@ export async function POST(req: NextRequest) {
     const walletAddress = fromAddress;
 
     try {
-        await updateUserType({
-          walletAddress,
-          type: type as MembershipType,
-          txHash,
-          tx: prisma,
-          tokenType: (dev_tokenType === 'HAKP' ? TokenType.HAKP : TokenType.USDT) as TokenType,
+        await prisma.transaction.create({
+          data: {
+            txHash: txHash,
+            fromAddress: walletAddress,
+            toAddress: (await getHotWalletAddress()).toString(),
+            amount: new decimal(0),
+            tokenType: dev_tokenType === 'HAKP' ? TokenType.HAK : TokenType.USDT,
+            type: TxFlowType.PURCHASE,
+            status: TxFlowStatus.PENDING,
+          },
         });
     } catch (error) {
-      console.error('Transaction failed:', error);
+      console.error('Transaction record failed:', error);
       return NextResponse.json(
         { error: ErrorCode.TRANSACTION_FAILED },
         { status: 500 }

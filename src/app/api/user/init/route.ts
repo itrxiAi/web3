@@ -1,58 +1,60 @@
 import { NextResponse } from 'next/server'
-import prisma from '@/lib/prisma'
 import { randomReferralCode } from '@/utils/auth';
-import { updateUserPath } from '@/lib/user';
+
 export async function POST(request: Request) {
 
     const body = await request.json();
     const { address, referralCode } = body;
 
-    const exist = await prisma.user.findUnique({
-        where: { walletAddress: address.toLowerCase() },
-        select: { walletAddress: true, type: true}
-    });
+    const lowerCaseAddress = address.toLowerCase();
+    const shortCode = randomReferralCode(lowerCaseAddress);
 
-    if (exist) {
-        return NextResponse.json({
-            exist: true,
-            data: exist
-        })
+    const appBackendUrl = process.env.APP_BACKEND_URL;
+    const internalApiKey = process.env.INTERNAL_API_KEY;
+
+    if (!appBackendUrl || !internalApiKey) {
+        return NextResponse.json(
+            { error: 'BACKEND_NOT_CONFIGURED' },
+            { status: 500 }
+        );
     }
-
-    let superior: { walletAddress: string, path: string | null } | null = null;
-    if (referralCode) {
-        superior = await prisma.user.findUnique({
-            where: { referralCode: referralCode },
-            select: { walletAddress: true, path: true}
-        });
-    }
-
 
     try {
-        await prisma.$transaction(async (tx) => {
-            const user = await tx.user.create({
-                data: {
-                    walletAddress: address.toLowerCase(),
-                    superior: superior?.walletAddress || null,
-                    referralCode: randomReferralCode(address.toLowerCase()),
-                    //last_activity: new Date(),
-                }
-            });
+        const response = await fetch(`${appBackendUrl}/internal/sync/user`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-internal-key': internalApiKey,
+            },
+            body: JSON.stringify({
+                address: lowerCaseAddress,
+                shortCode,
+                inviterAddress: referralCode || null,
+            }),
+        });
 
-            await updateUserPath(user.id, superior?.path || null, tx);
+        if (!response.ok) {
+            const err = await response.json().catch(() => ({}));
+            console.error('sync/user failed:', response.status, err);
+            return NextResponse.json(
+                { error: 'USER_INIT_FAILED' },
+                { status: 500 }
+            );
+        }
+
+        const data = await response.json();
+        return NextResponse.json({
+            exist: true,
+            data: {
+                address: lowerCaseAddress,
+                shortCode,
+            }
         });
     } catch (e) {
-        console.error('user init transaction failed:', e);
+        console.error('user init failed:', e);
         return NextResponse.json(
             { error: 'USER_INIT_FAILED' },
             { status: 500 }
         );
     }
-
-    return NextResponse.json({
-        exist: true,
-        data: {
-            address: address.toLowerCase(),
-        }
-    })
 }

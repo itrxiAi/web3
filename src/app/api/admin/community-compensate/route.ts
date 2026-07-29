@@ -1,8 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
 import { validateBearerToken } from '@/utils/auth';
-import { updateUserType } from '@/lib/user';
-import { UserType } from '@prisma/client';
 
 export async function POST(req: NextRequest) {
   const validationResponse = validateBearerToken(req);
@@ -11,11 +8,18 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { walletAddress, txHash } = await req.json();
+    const { walletAddress, txHash, nodeType } = await req.json();
 
     if (!walletAddress || typeof walletAddress !== 'string') {
       return NextResponse.json(
         { error: 'walletAddress is required' },
+        { status: 400 }
+      );
+    }
+
+    if (!nodeType || !['VERIFIER1', 'VERIFIER2'].includes(nodeType)) {
+      return NextResponse.json(
+        { error: 'nodeType must be VERIFIER1 or VERIFIER2' },
         { status: 400 }
       );
     }
@@ -26,24 +30,35 @@ export async function POST(req: NextRequest) {
         ? txHash.trim()
         : `manual-community-${normalizedAddress}-${Date.now()}`;
 
-    const user = await prisma.user.findUnique({
-      where: { walletAddress: normalizedAddress },
-      select: { id: true, walletAddress: true }
-    });
+    const appBackendUrl = process.env.APP_BACKEND_URL;
+    const internalApiKey = process.env.INTERNAL_API_KEY;
 
-    if (!user) {
+    if (!appBackendUrl || !internalApiKey) {
       return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
+        { error: 'BACKEND_NOT_CONFIGURED' },
+        { status: 500 }
       );
     }
 
-    const result = await updateUserType({
-      walletAddress: normalizedAddress,
-      type: UserType.COMMUNITY,
-      txHash: effectiveTxHash,
-      tx: prisma
+    const response = await fetch(`${appBackendUrl}/internal/users/node-type`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-internal-key': internalApiKey,
+      },
+      body: JSON.stringify({ address: normalizedAddress, nodeType }),
     });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      console.error('node-type failed:', response.status, err);
+      return NextResponse.json(
+        { error: 'Failed to set nodeType' },
+        { status: 500 }
+      );
+    }
+
+    const result = await response.json();
 
     return NextResponse.json({
       status: 'success',

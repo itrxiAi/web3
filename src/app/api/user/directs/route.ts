@@ -1,70 +1,61 @@
 import { NextRequest, NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
 import { ErrorCode } from '@/lib/errors';
 
-/**
- * Get user's direct referrals (users whose superior is the current user)
- */
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const tmpAddress = searchParams.get('address');
-    
+
     if (!tmpAddress) {
       return NextResponse.json(
         { error: ErrorCode.MISSING_WALLET_ADDRESS },
         { status: 400 }
       );
     }
-    
+
     const walletAddress = tmpAddress.toLowerCase();
 
-    // Get user's direct referrals
-    const directs = await prisma.user.findMany({
-      where: {
-        superior: walletAddress//,
-//        cards: { gt: 0 }, // Only include users with cards (early consensus)
-      },
-      select: {
-        walletAddress: true,
-        equityType: true,
-        cards: true,
-        equityActivedAt: true,
-        createdAt: true,
-      },
-      orderBy: {
-        equityActivedAt: 'asc', // Order by activation time
-      },
-    });
+    const appBackendUrl = process.env.APP_BACKEND_URL;
+    if (!appBackendUrl) {
+      return NextResponse.json(
+        { error: ErrorCode.SERVER_ERROR },
+        { status: 500 }
+      );
+    }
 
-    // Calculate consensus amount based on cards purchased
-    const directsWithConsensus = directs.map((direct, index) => {
-      // 根据 cards 数量反推 verifier 类型，再获取对应的价格
-      // VERIFIER_1: 1 card = 500 USDT
-      // VERIFIER_2: 2 cards = 1000 USDT
-      let consensusAmount = 0;
-      const cards = direct.cards || 0;
-      
-      if (cards === 1) {
-        consensusAmount = 500;  // VERIFIER_1
-      } else if (cards === 2) {
-        consensusAmount = 1000; // VERIFIER_2
-      } else if (cards === 10) {
-        consensusAmount = 5000; // VERIFIER_3
-      } else if (cards === 20) {
-        consensusAmount = 10000; // VERIFIER_4
-      } else {
-        // 如果不匹配标准套餐，按比例计算（假设平均每卡500 USDT）
-        consensusAmount = cards * 500;
+    const response = await fetch(
+      `${appBackendUrl}/internal/users/${walletAddress}/detail`
+    );
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        return NextResponse.json({ directs: [], total: 0 });
       }
-      
+      return NextResponse.json(
+        { error: ErrorCode.SERVER_ERROR },
+        { status: 500 }
+      );
+    }
+
+    const data = await response.json();
+    const directInvitees = data.directInvitees ?? [];
+
+    const directsWithConsensus = directInvitees.map((direct: any, index: number) => {
+      let consensusAmount = 0;
+      const nodeType = direct.nodeType;
+      if (nodeType === 'VERIFIER1') {
+        consensusAmount = 500;
+      } else if (nodeType === 'VERIFIER2') {
+        consensusAmount = 1000;
+      }
+
       return {
         sequence: index + 1,
-        address: direct.walletAddress,
-        equityType: direct.equityType,
-        cards: direct.cards,
+        address: direct.address,
+        equityType: direct.activation?.package ?? null,
+        cards: direct.hakcard ?? 0,
         consensusAmount,
-        activatedAt: direct.equityActivedAt,
+        activatedAt: direct.activation?.activatedAt ?? null,
       };
     });
 
