@@ -8,8 +8,6 @@ import {
   EQUITY_BASE_TYPE,
   EQUITY_PLUS_TYPE,
   EQUITY_PREMIUM_TYPE,
-  EQUITY_EXPERT_TYPE,
-  EQUITY_VIP_TYPE,
 } from '@/constants';
 import prisma from './prisma';
 import { EquityType, Prisma, TokenType, TxFlowStatus, TxFlowType, UserType } from '@prisma/client';
@@ -34,8 +32,6 @@ import {
   getEquityBasePriceDisplay,
   getEquityPlusPriceDisplay,
   getEquityPremiumPriceDisplay,
-  getEquityExpertPriceDisplay,
-  getEquityVipPriceDisplay,
   getVerifier1,
   getVerifier2,
   getVerifier3,
@@ -96,10 +92,6 @@ export async function updateUserEquity({
     amount = (await getEquityPlusPriceDisplay()).toNumber();
   } else if (equityKey === EQUITY_PREMIUM_TYPE) {
     amount = (await getEquityPremiumPriceDisplay()).toNumber();
-  } else if (equityKey === EQUITY_EXPERT_TYPE) {
-    amount = (await getEquityExpertPriceDisplay()).toNumber();
-  } else if (equityKey === EQUITY_VIP_TYPE) {
-    amount = (await getEquityVipPriceDisplay()).toNumber();
   }
   const transactiion = await tx.transaction.create({
     data: {
@@ -175,14 +167,6 @@ export async function updateUserType({
     points = 250;
     cards = 2;
     equityTypeKey = EQUITY_PREMIUM_TYPE;
-  } else if (type === VERIFIER_3) {
-    points = 1500;
-    cards = 10;
-    equityTypeKey = EQUITY_EXPERT_TYPE;
-  } else if (type === VERIFIER_4) {
-    points = 3500;
-    cards = 20;
-    equityTypeKey = EQUITY_VIP_TYPE;
   }
 
   const count = await tx.user.count({

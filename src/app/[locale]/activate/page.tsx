@@ -17,17 +17,13 @@ import {
   EQUITY_BASE_TYPE,
   EQUITY_PLUS_TYPE,
   EQUITY_PREMIUM_TYPE,
-  EQUITY_EXPERT_TYPE,
-  EQUITY_VIP_TYPE,
 } from "@/constants";
 
-type TierCopyKey = "base" | "plus" | "premium" | "expert" | "vip";
+type TierCopyKey = "base" | "plus" | "premium";
 
 function tierKey(devType: string): TierCopyKey {
   if (devType === EQUITY_PLUS_TYPE) return "plus";
   if (devType === EQUITY_PREMIUM_TYPE) return "premium";
-  if (devType === EQUITY_EXPERT_TYPE) return "expert";
-  if (devType === EQUITY_VIP_TYPE) return "vip";
   return "base";
 }
 
@@ -35,8 +31,6 @@ const DISPLAY_ORDER = [
   EQUITY_BASE_TYPE,
   EQUITY_PLUS_TYPE,
   EQUITY_PREMIUM_TYPE,
-  EQUITY_EXPERT_TYPE,
-  EQUITY_VIP_TYPE,
 ] as const;
 
 function ActivateInner() {

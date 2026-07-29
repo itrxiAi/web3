@@ -22,8 +22,6 @@ const COMMUNITY_PRICE_DISPLAY = "COMMUNITY_PRICE";
 const EQUITY_BASE_PRICE_DISPLAY = "EQUITY_BASE_PRICE_DISPLAY";
 const EQUITY_PLUS_PRICE_DISPLAY = "EQUITY_PLUS_PRICE_DISPLAY";
 const EQUITY_PREMIUM_PRICE_DISPLAY = "EQUITY_PREMIUM_PRICE_DISPLAY"
-const EQUITY_EXPERT_PRICE_DISPLAY = "EQUITY_EXPERT_PRICE_DISPLAY";
-const EQUITY_VIP_PRICE_DISPLAY = "EQUITY_VIP_PRICE_DISPLAY";
 
 const GROUP_NUM = "GROUP_NUM"; //800
 const COMMUNITY_NUM = "COMMUNITY_NUM"; //200
@@ -443,16 +441,6 @@ export async function getEquityPlusPriceDisplay(): Promise<decimal> {
 export async function getEquityPremiumPriceDisplay(): Promise<decimal> {
     const price = await getConfig(EQUITY_PREMIUM_PRICE_DISPLAY);
     return new decimal(price || 1000);
-}
-
-export async function getEquityExpertPriceDisplay(): Promise<decimal> {
-    const price = await getConfig(EQUITY_EXPERT_PRICE_DISPLAY);
-    return new decimal(price || 5000);
-}
-
-export async function getEquityVipPriceDisplay(): Promise<decimal> {
-    const price = await getConfig(EQUITY_VIP_PRICE_DISPLAY);
-    return new decimal(price || 10000);
 }
 
 export async function getMinWithdrawUsdtAmount(): Promise<decimal> {

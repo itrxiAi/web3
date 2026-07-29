@@ -15,8 +15,6 @@ import {
   EQUITY_BASE_TYPE,
   EQUITY_PLUS_TYPE,
   EQUITY_PREMIUM_TYPE,
-  EQUITY_EXPERT_TYPE,
-  EQUITY_VIP_TYPE,
   type MembershipType,
 } from "@/constants";
 import { triggerWalletConnect } from "@/components/ui/wallet-ref";
@@ -417,8 +415,6 @@ const EQUITY_TYPES = [
   EQUITY_BASE_TYPE,
   EQUITY_PLUS_TYPE,
   EQUITY_PREMIUM_TYPE,
-  EQUITY_EXPERT_TYPE,
-  EQUITY_VIP_TYPE,
 ] as const;
 
 export function isEquityDevType(s: string): s is MembershipType {

@@ -44,6 +44,9 @@ export async function POST(req: NextRequest) {
     const address = dev_address.toLowerCase();
     const equityType = dev_type as EquityType;
     const pkg = EQUITY_TO_PACKAGE[equityType];
+    if (!pkg) {
+      return NextResponse.json({ error: ErrorCode.INVALID_TRANSACTION }, { status: 400 });
+    }
 
     const priceDisplay = await getEquityDisplayPrice(equityType);
     if (!Number.isFinite(priceDisplay) || priceDisplay <= 0) {

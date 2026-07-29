@@ -3,24 +3,18 @@ import {
   getEquityBasePriceDisplay,
   getEquityPlusPriceDisplay,
   getEquityPremiumPriceDisplay,
-  getEquityExpertPriceDisplay,
-  getEquityVipPriceDisplay,
 } from '@/lib/config';
 import {
   EQUITY_BASE_TYPE,
   EQUITY_PLUS_TYPE,
   EQUITY_PREMIUM_TYPE,
-  EQUITY_EXPERT_TYPE,
-  EQUITY_VIP_TYPE,
 } from '@/constants';
 
 /** Equity 类型 -> App 激活套餐（与 app/backend ActivationPackage 对齐） */
-export const EQUITY_TO_PACKAGE: Record<EquityType, string> = {
+export const EQUITY_TO_PACKAGE: Partial<Record<EquityType, string>> = {
   BASE: 'P100',
   PLUS: 'P500',
   PREMIUM: 'P1000',
-  EXPERT: 'P5000',
-  VIP: 'P10000',
 };
 
 export interface ActivationTransferItem {
@@ -62,10 +56,6 @@ export async function getEquityDisplayPrice(equityType: EquityType): Promise<num
       return (await getEquityPlusPriceDisplay()).toNumber();
     case EQUITY_PREMIUM_TYPE:
       return (await getEquityPremiumPriceDisplay()).toNumber();
-    case EQUITY_EXPERT_TYPE:
-      return (await getEquityExpertPriceDisplay()).toNumber();
-    case EQUITY_VIP_TYPE:
-      return (await getEquityVipPriceDisplay()).toNumber();
     default:
       throw new Error(`Unknown equity type: ${equityType}`);
   }

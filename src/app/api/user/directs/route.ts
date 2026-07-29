@@ -42,8 +42,6 @@ export async function GET(req: NextRequest) {
       // 根据 cards 数量反推 verifier 类型，再获取对应的价格
       // VERIFIER_1: 1 card = 500 USDT
       // VERIFIER_2: 2 cards = 1000 USDT
-      // VERIFIER_3: 10 cards = 5000 USDT
-      // VERIFIER_4: 20 cards = 10000 USDT
       let consensusAmount = 0;
       const cards = direct.cards || 0;
       

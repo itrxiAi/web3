@@ -13,10 +13,8 @@ import { UserType } from '@prisma/client';
  *   body: { dryRun?: boolean, limit?: number }   // 都可选
  */
 
-// 按 cards 数量映射激活套餐（与 app 后端 HAKCARD_TO_PACKAGE 一致）
+// 按 cards 数量映射激活套餐（与 app 后端 ActivationPackage 一致）
 function cardsToPackage(cards: number): { package: string; amountUsdt: string } | null {
-  if (cards >= 20) return { package: 'P10000', amountUsdt: '10000' };
-  if (cards >= 10) return { package: 'P5000',  amountUsdt: '5000' };
   if (cards >= 2)  return { package: 'P1000',  amountUsdt: '1000' };
   if (cards >= 1)  return { package: 'P500',   amountUsdt: '500' };
   return null;

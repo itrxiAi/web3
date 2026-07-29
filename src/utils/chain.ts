@@ -1,12 +1,12 @@
 import { Connection, PublicKey, LAMPORTS_PER_SOL, Transaction, Keypair, VersionedTransaction, TransactionMessage, TransactionConfirmationStrategy, BlockheightBasedTransactionConfirmationStrategy, BaseTransactionConfirmationStrategy, ComputeBudgetProgram } from '@solana/web3.js';
 import { bsc } from 'viem/chains';
-import { MEMO_PROGRAM_ID, GROUP_TYPE, COMMUNITY_TYPE, MembershipType, NORMAL_TYPE, DEV_ENV, MAX_TRANSACTION_TIMEOUT_MS, EQUITY_BASE_TYPE, EQUITY_PLUS_TYPE, EQUITY_PREMIUM_TYPE, EQUITY_EXPERT_TYPE, EQUITY_VIP_TYPE, VERIFIER_1, VERIFIER_2, VERIFIER_3, VERIFIER_4 } from '@/constants';
+import { MEMO_PROGRAM_ID, GROUP_TYPE, COMMUNITY_TYPE, MembershipType, NORMAL_TYPE, DEV_ENV, MAX_TRANSACTION_TIMEOUT_MS, EQUITY_BASE_TYPE, EQUITY_PLUS_TYPE, EQUITY_PREMIUM_TYPE, VERIFIER_1, VERIFIER_2, VERIFIER_3, VERIFIER_4 } from '@/constants';
 
 import { EquityType, TokenType, TxFlowStatus } from '@prisma/client';
 import { getTokenAddress } from '@/lib/tokens';
 import decimal from 'decimal.js';
 import prisma from '@/lib/prisma';
-import { getCommunityPriceDisplay, getGroupPriceDisplay, getHotWalletAddress, getHotWalletKeypair, getBurningAddress, getEquityBasePriceDisplay, getEquityPlusPriceDisplay, getEquityPremiumPriceDisplay, getEquityExpertPriceDisplay, getEquityVipPriceDisplay, getVerifier1, getVerifier2, getVerifier3, getVerifier4 } from '@/lib/config';
+import { getCommunityPriceDisplay, getGroupPriceDisplay, getHotWalletAddress, getHotWalletKeypair, getBurningAddress, getEquityBasePriceDisplay, getEquityPlusPriceDisplay, getEquityPremiumPriceDisplay, getVerifier1, getVerifier2, getVerifier3, getVerifier4 } from '@/lib/config';
 import { getCurrentPrice } from './lbank';
 import { truncateNumber } from './common';
 // Ethereum imports
@@ -666,24 +666,6 @@ export async function verifyTokenTransfer(txHash: string, equity: boolean = fals
           fromAddress,
           referralCode,
           type: EQUITY_PREMIUM_TYPE,
-          amount
-        };
-      }
-      if (amountDecimal.equals(await getEquityExpertPriceDisplay())) {
-        return {
-          isValid: true,
-          fromAddress,
-          referralCode,
-          type: EQUITY_EXPERT_TYPE,
-          amount
-        };
-      }
-      if (amountDecimal.equals(await getEquityVipPriceDisplay())) {
-        return {
-          isValid: true,
-          fromAddress,
-          referralCode,
-          type: EQUITY_VIP_TYPE,
           amount
         };
       }
