@@ -181,11 +181,6 @@ const AdminStatisticsPage = () => {
   const [trError, setTrError] = useState('');
   const [tr, setTr] = useState<TeamRevenueBreakdown | null>(null);
 
-  // 数据迁移（web3 → app）：一次性按钮
-  const [syncLoading, setSyncLoading] = useState(false);
-  const [syncMessage, setSyncMessage] = useState('');
-  const [syncError, setSyncError] = useState('');
-
   // 认购补偿（保留旧 web3 后端）
   const [compensateTxHash, setCompensateTxHash] = useState('');
   const [compensateLoading, setCompensateLoading] = useState(false);
@@ -327,33 +322,6 @@ const AdminStatisticsPage = () => {
       setTrError(error instanceof Error ? error.message : '查询失败');
     } finally {
       setTrLoading(false);
-    }
-  };
-
-  const runSyncToApp = async () => {
-    if (!confirm('确认从 web3 同步用户/激活/鉴定者数据到 app 后端？此操作可重复执行（已同步的会被跳过）。')) return;
-    setSyncLoading(true);
-    setSyncError('');
-    setSyncMessage('');
-    try {
-      const response = await fetch('/api/admin/sync-to-app', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
-      });
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data?.error || `Request failed: ${response.status}`);
-      setSyncMessage(
-        `同步完成：扫描 ${data.scanned}/${data.total}，新建用户 ${data.userCreated} (跳过 ${data.userSkipped})，` +
-          `激活 ${data.activationOk}，鉴定者 ${data.arbiterOk}，错误 ${data.errors?.length ?? 0}`,
-      );
-      if (data.errors?.length) {
-        console.warn('sync-to-app errors:', data.errors);
-      }
-    } catch (error) {
-      setSyncError(error instanceof Error ? error.message : '同步失败');
-    } finally {
-      setSyncLoading(false);
     }
   };
 
@@ -954,30 +922,9 @@ const AdminStatisticsPage = () => {
           {creditError && <p className="text-red-400 text-sm">{creditError}</p>}
         </section>
 
-        {/* 6) web3 → app 数据迁移 */}
+        {/* 6) 认购补偿（保留旧 web3 后端） */}
         <section className="rounded-xl border border-white/20 bg-white/5 p-4 space-y-3">
-          <h2 className="text-lg font-semibold">6) web3 → app 数据迁移</h2>
-          <p className="text-xs text-white/60">
-            扫描 web3 user 表（cards{'>'}0 或 points{'>'}0），按 depth ASC 同步到 app 后端：
-            创建用户（保留 shortCode/推荐关系/cards/points） + 写激活（按 cards 数映射 package） + 写鉴定者（type=COMMUNITY）。
-            幂等，可重复点击。
-          </p>
-          <div>
-            <button
-              onClick={() => void runSyncToApp()}
-              disabled={syncLoading}
-              className="rounded bg-purple-600 px-4 py-2 text-sm disabled:bg-gray-600"
-            >
-              {syncLoading ? '同步中...' : '执行同步'}
-            </button>
-          </div>
-          {syncMessage && <p className="text-green-400 text-sm">{syncMessage}</p>}
-          {syncError && <p className="text-red-400 text-sm">{syncError}</p>}
-        </section>
-
-        {/* 7) 认购补偿（保留旧 web3 后端） */}
-        <section className="rounded-xl border border-white/20 bg-white/5 p-4 space-y-3">
-          <h2 className="text-lg font-semibold">7) 认购补偿（保留旧 web3 后端）</h2>
+          <h2 className="text-lg font-semibold">6) 认购补偿（保留旧 web3 后端）</h2>
           <input
             value={compensateTxHash}
             onChange={(e) => setCompensateTxHash(e.target.value)}
