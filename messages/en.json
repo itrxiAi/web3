@@ -725,5 +725,19 @@
     "low_24h": "24h Low",
     "volume_24h_txt": "24h Volume (TXT)",
     "market_cap": "Market Cap"
+  },
+  "swap": {
+    "title": "Sell HAK",
+    "pool_title": "HAK/USDT Liquidity Pool",
+    "pool_loading": "Loading…",
+    "balance": "Balance",
+    "sell_amount": "Sell",
+    "sell_placeholder": "Enter amount",
+    "receive_amount": "Receive",
+    "max": "Max",
+    "sell_btn": "Sell HAK",
+    "approving": "Approving…",
+    "swapping": "Swapping…",
+    "connect_wallet": "Connect Wallet to Sell"
   }
 }

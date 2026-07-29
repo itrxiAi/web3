@@ -725,5 +725,19 @@
     "CONFIRMED": "成功",
     "FAILED": "失败",
     "REFUSED": "拒绝"
+  },
+  "swap": {
+    "title": "卖出 HAK",
+    "pool_title": "HAK/USDT 流动性池",
+    "pool_loading": "加载中…",
+    "balance": "余额",
+    "sell_amount": "卖出",
+    "sell_placeholder": "输入数量",
+    "receive_amount": "预计获得",
+    "max": "全部",
+    "sell_btn": "卖出 HAK",
+    "approving": "授权中…",
+    "swapping": "交易中…",
+    "connect_wallet": "连接钱包后可卖出"
   }
 }
