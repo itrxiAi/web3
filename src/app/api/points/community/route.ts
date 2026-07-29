@@ -132,6 +132,31 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // 通知 app/backend 更新 nodeType
+    const appBackendUrl = process.env.APP_BACKEND_URL;
+    const internalApiKey = process.env.INTERNAL_API_KEY;
+    if (appBackendUrl && internalApiKey) {
+      const nodeTypeMap: Record<string, string> = {
+        VERIFIER1: 'VERIFIER1',
+        VERIFIER2: 'VERIFIER2',
+      };
+      const nodeType = nodeTypeMap[type];
+      if (nodeType) {
+        try {
+          await fetch(`${appBackendUrl}/internal/users/node-type`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-internal-key': internalApiKey,
+            },
+            body: JSON.stringify({ address: walletAddress, nodeType }),
+          });
+        } catch (e) {
+          console.error('Failed to set nodeType on backend:', e);
+        }
+      }
+    }
+
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error adding points:', error);
