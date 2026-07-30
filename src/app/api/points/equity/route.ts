@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { DEV_ENV, MAX_TIMESTAMP_GAP_MS } from '@/constants';
+import { MAX_TIMESTAMP_GAP_MS } from '@/constants';
 import prisma from '@/lib/prisma';
 import {
   verifyBatchActivationTransfer,
   verifyShieldTransfer,
   type ActivationTransferItem,
 } from '@/utils/chain';
-import { getEnvironment } from '@/lib/config';
 import { EquityType, TxFlowStatus, TxFlowType } from '@prisma/client';
 import { ErrorCode } from '@/lib/errors';
 import { operationControl } from '@/utils/auth';
@@ -53,8 +52,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: ErrorCode.INVALID_TRANSACTION }, { status: 400 });
     }
 
-    const isDev = getEnvironment() === DEV_ENV;
-
     // 防重放：同一 shield txHash 不可重复处理
     const operationKey = `${shieldTxHash}:buyequity`;
     if (operationControl.has(operationKey)) {
@@ -91,8 +88,8 @@ export async function POST(req: NextRequest) {
 
     const walletAddress = quoteTx.fromAddress.toLowerCase();
 
-    // 2. 链上校验（开发环境跳过）
-    if (!isDev) {
+    // 2. 链上校验
+    {
       // 2a. 推荐奖励 Disperse（仅当存在上级、referralList 非空时需要）
       if (desc.referralList.length > 0) {
         if (!referralTxHash || typeof referralTxHash !== 'string') {

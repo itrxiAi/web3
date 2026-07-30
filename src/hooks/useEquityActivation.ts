@@ -279,13 +279,13 @@ export function useEquityActivation(options?: EquityActivationOptions) {
       };
 
       // 3. 每种币各 approve 给 RAILGUN 代理合约
+      //    tokens 来自 buildShieldTransaction，token 字段已经是合约地址
       for (const { token, totalWei } of tokens) {
-        const tokenAddress = getTokenAddress(token);
-        if (!tokenAddress) {
-          throw new Error(`${token} contract address not found in environment variables`);
+        if (!token) {
+          throw new Error("Token address missing from shield response");
         }
         const approveHash = await writeContractAsync({
-          address: tokenAddress as `0x${string}`,
+          address: token as `0x${string}`,
           abi: usdtAbi,
           functionName: "approve",
           args: [proxyContract as `0x${string}`, BigInt(totalWei)],
