@@ -37,8 +37,8 @@ export async function POST(req: NextRequest) {
     }
 
     const data = await response.json();
-    const user = data.user;
-    const directInvitees = data.directInvitees ?? [];
+    const user = data.data?.user ?? data.user;
+    const directInvitees = data.data?.directInvitees ?? data.directInvitees ?? [];
 
     let count = 0;
     if (isDirect) {

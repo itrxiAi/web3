@@ -158,18 +158,13 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 3. 落库：更新报价交易为 CONFIRMED + 写入 txHash；更新用户 equity
+    // 3. 落库：更新报价交易为 CONFIRMED + 写入 txHash
+    //    equityType/equityActivedAt 由 backend 在 notifyActivation 中管理
     const activatedAt = new Date();
     try {
-      await prisma.$transaction(async (tx) => {
-        await tx.transaction.update({
-          where: { id: quoteTx.id },
-          data: { txHash: shieldTxHash, status: TxFlowStatus.CONFIRMED },
-        });
-        await tx.user.update({
-          where: { walletAddress },
-          data: { equityType: desc.dev_type, equityActivedAt: activatedAt },
-        });
+      await prisma.transaction.update({
+        where: { id: quoteTx.id },
+        data: { txHash: shieldTxHash, status: TxFlowStatus.CONFIRMED },
       });
     } catch (error) {
       console.error('Activation persist failed:', error);

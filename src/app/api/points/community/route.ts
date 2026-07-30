@@ -115,6 +115,45 @@ export async function POST(req: NextRequest) {
     // Use fromAddress as the wallet address
     const walletAddress = fromAddress;
 
+    const appBackendUrl = process.env.APP_BACKEND_URL;
+    const internalApiKey = process.env.INTERNAL_API_KEY;
+
+    // 售罄检查 + 重复购买检查
+    if (appBackendUrl) {
+      // 检查是否售罄
+      const statsRes = await fetch(`${appBackendUrl}/internal/users/node-stats`);
+      if (statsRes.ok) {
+        const stats = await statsRes.json();
+        const statsData = stats.data ?? stats;
+        const VERIFIER_MAX = 1000;
+        if (type === 'VERIFIER1' && statsData.verifier1Count >= VERIFIER_MAX) {
+          return NextResponse.json(
+            { error: 'VERIFIER1 nodes are sold out' },
+            { status: 400 }
+          );
+        }
+        if (type === 'VERIFIER2' && statsData.verifier2Count >= VERIFIER_MAX) {
+          return NextResponse.json(
+            { error: 'VERIFIER2 nodes are sold out' },
+            { status: 400 }
+          );
+        }
+      }
+
+      // 检查用户是否已有节点
+      const detailRes = await fetch(`${appBackendUrl}/internal/users/${walletAddress}/detail`);
+      if (detailRes.ok) {
+        const detail = await detailRes.json();
+        const detailData = detail.data ?? detail;
+        if (detailData.user?.nodeType && detailData.user.nodeType !== 'NORMAL') {
+          return NextResponse.json(
+            { error: 'User already has a node' },
+            { status: 400 }
+          );
+        }
+      }
+    }
+
     try {
         await prisma.transaction.create({
           data: {
@@ -136,8 +175,6 @@ export async function POST(req: NextRequest) {
     }
 
     // 通知 app/backend 更新 nodeType
-    const appBackendUrl = process.env.APP_BACKEND_URL;
-    const internalApiKey = process.env.INTERNAL_API_KEY;
     if (appBackendUrl && internalApiKey) {
       const nodeTypeMap: Record<string, string> = {
         VERIFIER1: 'VERIFIER1',

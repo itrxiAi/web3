@@ -13,8 +13,9 @@ export async function POST() {
       const statsResponse = await fetch(`${appBackendUrl}/internal/users/node-stats`);
       if (statsResponse.ok) {
         const stats = await statsResponse.json();
-        verifier1Count = stats.verifier1Count ?? 0;
-        verifier2Count = stats.verifier2Count ?? 0;
+        const statsData = stats.data ?? stats;
+        verifier1Count = statsData.verifier1Count ?? 0;
+        verifier2Count = statsData.verifier2Count ?? 0;
       }
     }
 

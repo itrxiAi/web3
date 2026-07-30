@@ -38,7 +38,7 @@ export async function GET(req: NextRequest) {
     }
 
     const data = await response.json();
-    const directInvitees = data.directInvitees ?? [];
+    const directInvitees = data.data?.directInvitees ?? data.directInvitees ?? [];
 
     const directsWithConsensus = directInvitees.map((direct: any, index: number) => {
       let consensusAmount = 0;

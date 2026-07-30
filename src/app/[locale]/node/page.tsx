@@ -944,7 +944,7 @@ const NodeMarket: React.FC<NodeMarketProps> = ({
             const maxNum = nodeInfo?.maxNum ?? 1000;
             const soldAmount = nodeInfo?.soldAmount ?? 0;
             const progress = maxNum > 0 ? (soldCount / maxNum) * 100 : 0;
-            const isDisabled = userInfo?.type === "COMMUNITY" || soldCount >= maxNum;
+            const isDisabled = (userInfo?.type && userInfo.type !== 'NORMAL') || soldCount >= maxNum;
 
             return (
               <div
@@ -1109,9 +1109,10 @@ function NodeContent() {
   }, [address]);
 
   const hasNode =
+    userInfo?.type === 'VERIFIER1' ||
+    userInfo?.type === 'VERIFIER2' ||
     userInfo?.type === GROUP_TYPE ||
-    userInfo?.type === COMMUNITY_TYPE ||
-    userInfo?.type === UserType.COMMUNITY;
+    userInfo?.type === COMMUNITY_TYPE;
 
   if (!nodeData) {
     return <LoadingSpinner />;

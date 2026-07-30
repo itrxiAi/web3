@@ -57,8 +57,8 @@ export async function GET(req: NextRequest) {
     }
 
     const data = await response.json();
-    const user = data.user;
-    const directInvitees = data.directInvitees ?? [];
+    const user = data.data?.user ?? data.user;
+    const directInvitees = data.data?.directInvitees ?? data.directInvitees ?? [];
 
     const superior_referral_code = user.ancestors?.length
       ? user.ancestors[user.ancestors.length - 1]?.shortCode ?? null
