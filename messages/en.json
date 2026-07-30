@@ -302,7 +302,8 @@
     "download_business_plan": "HarmonyLink Business Plan (PDF)",
     "download_whitepaper": "HarmonyLink Whitepaper (PDF)",
     "account_activation": "Account Activation",
-    "history_records": "History"
+    "history_records": "History",
+    "swap": "Swap HAK"
   },
   "user_type": {
     "NORMAL": "Inactive Node",

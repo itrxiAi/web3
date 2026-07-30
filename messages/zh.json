@@ -314,7 +314,8 @@
     "download_business_plan": "HarmonyLink商业计划书下载",
     "download_whitepaper": "HarmonyLink白皮书下载",
     "account_activation": "账户激活",
-    "history_records": "历史记录"
+    "history_records": "历史记录",
+    "swap": "HAK 兑换"
   },
   "user_type": {
     "NORMAL": "普通用户",

@@ -27,6 +27,7 @@ const menuItems: NavItem[] = [
   { key: "download_business_plan", href: "/download#business" },
   { key: "download_whitepaper", href: "/download#whitepaper" },
   { key: "account_activation", href: "/activate" },
+  { key: "swap", href: "/swap" },
 ];
 
 function MenuIcon({ name }: { name: string }) {
@@ -93,6 +94,12 @@ function MenuIcon({ name }: { name: string }) {
           <path d="M12 7v5l3 2" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       );
+    case "swap":
+      return (
+        <svg className={cls} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+          <path d="M4 7h13l-3-3M20 17H7l3 3" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      );
     default:
       return null;
   }
@@ -110,6 +117,7 @@ const iconByKey: Record<string, string> = {
   download_business_plan: "stack",
   download_whitepaper: "book",
   account_activation: "check",
+  swap: "swap",
 };
 
 function ChevronRight() {

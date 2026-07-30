@@ -101,11 +101,8 @@ function MyContent() {
   }, [address]);
 
   const getRoleLabel = () => {
-    if (userInfo?.type === UserType.COMMUNITY) {
-      if (userInfo?.cards === 1) return tUserType(VERIFIER_1);
-      if (userInfo?.cards === 2) return tUserType(VERIFIER_2);
-      return tUserType("COMMUNITY");
-    }
+    if (userInfo?.type === VERIFIER_1) return tUserType(VERIFIER_1);
+    if (userInfo?.type === VERIFIER_2) return tUserType(VERIFIER_2);
     return tUserType("NORMAL");
   };
   const [showTokenTypeDropdown, setShowTokenTypeDropdown] = useState(false);
@@ -713,29 +710,6 @@ function MyContent() {
               </div>
             </div>
           )}
-
-          {/* My HAKCARD and Points Section */}
-          <div className="mb-8">
-            <div
-              className="p-5"
-              style={{
-                opacity: 0.78,
-                borderRadius: "15px",
-                backgroundImage: "linear-gradient(0deg, #e30e10 0%, #690a71 100%)",
-              }}
-            >
-              <div className="flex flex-col gap-4">
-                <div className="flex items-center justify-between">
-                  <p className="text-xs text-white/80">{t("task_pack")}</p>
-                  <p className="text-2xl font-bold text-white">{userInfo?.cards === 1 ? "100u" : userInfo?.cards === 2 ? "300u" : "0u"}</p>
-                </div>
-                <div className="flex items-center justify-between">
-                  <p className="text-xs text-white/80">{t("fee_dividend")}</p>
-                  <p className="text-2xl font-bold text-white">{userInfo?.cards === 1 ? "2%" : userInfo?.cards === 2 ? "3%" : "0%"}</p>
-                </div>
-              </div>
-            </div>
-          </div>
 
           {/* VIP/SVIP Referral Counts Section */}
           <div className="mb-8">
