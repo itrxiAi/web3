@@ -24,8 +24,6 @@ const menuItems: NavItem[] = [
   { key: "early_consensus", href: "/node" },
   { key: "personal_center", href: "/my" },
   { key: "download_app", href: FALLBACK_APP_DOWNLOAD_URL },
-  { key: "download_business_plan", href: "/download#business" },
-  { key: "download_whitepaper", href: "/download#whitepaper" },
   { key: "account_activation", href: "/activate" },
   { key: "swap", href: "/swap" },
 ];
@@ -114,8 +112,6 @@ const iconByKey: Record<string, string> = {
   personal_center: "user",
   history_records: "history",
   download_app: "download",
-  download_business_plan: "stack",
-  download_whitepaper: "book",
   account_activation: "check",
   swap: "swap",
 };
