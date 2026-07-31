@@ -739,6 +739,7 @@
     "sell_btn": "卖出 HAK",
     "approving": "授权中…",
     "swapping": "交易中…",
-    "connect_wallet": "连接钱包后可卖出"
+    "connect_wallet": "连接钱包后可卖出",
+    "tax_info": "手续费"
   }
 }

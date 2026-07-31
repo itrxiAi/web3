@@ -51,6 +51,23 @@ const ERC20_ABI = [
   },
 ] as const;
 
+const HAK_ABI = [
+  {
+    type: "function",
+    name: "TAX_BPS",
+    inputs: [],
+    outputs: [{ type: "uint16" }],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "extraTaxBps",
+    inputs: [],
+    outputs: [{ type: "uint16" }],
+    stateMutability: "view",
+  },
+] as const;
+
 const ROUTER_ABI = [
   {
     type: "function",
@@ -129,12 +146,31 @@ export const SwapPanel: React.FC = () => {
     ? BigInt(Math.floor(Number(sellAmount) * Math.pow(10, DECIMALS)))
     : BigInt(0);
 
+  const { data: taxBpsData } = useReadContract({
+    address: hakAddress,
+    abi: HAK_ABI,
+    functionName: "TAX_BPS",
+  });
+
+  const { data: extraTaxBpsData } = useReadContract({
+    address: hakAddress,
+    abi: HAK_ABI,
+    functionName: "extraTaxBps",
+  });
+
+  const baseTaxBps = taxBpsData ? Number(taxBpsData as unknown as bigint) : 200;
+  const extraTaxBps = extraTaxBpsData ? Number(extraTaxBpsData as unknown as bigint) : 0;
+  const totalTaxBps = baseTaxBps + extraTaxBps;
+  const netAmountWei = sellAmountWei > 0
+    ? (sellAmountWei * BigInt(10000 - totalTaxBps)) / BigInt(10000)
+    : BigInt(0);
+
   const { data: amountsOutData } = useReadContract({
     address: routerAddress,
     abi: ROUTER_ABI,
     functionName: "getAmountsOut",
-    args: sellAmountWei > 0 && hakAddress && usdtAddress
-      ? [sellAmountWei, [hakAddress as `0x${string}`, usdtAddress as `0x${string}`]]
+    args: netAmountWei > 0 && hakAddress && usdtAddress
+      ? [netAmountWei, [hakAddress as `0x${string}`, usdtAddress as `0x${string}`]]
       : undefined,
   });
 
@@ -159,6 +195,9 @@ export const SwapPanel: React.FC = () => {
   const expectedUsdt = amountsOutData
     ? Number((amountsOutData as readonly bigint[])[1]) / Math.pow(10, DECIMALS)
     : 0;
+
+  const taxPercent = totalTaxBps / 100;
+  const taxStr = taxPercent > 0 ? ` (${taxPercent.toFixed(0)}% tax)` : "";
 
   const handleSell = useCallback(async () => {
     if (!address) {
@@ -284,12 +323,20 @@ export const SwapPanel: React.FC = () => {
 
             {/* Receive display */}
             <div className="mb-2 text-xs text-white/50">{t("receive_amount")}</div>
-            <div className="relative mb-4">
+            <div className="relative mb-2">
               <div className="w-full rounded-lg border border-purple-500/20 bg-black/60 px-3 py-3 pr-20 text-base text-white">
                 {expectedUsdt > 0 ? expectedUsdt.toFixed(4) : "0.0000"}
               </div>
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-bold text-purple-300">USDT</span>
             </div>
+
+            {/* Tax info */}
+            {totalTaxBps > 0 && (
+              <div className="mb-4 text-right text-xs text-orange-400/80">
+                {t("tax_info")}: {taxPercent.toFixed(0)}% ({(baseTaxBps / 100).toFixed(0)}% + {(extraTaxBps / 100).toFixed(0)}%)
+              </div>
+            )}
+            {totalTaxBps === 0 && <div className="mb-4" />}
 
             {/* Sell button */}
             <button

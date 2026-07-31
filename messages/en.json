@@ -739,6 +739,7 @@
     "sell_btn": "Sell HAK",
     "approving": "Approving…",
     "swapping": "Swapping…",
-    "connect_wallet": "Connect Wallet to Sell"
+    "connect_wallet": "Connect Wallet to Sell",
+    "tax_info": "Tax"
   }
 }
