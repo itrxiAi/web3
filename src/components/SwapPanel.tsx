@@ -54,7 +54,7 @@ const ERC20_ABI = [
 const ROUTER_ABI = [
   {
     type: "function",
-    name: "swapExactTokensForTokens",
+    name: "swapExactTokensForTokensSupportingFeeOnTransferTokens",
     inputs: [
       { type: "uint256", name: "amountIn" },
       { type: "uint256", name: "amountOutMin" },
@@ -62,7 +62,7 @@ const ROUTER_ABI = [
       { type: "address", name: "to" },
       { type: "uint256", name: "deadline" },
     ],
-    outputs: [{ type: "uint256[]", name: "amounts" }],
+    outputs: [],
     stateMutability: "nonpayable",
   },
   {
@@ -187,7 +187,7 @@ export const SwapPanel: React.FC = () => {
       const hash = await writeContractAsync({
         address: routerAddress as `0x${string}`,
         abi: ROUTER_ABI,
-        functionName: "swapExactTokensForTokens",
+        functionName: "swapExactTokensForTokensSupportingFeeOnTransferTokens",
         args: [
           sellAmountWei,
           amountOutMin,
