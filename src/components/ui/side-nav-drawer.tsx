@@ -24,8 +24,8 @@ const menuItems: NavItem[] = [
   { key: "early_consensus", href: "/node" },
   { key: "personal_center", href: "/my" },
   { key: "download_app", href: FALLBACK_APP_DOWNLOAD_URL },
-  { key: "account_activation", href: "/activate" },
-  { key: "swap", href: "/swap" },
+  // { key: "account_activation", href: "/activate" },
+  // { key: "swap", href: "/swap" },
 ];
 
 function MenuIcon({ name }: { name: string }) {

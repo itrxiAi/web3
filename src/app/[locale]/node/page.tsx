@@ -873,8 +873,8 @@ const NodeMarket: React.FC<NodeMarketProps> = ({
   const { address } = useAppKitAccount();
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const verifierOptions = [
-    { type: VERIFIER_1, price: 500, name: "VIP", dividend: "2%", taskPack: "100u" },
-    { type: VERIFIER_2, price: 1000, name: "SVIP", dividend: "3%", taskPack: "300u" },
+    { type: VERIFIER_1, price: 500, name: "VIP", dividend: "2%" },
+    { type: VERIFIER_2, price: 1000, name: "SVIP", dividend: "3%" },
   ] as const;
   const [selectedOption, setSelectedOption] = useState<(typeof verifierOptions)[number]>(
     verifierOptions[0]
@@ -901,8 +901,9 @@ const NodeMarket: React.FC<NodeMarketProps> = ({
           {tSub("title")}
         </h1>
 
-        {/* Pool Info — HAK/USDT 流动性池 */}
+        {/* Pool Info — HAK/USDT 流动性池
         <PoolInfo />
+        */}
 
         {/* Content Card — 权益说明 */}
         <div
@@ -969,10 +970,6 @@ const NodeMarket: React.FC<NodeMarketProps> = ({
                   <div className="flex items-start gap-2">
                     <span className="mt-0.5 flex h-[16px] w-[16px] shrink-0 items-center justify-center rounded-full bg-black text-[9px] font-bold leading-none text-white">1</span>
                     <span>{tSub("vip_benefit_dividend", { rate: option.dividend })}</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <span className="mt-0.5 flex h-[16px] w-[16px] shrink-0 items-center justify-center rounded-full bg-black text-[9px] font-bold leading-none text-white">2</span>
-                    <span>{tSub("vip_benefit_taskpack", { amount: option.taskPack })}</span>
                   </div>
                 </div>
 
