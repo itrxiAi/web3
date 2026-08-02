@@ -60,10 +60,18 @@ export default function Header() {
       try {
         const response = await fetch(`/api/user/info?address=${address}`);
         if (!response.ok) {
+          // backend 不可用时，若有 ref 仍弹窗，让用户尝试绑定（后端会拦截重复绑定）
+          if (refFromUrl) {
+            setReferralCodeFromUrl(refFromUrl);
+            setTimeout(() => {
+              setShowRecommenderModal(true);
+            }, 1000);
+          }
           return;
         }
         const data = await response.json();
-        if (refFromUrl && !data.superior) {
+        // 已有上级（superior_referral_code 非空）则不再弹窗
+        if (refFromUrl && !data.superior_referral_code) {
           setReferralCodeFromUrl(refFromUrl);
 
           // Add 500ms delay before showing the modal
@@ -71,7 +79,15 @@ export default function Header() {
             setShowRecommenderModal(true);
           }, 1000);
         }
-      } catch {}
+      } catch {
+        // fetch 异常时，若有 ref 仍弹窗
+        if (refFromUrl) {
+          setReferralCodeFromUrl(refFromUrl);
+          setTimeout(() => {
+            setShowRecommenderModal(true);
+          }, 1000);
+        }
+      }
     };
     fetchUserInfo();
   }, [address, refFromUrl]);
