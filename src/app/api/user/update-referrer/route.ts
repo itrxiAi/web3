@@ -1,13 +1,14 @@
 import { NextResponse } from 'next/server'
-import prisma from '@/lib/prisma'
-import { generateOperationHash, randomReferralCode, verifySignature } from '@/utils/auth';
+import { generateOperationHash, verifySignature } from '@/utils/auth';
 import { MAX_TIMESTAMP_GAP_MS, UPDATE_REFERRAL } from '@/constants';
 import { operationControl } from '@/utils/auth';
-import { /* cleanUserMiningLevelPerformanceCache,  */getAllSubordinates, /* updateSuperiorNodeReward,  */updateUserPath } from '@/lib/user';
 import { ErrorCode } from '@/lib/errors';
-import { get } from 'http';
-import { TxFlowStatus, TxFlowType, UserType } from '@prisma/client';
 
+/**
+ * 绑定上级：web3 前端签名校验通过后，转发到 app backend 的
+ * POST /internal/users/:address/inviter（InternalKeyGuard 鉴权）。
+ * 不再读写 web3 自有数据库。
+ */
 export async function POST(request: Request) {
 
     const body = await request.json();
@@ -39,90 +40,44 @@ export async function POST(request: Request) {
         );
     }
 
+    const appBackendUrl = process.env.APP_BACKEND_URL;
+    const internalApiKey = process.env.INTERNAL_API_KEY;
+    if (!appBackendUrl || !internalApiKey) {
+        return NextResponse.json(
+            { error: 'BACKEND_NOT_CONFIGURED' },
+            { status: 500 }
+        );
+    }
+
     console.log(`update referral for ${lowerCaseAddress} with code ${referralCode}`)
 
-    const superior = await prisma.user.findUnique({
-        where: { referralCode: referralCode },
-        select: { walletAddress: true, path: true }
-    });
+    try {
+        const response = await fetch(`${appBackendUrl}/internal/users/${lowerCaseAddress}/inviter`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-internal-key': internalApiKey,
+            },
+            body: JSON.stringify({ code: referralCode }),
+        });
 
-    console.log(`superior:${superior}`, JSON.stringify(superior))
+        if (!response.ok) {
+            const err = await response.json().catch(() => ({}));
+            console.error('bind inviter failed:', response.status, err);
+            // 透传后端错误码（INVITER_ALREADY_BOUND / INVITER_NOT_FOUND / INVITER_SELF / INVITER_IN_SUBTREE ...）
+            return NextResponse.json(
+                { error: err.code || ErrorCode.OPERATION_FAILED },
+                { status: response.status }
+            );
+        }
 
-    const user = await prisma.user.findUnique({
-        where: { walletAddress: lowerCaseAddress },
-        select: { superior: true, id: true, type: true, path: true }
-    });
-
-    console.log(`user:${user}`, JSON.stringify(user))
-
-
-    if (!user || !user.path || user?.superior || lowerCaseAddress === superior?.walletAddress) {
-        return NextResponse.json(
-            { error: ErrorCode.NOT_FOUND },
-            { status: 400 }
-        );
-    }
-
-    if (!superior || !superior.path) {
-        return NextResponse.json(
-            { error: ErrorCode.NOT_FOUND },
-            { status: 400 }
-        );
-    }
-
-    const subordinates = await getAllSubordinates(user.path)
-    console.log(`subordinates:${JSON.stringify(subordinates)}`)
-    const superiors = superior.path.split('.')
-    console.log(`superiors:${superiors}`)
-
-
-    // Check if any subordinate's ID is already in superior's path
-    if (superior.path && subordinates.some(sub => superiors.includes(`${sub.referralCode}`))) {
-        console.error(`One of the subordinate's IDs is already in superior's path, ${superiors}`);
+        const data = await response.json();
+        return NextResponse.json({ data: true, ...data });
+    } catch (e) {
+        console.error('update-referrer failed:', e);
         return NextResponse.json(
             { error: ErrorCode.OPERATION_FAILED },
-            { status: 400 }
+            { status: 500 }
         );
     }
-
-
-    await prisma.user.update({
-        where: { walletAddress: lowerCaseAddress },
-        data: {
-            superior: superior.walletAddress,
-            //last_activity: new Date()
-        }
-    });
-
-    for (const user of subordinates) {
-        if (!user.path) {
-            console.error(`User ${user.id} has no path`);
-            continue;
-        }
-        await updateUserPath(user.id, superior.path, prisma, user.path);
-    }
-
-
-    // const tx = await prisma.transaction.findFirst({
-    //     where: {
-    //         fromAddress: lowerCaseAddress,
-    //         type: TxFlowType.PURCHASE,
-    //         status: TxFlowStatus.CONFIRMED
-    //     },
-    //     select: { id: true, description: true }
-    // })
-
-    // if (tx && (tx.description === "" || !tx.description)) {
-    //     console.log(`Rereward for ${lowerCaseAddress}, tx id: ${tx.id}`)
-    //     await prisma.transaction.update({
-    //         where: { id: tx.id },
-    //         data: {
-    //             status: TxFlowStatus.PENDING
-    //         }
-    //     })
-    // }
-
-    return NextResponse.json({
-        data: true
-    })
 }
