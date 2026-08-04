@@ -873,8 +873,8 @@ const NodeMarket: React.FC<NodeMarketProps> = ({
   const { address } = useAppKitAccount();
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const verifierOptions = [
-    { type: VERIFIER_1, price: 500, name: "VIP", dividend: "2%" },
-    { type: VERIFIER_2, price: 1000, name: "SVIP", dividend: "3%" },
+    { type: VERIFIER_1, price: 500, name: "VIP", benefitKey: "benefit_1" as const },
+    { type: VERIFIER_2, price: 1000, name: "SVIP", benefitKey: "benefit_2" as const },
   ] as const;
   const [selectedOption, setSelectedOption] = useState<(typeof verifierOptions)[number]>(
     verifierOptions[0]
@@ -969,7 +969,7 @@ const NodeMarket: React.FC<NodeMarketProps> = ({
                 <div className="mb-3 space-y-1.5 text-xs text-white">
                   <div className="flex items-start gap-2">
                     <span className="mt-0.5 flex h-[16px] w-[16px] shrink-0 items-center justify-center rounded-full bg-black text-[9px] font-bold leading-none text-white">1</span>
-                    <span>{tSub("vip_benefit_dividend", { rate: option.dividend })}</span>
+                    <span>{tSub(option.benefitKey)}</span>
                   </div>
                 </div>
 
