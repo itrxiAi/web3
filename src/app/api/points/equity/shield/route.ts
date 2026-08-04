@@ -37,7 +37,11 @@ export async function POST(req: NextRequest) {
     }
 
     const quoteTx = await prisma.transaction.findUnique({ where: { id: quoteId } });
-    if (!quoteTx || quoteTx.type !== TxFlowType.EQUITY || quoteTx.status !== TxFlowStatus.PENDING) {
+    if (!quoteTx || quoteTx.status !== TxFlowStatus.PENDING) {
+      return NextResponse.json({ error: ErrorCode.INVALID_TRANSACTION }, { status: 400 });
+    }
+    // 同时支持激活(EQUITY)和节点认购(PURCHASE)
+    if (quoteTx.type !== TxFlowType.EQUITY && quoteTx.type !== TxFlowType.PURCHASE) {
       return NextResponse.json({ error: ErrorCode.INVALID_TRANSACTION }, { status: 400 });
     }
 
@@ -47,7 +51,7 @@ export async function POST(req: NextRequest) {
     } catch {
       return NextResponse.json({ error: ErrorCode.INVALID_TRANSACTION }, { status: 400 });
     }
-    if (desc.kind !== 'activation_split' || !Array.isArray(desc.shieldList) || !desc.shieldList.length) {
+    if ((desc.kind !== 'activation_split' && desc.kind !== 'node_purchase') || !Array.isArray(desc.shieldList) || !desc.shieldList.length) {
       return NextResponse.json({ error: ErrorCode.INVALID_TRANSACTION }, { status: 400 });
     }
     // disperse 模式不需要构造 RAILGUN shield calldata，直接拒绝

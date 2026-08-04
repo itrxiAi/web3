@@ -2,13 +2,20 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useAppKitAccount } from "@reown/appkit/react";
-import { useWriteContract } from "wagmi";
+import {
+  usePublicClient,
+  useWriteContract,
+  useSignMessage,
+  useSendTransaction,
+} from "wagmi";
+import { parseUnits } from "viem";
 import {
   COMMUNITY_TYPE,
   GROUP_TYPE,
   type MembershipType,
 } from "@/constants";
 import { triggerWalletConnect } from "@/components/ui/wallet-ref";
+import { getTokenAddress } from "@/lib/tokens";
 
 export interface NodeDataShape {
   price_display: number;
@@ -207,17 +214,37 @@ const disperseAbi = [
   },
 ] as const;
 
+/** 节点认购报价（与激活 quote 格式对齐，单币种 USDT） */
+type NodeQuote = {
+  quoteId: string;
+  batchTransferContract: string;
+  shieldTotal: { token: string; amount: string }[];
+  shieldType: 'railgun' | 'disperse';
+  amountUsdt: string;
+  shieldSignatureMessage?: string;
+  railgunProxyContract?: string;
+  shieldList?: { recipient: string; amount: string; token: string }[];
+};
+
 export type CommunityPurchaseOptions = {
   /** 认购流程结束后回调（与节点页 finally 中 fetchUserInfo 一致） */
   onAfterPurchase?: () => void | Promise<void>;
 };
 
 /**
- * 与节点页相同的认购流程：环境变量、链上 USDT 转账、/api/points/community
+ * 节点认购流程（VIP/SVIP），与激活(equity)流程对齐：
+ * 1) 调 /api/points/community/quote 获取报价（shieldList/shieldType）
+ * 2) 根据 shieldType：
+ *    - railgun：签名 → 调 /api/points/equity/shield 构造 shield calldata → approve → 广播
+ *    - disperse：approve + disperseToken 批量转账
+ * 3) 调 /api/points/community 确认并校验
  */
 export function useCommunityNodePurchase(options?: CommunityPurchaseOptions) {
   const { address } = useAppKitAccount();
   const { writeContractAsync } = useWriteContract();
+  const { signMessageAsync } = useSignMessage();
+  const { sendTransactionAsync } = useSendTransaction();
+  const publicClient = usePublicClient();
   const onAfterRef = useRef(options?.onAfterPurchase);
   onAfterRef.current = options?.onAfterPurchase;
 
@@ -269,79 +296,92 @@ export function useCommunityNodePurchase(options?: CommunityPurchaseOptions) {
     };
   }, []);
 
-  const transferTokens = useCallback(
-    async (amount: number, tokenType: "USDT" | "HAKP" = "USDT"): Promise<string> => {
-      if (!address) {
-        throw new Error("Wallet not connected");
-      }
-      const tokenAddress = tokenType === "HAKP"
-        ? process.env.NEXT_PUBLIC_HAKP_ADDRESS
-        : process.env.NEXT_PUBLIC_USDT_ADDRESS;
-      if (!tokenAddress) {
-        throw new Error(`${tokenType} contract address not found in environment variables`);
-      }
+  /** Disperse 批量转账（单币种 USDT） */
+  const approveAndDisperse = useCallback(
+    async (items: { recipient: string; amount: string }[], spender: string): Promise<string> => {
+      if (!address) throw new Error("Wallet not connected");
+      if (!items.length) throw new Error("Empty transfer list");
 
-      const recipients = nodeData?.disperseRecipients;
-      const batchContract = nodeData?.batchTransferContract;
+      const tokenAddress = getTokenAddress('USDT');
+      if (!tokenAddress) throw new Error("USDT contract address not found");
 
-      // 如果没有配置批量转账接收列表，回退到单笔转账到 hotWallet
-      if (!recipients || !recipients.length || !batchContract) {
-        if (!env?.hotWalletAddress) {
-          throw new Error("Hot wallet address environment variable is not set");
-        }
-        const amountInWei = BigInt(amount);
-        const hash = await writeContractAsync({
-          address: tokenAddress as `0x${string}`,
-          abi: usdtAbi,
-          functionName: "transfer",
-          args: [env.hotWalletAddress as `0x${string}`, amountInWei],
-        });
-        if (!hash) {
-          throw new Error("Transaction failed to return a hash");
-        }
-        setTxSignature(hash);
-        setShowTxModal(true);
-        return hash;
-      }
+      const recipients = items.map((t) => t.recipient as `0x${string}`);
+      const values = items.map((t) => parseUnits(t.amount, USDT_DECIMAL));
+      const total = values.reduce((acc, v) => acc + v, BigInt(0));
 
-      // 批量转账：approve + disperseToken
-      const total = BigInt(amount);
-      const recipientAddrs = recipients.map(r => r.address as `0x${string}`);
-      const values = recipients.map(r => BigInt(Math.floor(amount * r.ratio)));
-
-      // 修正尾差：确保 values 之和等于 total
-      const sumValues = values.reduce((acc, v) => acc + v, BigInt(0));
-      const diff = total - sumValues;
-      if (diff !== BigInt(0)) {
-        values[0] += diff;
-      }
-
-      // 1. 授权批量转账合约支配 USDT
+      // 1. approve
       const approveHash = await writeContractAsync({
         address: tokenAddress as `0x${string}`,
         abi: usdtAbi,
         functionName: "approve",
-        args: [batchContract as `0x${string}`, total],
+        args: [spender as `0x${string}`, total],
       });
-      if (!approveHash) {
-        throw new Error("Approve transaction failed to return a hash");
+      if (publicClient && approveHash) {
+        await publicClient.waitForTransactionReceipt({ hash: approveHash });
       }
 
-      // 2. 调用 disperseToken 拆分给所有接收者
+      // 2. disperseToken
       const hash = await writeContractAsync({
-        address: batchContract as `0x${string}`,
+        address: spender as `0x${string}`,
         abi: disperseAbi,
         functionName: "disperseToken",
-        args: [tokenAddress as `0x${string}`, recipientAddrs, values],
+        args: [tokenAddress as `0x${string}`, recipients, values],
       });
-      if (!hash) {
-        throw new Error("Transaction failed to return a hash");
-      }
-      setTxSignature(hash);
-      setShowTxModal(true);
+      if (!hash) throw new Error("Transaction failed to return a hash");
       return hash;
     },
-    [address, env, nodeData, writeContractAsync]
+    [address, publicClient, writeContractAsync]
+  );
+
+  /** RAILGUN shield 进私密池（单币种 USDT） */
+  const approveAndShield = useCallback(
+    async (quote: NodeQuote): Promise<string> => {
+      if (!address) throw new Error("Wallet not connected");
+      if (!quote.shieldSignatureMessage) throw new Error("Missing shield signature message");
+
+      // 1. 用户钱包签名固定消息
+      const signature = await signMessageAsync({ message: quote.shieldSignatureMessage });
+
+      // 2. 后端构造 shield calldata（复用 equity/shield 路由）
+      const buildRes = await fetch("/api/points/equity/shield", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ quoteId: quote.quoteId, signature }),
+      });
+      if (!buildRes.ok) {
+        const errBody = await buildRes.json().catch(() => ({}));
+        throw new Error(errBody.error || "Failed to build shield transaction");
+      }
+      const { to, data, proxyContract, tokens } = (await buildRes.json()) as {
+        to: string;
+        data: string;
+        proxyContract: string;
+        tokens: { token: string; totalWei: string }[];
+      };
+
+      // 3. approve USDT 给 RAILGUN 代理合约
+      for (const { token, totalWei } of tokens) {
+        if (!token) throw new Error("Token address missing from shield response");
+        const approveHash = await writeContractAsync({
+          address: token as `0x${string}`,
+          abi: usdtAbi,
+          functionName: "approve",
+          args: [proxyContract as `0x${string}`, BigInt(totalWei)],
+        });
+        if (publicClient && approveHash) {
+          await publicClient.waitForTransactionReceipt({ hash: approveHash });
+        }
+      }
+
+      // 4. 广播 shield 交易
+      const hash = await sendTransactionAsync({
+        to: to as `0x${string}`,
+        data: data as `0x${string}`,
+      });
+      if (!hash) throw new Error("Shield transaction failed to return a hash");
+      return hash;
+    },
+    [address, publicClient, writeContractAsync, signMessageAsync, sendTransactionAsync]
   );
 
   const handleCommunity = useCallback(
@@ -355,52 +395,55 @@ export function useCommunityNodePurchase(options?: CommunityPurchaseOptions) {
       try {
         setTxErrorMessage(null);
 
-        let normalizedPrice = Number(priceInUsd);
-
-        if (!Number.isFinite(normalizedPrice) || normalizedPrice <= 0) {
-          if (!nodeData) {
-            throw new Error("Please enter a valid positive number");
-          }
-
-          if (type === COMMUNITY_TYPE) {
-            normalizedPrice = nodeData.communityNode.price_display;
-          } else if (type === GROUP_TYPE) {
-            normalizedPrice = nodeData.groupNode.price_display;
-          }
+        // VIP/SVIP 节点认购只支持 VERIFIER1/VERIFIER2
+        if (type !== 'VERIFIER1' && type !== 'VERIFIER2') {
+          throw new Error("Invalid node type");
         }
 
-        if (!Number.isFinite(normalizedPrice) || normalizedPrice <= 0) {
-          throw new Error("Please enter a valid positive number");
+        // 1. 请求报价（shieldList/shieldType）
+        const quoteRes = await fetch("/api/points/community/quote", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            dev_address: address.toString(),
+            dev_type: type,
+          }),
+        });
+        if (!quoteRes.ok) {
+          const errBody = await quoteRes.json().catch(() => ({}));
+          throw new Error(errBody.error || "Failed to build node purchase quote");
+        }
+        const quote = (await quoteRes.json()) as NodeQuote;
+
+        // 2. 链上交易：根据 shieldType 自适应路由
+        let shieldTxHash: string;
+        if (quote.shieldType === 'disperse') {
+          // 0x 公开地址：走 Disperse 批量转账
+          const shieldItems = (quote.shieldList ?? []).map((it) => ({
+            recipient: it.recipient,
+            amount: it.amount,
+          }));
+          shieldTxHash = await approveAndDisperse(shieldItems, quote.batchTransferContract);
+        } else {
+          // 0zk 私密地址：走 RAILGUN shield
+          shieldTxHash = await approveAndShield(quote);
         }
 
-        const amountToTransfer = Math.round(
-          normalizedPrice * 10 ** USDT_DECIMAL
-        );
-
-        if (!Number.isFinite(amountToTransfer) || amountToTransfer <= 0) {
-          throw new Error("Please enter a valid positive number");
-        }
-
-        let txSig: string;
-        txSig = await transferTokens(amountToTransfer, tokenType);
-
-        setTxSignature(txSig);
+        setTxSignature(shieldTxHash);
         setShowTxModal(true);
 
+        // 3. 回调后端确认与校验
         const response = await fetch("/api/points/community", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            txHash: txSig,
-            dev_address: address.toString(),
-            dev_referralCode: recommender,
-            dev_type: type,
-            dev_tokenType: tokenType,
+            quoteId: quote.quoteId,
+            shieldTxHash,
           }),
         });
 
         if (!response.ok) {
-          const errBody = await response.json();
+          const errBody = await response.json().catch(() => ({}));
           throw new Error(errBody.error || "Failed to verify transaction");
         }
       } catch (err) {
@@ -417,7 +460,7 @@ export function useCommunityNodePurchase(options?: CommunityPurchaseOptions) {
         setIsJoining(false);
       }
     },
-    [address, nodeData, env, isJoining, transferTokens]
+    [address, nodeData, env, isJoining, approveAndDisperse, approveAndShield]
   );
 
   return {

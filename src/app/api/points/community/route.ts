@@ -1,124 +1,135 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { MAX_TIMESTAMP_GAP_MS } from '@/constants';
 import prisma from '@/lib/prisma';
-import { verifyTokenTransfer, verifyBatchActivationTransfer, type ActivationTransferItem } from '@/utils/chain';
-import { getBatchTransferContract, getNodeDisperseRecipients, getVerifier1, getVerifier2, getHotWalletAddress } from '@/lib/config';
+import {
+  verifyBatchActivationTransfer,
+  verifyShieldTransfer,
+  type ActivationTransferItem,
+} from '@/utils/chain';
+import { getHotWalletAddress } from '@/lib/config';
 import { TxFlowType, TxFlowStatus, TokenType } from '@prisma/client';
 import { ErrorCode } from '@/lib/errors';
 import { operationControl } from '@/utils/auth';
+import { getTokenAddress } from '@/lib/tokens';
 import decimal from 'decimal.js';
 
+interface NodePurchaseDescription {
+  kind: string;
+  dev_type: string;
+  amountUsdt: string;
+  batchTransferContract: string;
+  shieldList: { recipient: string; amount: string; token: string }[];
+  shieldTotal: { token: string; amount: string }[];
+  railgunProxyContract: string;
+  shieldType?: 'railgun' | 'disperse';
+  expectedShieldCalldata?: string;
+}
 
+/**
+ * 确认节点认购（VIP/SVIP）付款。
+ *
+ * 与激活(equity)流程对齐：
+ * - 前端带 { quoteId, shieldTxHash } 回调本接口
+ * - 读取 PENDING 交易的 description，按 shieldType 分别校验：
+ *   - railgun：校验 RAILGUN shield 交易（0zk 私密地址）
+ *   - disperse：校验 Disperse 批量转账（0x 公开地址）
+ * - 校验通过后更新交易状态 + 通知 app/backend 设置 nodeType
+ */
 export async function POST(req: NextRequest) {
-
   try {
     const body = await req.json();
-    const { txHash, dev_address, dev_referralCode, dev_type, dev_tokenType } = body;
+    const { quoteId, shieldTxHash } = body as {
+      quoteId?: string;
+      shieldTxHash?: string;
+    };
 
-    if (!txHash) {
-      return NextResponse.json(
-        { error: ErrorCode.INVALID_TRANSACTION },
-        { status: 400 }
-      );
+    if (!quoteId || typeof quoteId !== 'string') {
+      return NextResponse.json({ error: ErrorCode.INVALID_TRANSACTION }, { status: 400 });
+    }
+    if (!shieldTxHash || typeof shieldTxHash !== 'string') {
+      return NextResponse.json({ error: ErrorCode.INVALID_TRANSACTION }, { status: 400 });
     }
 
-    // Make sure the hash won't be reused
-    const operationKey = `${txHash}:buynode`;
+    // 防重放
+    const operationKey = `${shieldTxHash}:buynode`;
     if (operationControl.has(operationKey)) {
-      return NextResponse.json(
-        { error: ErrorCode.DUPLICATED_OPERATION },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: ErrorCode.DUPLICATED_OPERATION }, { status: 400 });
     }
     operationControl.set(operationKey, true, MAX_TIMESTAMP_GAP_MS);
 
-    // Verify transaction on-chain
-    let verifyResult: {
-      isValid: boolean;
-      error?: string;
-      fromAddress?: string;
-      referralCode?: string;
-      type?: string;
-    };
+    // 1. 读取报价交易（PENDING + PURCHASE）
+    const quoteTx = await prisma.transaction.findUnique({ where: { id: quoteId } });
+    if (!quoteTx || quoteTx.type !== TxFlowType.PURCHASE || quoteTx.status !== TxFlowStatus.PENDING) {
+      return NextResponse.json({ error: ErrorCode.INVALID_TRANSACTION }, { status: 400 });
+    }
 
-    // 检查是否配置了批量转账接收列表
-    const disperseRecipients = await getNodeDisperseRecipients();
-    const batchContract = await getBatchTransferContract();
+    let desc: NodePurchaseDescription;
+    try {
+      desc = JSON.parse(quoteTx.description || '{}') as NodePurchaseDescription;
+    } catch {
+      return NextResponse.json({ error: ErrorCode.INVALID_TRANSACTION }, { status: 400 });
+    }
+    if (desc.kind !== 'node_purchase' || !Array.isArray(desc.shieldList) || !desc.shieldList.length) {
+      return NextResponse.json({ error: ErrorCode.INVALID_TRANSACTION }, { status: 400 });
+    }
+    const shieldType = desc.shieldType ?? 'railgun';
+    if (shieldType === 'railgun' && !desc.expectedShieldCalldata) {
+      console.log('Missing expectedShieldCalldata; shield route not called before confirm');
+      return NextResponse.json({ error: ErrorCode.INVALID_TRANSACTION }, { status: 400 });
+    }
 
-    if (disperseRecipients.length > 0) {
-      // 批量转账模式：根据价格和比例构造期望转账列表
-      const priceMap: Record<string, number> = {
-        VERIFIER1: Number((await getVerifier1()).toString()),
-        VERIFIER2: Number((await getVerifier2()).toString()),
-      };
-      const price = priceMap[dev_type];
-      if (!price) {
-        return NextResponse.json(
-          { error: ErrorCode.INVALID_TRANSACTION },
-          { status: 400 }
-        );
-      }
+    const walletAddress = quoteTx.fromAddress.toLowerCase();
+    const type = desc.dev_type;
 
-      const expectedList: ActivationTransferItem[] = disperseRecipients.map(r => ({
-        address: r.address.toLowerCase(),
-        amount: new decimal(price).mul(r.ratio).toDecimalPlaces(2, decimal.ROUND_DOWN).toFixed(2),
+    // 2. 链上校验
+    if (shieldType === 'disperse') {
+      // 0x 公开地址：Disperse 批量转账校验
+      const shieldItems: ActivationTransferItem[] = desc.shieldList.map((it) => ({
+        address: it.recipient,
+        amount: it.amount,
+        token: it.token,
       }));
-
-      const tokenAddress = dev_tokenType === 'HAKP'
-        ? process.env.NEXT_PUBLIC_HAKP_ADDRESS
-        : process.env.NEXT_PUBLIC_USDT_ADDRESS;
-      const batchResult = await verifyBatchActivationTransfer(txHash, expectedList, batchContract, tokenAddress);
-      if (!batchResult.isValid) {
-        console.log(`Invalid batch transaction: ${batchResult.error}, txHash: ${txHash}`);
-        return NextResponse.json(
-          { error: ErrorCode.INVALID_TRANSACTION },
-          { status: 400 }
-        );
+      const tokenAddress = getTokenAddress('USDT');
+      const shieldResult = await verifyBatchActivationTransfer(
+        shieldTxHash,
+        shieldItems,
+        desc.batchTransferContract,
+        tokenAddress,
+      );
+      if (!shieldResult.isValid) {
+        console.log(`Invalid disperse shield tx: ${shieldResult.error}, txHash: ${shieldTxHash}`);
+        return NextResponse.json({ error: ErrorCode.INVALID_TRANSACTION }, { status: 400 });
       }
-      verifyResult = {
-        isValid: true,
-        fromAddress: batchResult.fromAddress,
-        referralCode: dev_referralCode,
-        type: dev_type,
-      };
+      if (shieldResult.fromAddress && shieldResult.fromAddress.toLowerCase() !== walletAddress) {
+        console.log(`Shield payer mismatch: ${shieldResult.fromAddress}, expected ${walletAddress}`);
+        return NextResponse.json({ error: ErrorCode.INVALID_TRANSACTION }, { status: 400 });
+      }
     } else {
-      // 回退到单笔转账校验
-      verifyResult = await verifyTokenTransfer(txHash);
-      if (!verifyResult.isValid) {
-        console.log(`Invalid transaction: ${verifyResult.error}, txHash: ${txHash}`);
-        return NextResponse.json(
-          { error: ErrorCode.INVALID_TRANSACTION },
-          { status: 400 }
-        );
+      // 0zk 私密地址：校验 RAILGUN shield 交易
+      const expectedTokens = (desc.shieldTotal ?? []).map((st) => ({
+        tokenAddress: getTokenAddress(st.token),
+        amount: st.amount,
+      }));
+      const shieldResult = await verifyShieldTransfer(
+        shieldTxHash,
+        desc.railgunProxyContract,
+        expectedTokens,
+        desc.expectedShieldCalldata!,
+      );
+      if (!shieldResult.isValid) {
+        console.log(`Invalid shield tx: ${shieldResult.error}, txHash: ${shieldTxHash}`);
+        return NextResponse.json({ error: ErrorCode.INVALID_TRANSACTION }, { status: 400 });
+      }
+      if (shieldResult.fromAddress && shieldResult.fromAddress.toLowerCase() !== walletAddress) {
+        console.log(`Shield payer mismatch: ${shieldResult.fromAddress}, expected ${walletAddress}`);
+        return NextResponse.json({ error: ErrorCode.INVALID_TRANSACTION }, { status: 400 });
       }
     }
 
-    if (!verifyResult.fromAddress) {
-      console.log(`fromAddress is empty, txHash: ${txHash}`);
-      return NextResponse.json(
-        { error: ErrorCode.INVALID_TRANSACTION },
-        { status: 400 }
-      );
-    }
-
-    if (!verifyResult.type) {
-      console.log(`type is empty, txHash: ${txHash}`);
-      return NextResponse.json(
-        { error: ErrorCode.INVALID_TRANSACTION },
-        { status: 400 }
-      );
-    }
-
-    const fromAddress = verifyResult.fromAddress.toLowerCase();
-    const type = verifyResult.type;
-
-    // Use fromAddress as the wallet address
-    const walletAddress = fromAddress;
-
+    // 3. 售罄检查 + 重复购买检查
     const appBackendUrl = process.env.APP_BACKEND_URL;
     const internalApiKey = process.env.INTERNAL_API_KEY;
 
-    // 售罄检查 + 重复购买检查
     if (appBackendUrl) {
       // 检查是否售罄
       const statsRes = await fetch(`${appBackendUrl}/internal/users/node-stats`);
@@ -154,27 +165,18 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // 4. 落库：更新报价交易为 CONFIRMED
     try {
-        await prisma.transaction.create({
-          data: {
-            txHash: txHash,
-            fromAddress: walletAddress,
-            toAddress: (await getHotWalletAddress()).toString(),
-            amount: new decimal(0),
-            tokenType: dev_tokenType === 'HAKP' ? TokenType.HAK : TokenType.USDT,
-            type: TxFlowType.PURCHASE,
-            status: TxFlowStatus.PENDING,
-          },
-        });
+      await prisma.transaction.update({
+        where: { id: quoteTx.id },
+        data: { txHash: shieldTxHash, status: TxFlowStatus.CONFIRMED },
+      });
     } catch (error) {
-      console.error('Transaction record failed:', error);
-      return NextResponse.json(
-        { error: ErrorCode.TRANSACTION_FAILED },
-        { status: 500 }
-      );
+      console.error('Transaction update failed:', error);
+      return NextResponse.json({ error: ErrorCode.TRANSACTION_FAILED }, { status: 500 });
     }
 
-    // 通知 app/backend 更新 nodeType
+    // 5. 通知 app/backend 更新 nodeType
     if (appBackendUrl && internalApiKey) {
       const nodeTypeMap: Record<string, string> = {
         VERIFIER1: 'VERIFIER1',
@@ -199,10 +201,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error adding points:', error);
-    return NextResponse.json(
-      { error: ErrorCode.TRANSACTION_FAILED },
-      { status: 500 }
-    );
+    console.error('Error confirming node purchase:', error);
+    return NextResponse.json({ error: ErrorCode.TRANSACTION_FAILED }, { status: 500 });
   }
 }
