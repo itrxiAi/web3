@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getCommunityMinLevel, getCommunityNum, getCommunityPriceDisplay, getDividendRewardNodeRatio, getReferralDirectRewardRateCommunity, getStakeCommunityDynamicRewardCap, getStakeCommunityDynamicRewardCapIncrement, getBatchTransferContract, getNodeDisperseRecipients, getVerifier1, getVerifier2 } from '@/lib/config'
+import { getCommunityMinLevel, getCommunityNum, getCommunityPriceDisplay, getDividendRewardNodeRatio, getReferralDirectRewardRateCommunity, getStakeCommunityDynamicRewardCap, getStakeCommunityDynamicRewardCapIncrement, getBatchTransferContract, getNodeDisperseRecipients, getVerifier1, getVerifier2, getVerifierSoldBase } from '@/lib/config'
 
 const VERIFIER_MAX = 1000
 
@@ -24,6 +24,9 @@ export async function POST() {
     const disperseRecipients = await getNodeDisperseRecipients()
     const v1Price = Number((await getVerifier1()).toString())
     const v2Price = Number((await getVerifier2()).toString())
+    const soldBase = await getVerifierSoldBase()
+    const displayV1Count = verifier1Count + soldBase.verifier1
+    const displayV2Count = verifier2Count + soldBase.verifier2
 
     return NextResponse.json({
       communityNode: {
@@ -40,15 +43,15 @@ export async function POST() {
         price_display: v1Price,
         maxNum: VERIFIER_MAX,
         leftNum: VERIFIER_MAX - verifier1Count,
-        soldCount: verifier1Count,
-        soldAmount: verifier1Count * v1Price,
+        soldCount: displayV1Count,
+        soldAmount: displayV1Count * v1Price,
       },
       verifier2Node: {
         price_display: v2Price,
         maxNum: VERIFIER_MAX,
         leftNum: VERIFIER_MAX - verifier2Count,
-        soldCount: verifier2Count,
-        soldAmount: verifier2Count * v2Price,
+        soldCount: displayV2Count,
+        soldAmount: displayV2Count * v2Price,
       },
       batchTransferContract,
       disperseRecipients,

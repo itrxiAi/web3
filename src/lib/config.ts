@@ -888,6 +888,27 @@ export async function getGalaxyMinLevel(): Promise<number> {
     return Number(level || 6);
 }
 
+const VERIFIER_SOLD_BASE = "VERIFIER_SOLD_BASE";
+
+/**
+ * 从 config 表读取 VIP/SVIP 已售基数。
+ * JSON 格式：{"verifier1": 100, "verifier2": 50}
+ * 前端展示人数 = 真实人数 + 基数
+ */
+export async function getVerifierSoldBase(): Promise<{ verifier1: number; verifier2: number }> {
+    const raw = await getConfig(VERIFIER_SOLD_BASE);
+    if (!raw) return { verifier1: 0, verifier2: 0 };
+    try {
+        const obj = JSON.parse(raw);
+        return {
+            verifier1: Number(obj.verifier1) || 0,
+            verifier2: Number(obj.verifier2) || 0,
+        };
+    } catch {
+        return { verifier1: 0, verifier2: 0 };
+    }
+}
+
 
 // const WITHDRAW_TOKEN_FEE_RATIO = "WITHDRAW_TOKEN_FEE_RATIO"//0.02; // 2% Withdraw fee
 
