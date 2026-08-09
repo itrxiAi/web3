@@ -19,6 +19,20 @@ const PAIR_ABI = [
     ],
     stateMutability: "view",
   },
+  {
+    type: "function",
+    name: "token0",
+    inputs: [],
+    outputs: [{ type: "address" }],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "token1",
+    inputs: [],
+    outputs: [{ type: "address" }],
+    stateMutability: "view",
+  },
 ] as const;
 
 const ERC20_ABI = [
@@ -96,6 +110,13 @@ const ROUTER_ABI = [
 
 const DECIMALS = 18;
 
+/** 将用户输入的金额字符串转成 BigInt（wei），避免 Number 精度丢失 */
+function parseToBigInt(amount: string, decimals: number): bigint {
+  const [whole, frac = ""] = amount.split(".");
+  const fracPadded = frac.slice(0, decimals).padEnd(decimals, "0");
+  return BigInt(whole) * BigInt(10) ** BigInt(decimals) + BigInt(fracPadded || "0");
+}
+
 function formatReserve(value: bigint, decimals = 18): string {
   const divisor = BigInt(10) ** BigInt(decimals);
   const whole = value / divisor;
@@ -126,6 +147,18 @@ export const SwapPanel: React.FC = () => {
     functionName: "getReserves",
   });
 
+  const { data: token0Data } = useReadContract({
+    address: pairAddress,
+    abi: PAIR_ABI,
+    functionName: "token0",
+  });
+
+  const { data: token1Data } = useReadContract({
+    address: pairAddress,
+    abi: PAIR_ABI,
+    functionName: "token1",
+  });
+
   const { data: hakBalanceData } = useReadContract({
     address: hakAddress,
     abi: ERC20_ABI,
@@ -143,7 +176,7 @@ export const SwapPanel: React.FC = () => {
   });
 
   const sellAmountWei = sellAmount
-    ? BigInt(Math.floor(Number(sellAmount) * Math.pow(10, DECIMALS)))
+    ? parseToBigInt(sellAmount, DECIMALS)
     : BigInt(0);
 
   const { data: taxBpsData } = useReadContract({
@@ -165,26 +198,29 @@ export const SwapPanel: React.FC = () => {
     ? (sellAmountWei * BigInt(10000 - totalTaxBps)) / BigInt(10000)
     : BigInt(0);
 
-  const { data: amountsOutData } = useReadContract({
-    address: routerAddress,
-    abi: ROUTER_ABI,
-    functionName: "getAmountsOut",
-    args: netAmountWei > 0 && hakAddress && usdtAddress
-      ? [netAmountWei, [hakAddress as `0x${string}`, usdtAddress as `0x${string}`]]
-      : undefined,
-  });
-
   const reserve0 = reservesData ? (reservesData as readonly bigint[])[0] : BigInt(0);
   const reserve1 = reservesData ? (reservesData as readonly bigint[])[1] : BigInt(0);
   const r0Float = Number(reserve0) / Math.pow(10, 18);
   const r1Float = Number(reserve1) / Math.pow(10, 18);
-  const isHakToken0 = r0Float <= r1Float;
+  const token0 = token0Data as string | undefined;
+  const token1 = token1Data as string | undefined;
+  const isHakToken0 = !!token0 && !!hakAddress && token0.toLowerCase() === hakAddress.toLowerCase();
+  const usdtAddressFromPool = isHakToken0 ? token1 : token0;
   const hakReserve = isHakToken0 ? reserve0 : reserve1;
   const usdtReserve = isHakToken0 ? reserve1 : reserve0;
   const hakFloat = isHakToken0 ? r0Float : r1Float;
   const usdtFloat = isHakToken0 ? r1Float : r0Float;
   const price = hakFloat > 0 ? usdtFloat / hakFloat : 0;
   const priceStr = price >= 0.01 ? price.toFixed(4) : price.toExponential(2);
+
+  const { data: amountsOutData } = useReadContract({
+    address: routerAddress,
+    abi: ROUTER_ABI,
+    functionName: "getAmountsOut",
+    args: netAmountWei > 0 && hakAddress && usdtAddressFromPool
+      ? [netAmountWei, [hakAddress as `0x${string}`, usdtAddressFromPool as `0x${string}`]]
+      : undefined,
+  });
 
   const hakBalance = hakBalanceData
     ? Number(hakBalanceData as bigint) / Math.pow(10, DECIMALS)
