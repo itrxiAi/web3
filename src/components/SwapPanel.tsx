@@ -240,7 +240,7 @@ export const SwapPanel: React.FC = () => {
       triggerWalletConnect();
       return;
     }
-    if (!hakAddress || !usdtAddress || !routerAddress) return;
+    if (!hakAddress || !usdtAddressFromPool || !routerAddress) return;
     if (sellAmountWei <= 0) return;
 
     setTxError(null);
@@ -266,7 +266,7 @@ export const SwapPanel: React.FC = () => {
         args: [
           sellAmountWei,
           amountOutMin,
-          [hakAddress as `0x${string}`, usdtAddress as `0x${string}`],
+          [hakAddress as `0x${string}`, usdtAddressFromPool as `0x${string}`],
           address as `0x${string}`,
           deadline,
         ],
@@ -282,7 +282,7 @@ export const SwapPanel: React.FC = () => {
     } finally {
       setSellStatus("idle");
     }
-  }, [address, hakAddress, usdtAddress, routerAddress, sellAmountWei, currentAllowance, writeContractAsync]);
+  }, [address, hakAddress, usdtAddressFromPool, routerAddress, sellAmountWei, currentAllowance, writeContractAsync]);
 
   const sellDisabled = !address || sellAmountWei <= 0 || sellStatus !== "idle";
 
