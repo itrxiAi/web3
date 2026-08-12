@@ -11,10 +11,10 @@ const BSC_RPC_URL = process.env.NEXT_PUBLIC_CHAIN_RPC_URL
 
 // 2. Create a metadata object - optional
 const metadata = {
-  name: 'Ava Points',
-  description: 'Ava Points - Decentralized Points System',
-  url: 'https://ava-points.com', // origin must match your domain & subdomain
-  icons: ['https://ava-points.com/favicon.ico']
+  name: 'HarmonyLink',
+  description: 'HarmonyLink - Decentralized Social & Mining Platform',
+  url: 'https://dapp.harmonylink.app', // origin must match your domain & subdomain
+  icons: ['https://dapp.harmonylink.app/favicon.ico']
 }
 
 // 3. Set the networks
