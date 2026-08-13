@@ -38,7 +38,7 @@ function round2(n: decimal): string {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { dev_address, dev_type } = body as { dev_address?: string; dev_type?: string };
+    const { dev_address, dev_type, token_type } = body as { dev_address?: string; dev_type?: string; token_type?: string };
 
     if (!dev_address || typeof dev_address !== 'string') {
       return NextResponse.json({ error: ErrorCode.INVALID_TRANSACTION }, { status: 400 });
@@ -47,6 +47,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: ErrorCode.INVALID_TRANSACTION }, { status: 400 });
     }
 
+    const tokenType: 'USDT' | 'HAKP' = token_type === 'HAKP' ? 'HAKP' : 'USDT';
     const address = dev_address.toLowerCase();
 
     // 1. 读取价格
@@ -70,13 +71,13 @@ export async function POST(req: NextRequest) {
     const batchTransferContract = await getBatchTransferContract();
     const railgunProxyContract = getRailgunProxyContract();
 
-    // 3. 构造 shieldList（单币种 USDT）：按比例分配金额
+    // 3. 构造 shieldList：按比例分配金额（HAKP 与 USDT 1:1，金额不变）
     const total = new decimal(amountUsdt);
     const ratioSum = recipients.reduce((sum, r) => sum + r.ratio, 0);
     const shieldList = recipients.map((r) => ({
       recipient: r.address,
       amount: round2(total.mul(r.ratio).div(ratioSum)),
-      token: 'USDT',
+      token: tokenType,
     }));
 
     // 修正尾差：确保金额之和等于 total
@@ -87,7 +88,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 4. 按币种汇总 shieldTotal
-    const shieldTotal = [{ token: 'USDT', amount: amountUsdt }];
+    const shieldTotal = [{ token: tokenType, amount: amountUsdt }];
 
     // 5. 检测 shieldType
     const shieldType = detectShieldType(shieldList);
@@ -98,7 +99,7 @@ export async function POST(req: NextRequest) {
         fromAddress: address,
         toAddress: batchTransferContract.toLowerCase(),
         amount: priceDisplay,
-        tokenType: TokenType.USDT,
+        tokenType: tokenType === 'HAKP' ? TokenType.HAKP : TokenType.USDT,
         type: TxFlowType.PURCHASE,
         status: TxFlowStatus.PENDING,
         description: JSON.stringify({

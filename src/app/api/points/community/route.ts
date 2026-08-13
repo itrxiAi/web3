@@ -89,7 +89,7 @@ export async function POST(req: NextRequest) {
         amount: it.amount,
         token: it.token,
       }));
-      const tokenAddress = getTokenAddress('USDT');
+      const tokenAddress = getTokenAddress(desc.shieldList[0]?.token ?? 'USDT');
       const shieldResult = await verifyBatchActivationTransfer(
         shieldTxHash,
         shieldItems,

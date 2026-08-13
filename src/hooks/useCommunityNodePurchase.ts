@@ -407,6 +407,7 @@ export function useCommunityNodePurchase(options?: CommunityPurchaseOptions) {
           body: JSON.stringify({
             dev_address: address.toString(),
             dev_type: type,
+            token_type: tokenType,
           }),
         });
         if (!quoteRes.ok) {
