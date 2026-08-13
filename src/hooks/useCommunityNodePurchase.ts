@@ -296,14 +296,14 @@ export function useCommunityNodePurchase(options?: CommunityPurchaseOptions) {
     };
   }, []);
 
-  /** Disperse 批量转账（单币种 USDT） */
+  /** Disperse 批量转账 */
   const approveAndDisperse = useCallback(
-    async (items: { recipient: string; amount: string }[], spender: string): Promise<string> => {
+    async (items: { recipient: string; amount: string }[], spender: string, tokenType: "USDT" | "HAKP" = "USDT"): Promise<string> => {
       if (!address) throw new Error("Wallet not connected");
       if (!items.length) throw new Error("Empty transfer list");
 
-      const tokenAddress = getTokenAddress('USDT');
-      if (!tokenAddress) throw new Error("USDT contract address not found");
+      const tokenAddress = getTokenAddress(tokenType);
+      if (!tokenAddress) throw new Error(`${tokenType} contract address not found`);
 
       const recipients = items.map((t) => t.recipient as `0x${string}`);
       const values = items.map((t) => parseUnits(t.amount, USDT_DECIMAL));
@@ -423,7 +423,7 @@ export function useCommunityNodePurchase(options?: CommunityPurchaseOptions) {
             recipient: it.recipient,
             amount: it.amount,
           }));
-          shieldTxHash = await approveAndDisperse(shieldItems, quote.batchTransferContract);
+          shieldTxHash = await approveAndDisperse(shieldItems, quote.batchTransferContract, tokenType);
         } else {
           // 0zk 私密地址：走 RAILGUN shield
           shieldTxHash = await approveAndShield(quote);
