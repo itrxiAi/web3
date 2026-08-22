@@ -1,24 +1,10 @@
 import { NextResponse } from 'next/server'
-import { getCommunityMinLevel, getCommunityNum, getCommunityPriceDisplay, getDividendRewardNodeRatio, getReferralDirectRewardRateCommunity, getStakeCommunityDynamicRewardCap, getStakeCommunityDynamicRewardCapIncrement, getBatchTransferContract, getNodeDisperseRecipients, getVerifier1, getVerifier2, getVerifierSoldBase } from '@/lib/config'
+import { getCommunityMinLevel, getCommunityNum, getCommunityPriceDisplay, getDividendRewardNodeRatio, getReferralDirectRewardRateCommunity, getStakeCommunityDynamicRewardCap, getStakeCommunityDynamicRewardCapIncrement, getBatchTransferContract, getNodeDisperseRecipients, getVerifier1, getVerifier2 } from '@/lib/config'
 
 const VERIFIER_MAX = 1000
 
 export async function POST() {
   try {
-    const appBackendUrl = process.env.APP_BACKEND_URL;
-    let verifier1Count = 0;
-    let verifier2Count = 0;
-
-    if (appBackendUrl) {
-      const statsResponse = await fetch(`${appBackendUrl}/internal/users/node-stats`);
-      if (statsResponse.ok) {
-        const stats = await statsResponse.json();
-        const statsData = stats.data ?? stats;
-        verifier1Count = statsData.verifier1Count ?? 0;
-        verifier2Count = statsData.verifier2Count ?? 0;
-      }
-    }
-
     const communityMax = await getCommunityNum()
     const batchTransferContract = await getBatchTransferContract()
     const disperseRecipients = await getNodeDisperseRecipients()

@@ -130,27 +130,15 @@ export async function POST(req: NextRequest) {
     const appBackendUrl = process.env.APP_BACKEND_URL;
     const internalApiKey = process.env.INTERNAL_API_KEY;
 
-    if (appBackendUrl) {
-      // 检查是否售罄
-      const statsRes = await fetch(`${appBackendUrl}/internal/users/node-stats`);
-      if (statsRes.ok) {
-        const stats = await statsRes.json();
-        const statsData = stats.data ?? stats;
-        const VERIFIER_MAX = 1000;
-        if (type === 'VERIFIER1' && statsData.verifier1Count >= VERIFIER_MAX) {
-          return NextResponse.json(
-            { error: 'VERIFIER1 nodes are sold out' },
-            { status: 400 }
-          );
-        }
-        if (type === 'VERIFIER2' && statsData.verifier2Count >= VERIFIER_MAX) {
-          return NextResponse.json(
-            { error: 'VERIFIER2 nodes are sold out' },
-            { status: 400 }
-          );
-        }
-      }
+    // verifier 节点写死售罄
+    if (type === 'VERIFIER1' || type === 'VERIFIER2') {
+      return NextResponse.json(
+        { error: `${type} nodes are sold out` },
+        { status: 400 }
+      );
+    }
 
+    if (appBackendUrl) {
       // 检查用户是否已有节点
       const detailRes = await fetch(`${appBackendUrl}/internal/users/${walletAddress}/detail`);
       if (detailRes.ok) {
