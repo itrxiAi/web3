@@ -24,15 +24,16 @@ export async function POST() {
     const disperseRecipients = await getNodeDisperseRecipients()
     const v1Price = Number((await getVerifier1()).toString())
     const v2Price = Number((await getVerifier2()).toString())
-    const soldBase = await getVerifierSoldBase()
-    const displayV1Count = verifier1Count + soldBase.verifier1
-    const displayV2Count = verifier2Count + soldBase.verifier2
+
+    // 写死 verifier 已售罄：soldCount=1000, leftNum=0
+    const displayV1Count = VERIFIER_MAX;
+    const displayV2Count = VERIFIER_MAX;
 
     return NextResponse.json({
       communityNode: {
         price_display: await getCommunityPriceDisplay(),
         maxNum: communityMax,
-        leftNum: communityMax - verifier1Count - verifier2Count,
+        leftNum: communityMax - VERIFIER_MAX - VERIFIER_MAX,
         referralReward: await getReferralDirectRewardRateCommunity(),
         minLevel: await getCommunityMinLevel(),
         dynamicRewardCap: await getStakeCommunityDynamicRewardCap(),
@@ -42,14 +43,14 @@ export async function POST() {
       verifier1Node: {
         price_display: v1Price,
         maxNum: VERIFIER_MAX,
-        leftNum: VERIFIER_MAX - verifier1Count,
+        leftNum: 0,
         soldCount: displayV1Count,
         soldAmount: displayV1Count * v1Price,
       },
       verifier2Node: {
         price_display: v2Price,
         maxNum: VERIFIER_MAX,
-        leftNum: VERIFIER_MAX - verifier2Count,
+        leftNum: 0,
         soldCount: displayV2Count,
         soldAmount: displayV2Count * v2Price,
       },
