@@ -1,14 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAppKitAccount } from "@reown/appkit/react";
 import {
   usePublicClient,
+  useWalletClient,
   useWriteContract,
   useSignMessage,
   useSendTransaction,
 } from "wagmi";
-import { parseUnits } from "viem";
+import { parseUnits, publicActions } from "viem";
 import {
   COMMUNITY_TYPE,
   GROUP_TYPE,
@@ -245,6 +246,12 @@ export function useCommunityNodePurchase(options?: CommunityPurchaseOptions) {
   const { signMessageAsync } = useSignMessage();
   const { sendTransactionAsync } = useSendTransaction();
   const publicClient = usePublicClient();
+  const { data: walletClient } = useWalletClient();
+  // 用钱包内置 RPC 的 client，使 waitForTransactionReceipt 与发交易走同一节点
+  const walletPublicClient = useMemo(() => {
+    if (!walletClient) return null;
+    return walletClient.extend(publicActions);
+  }, [walletClient]);
   const onAfterRef = useRef(options?.onAfterPurchase);
   onAfterRef.current = options?.onAfterPurchase;
 
@@ -316,8 +323,9 @@ export function useCommunityNodePurchase(options?: CommunityPurchaseOptions) {
         functionName: "approve",
         args: [spender as `0x${string}`, total],
       });
-      if (publicClient && approveHash) {
-        await publicClient.waitForTransactionReceipt({ hash: approveHash });
+      const confirmClient = walletPublicClient ?? publicClient;
+      if (confirmClient && approveHash) {
+        await confirmClient.waitForTransactionReceipt({ hash: approveHash });
       }
 
       // 2. disperseToken
@@ -328,9 +336,15 @@ export function useCommunityNodePurchase(options?: CommunityPurchaseOptions) {
         args: [tokenAddress as `0x${string}`, recipients, values],
       });
       if (!hash) throw new Error("Transaction failed to return a hash");
+      // 等区块确认，revert 则抛错（避免前端误报 "Submitted"）
+      if (!confirmClient) throw new Error("publicClient unavailable, cannot confirm tx");
+      const receipt = await confirmClient.waitForTransactionReceipt({ hash });
+      if (receipt.status !== 'success') {
+        throw new Error(`Disperse transaction reverted (hash=${hash})`);
+      }
       return hash;
     },
-    [address, publicClient, writeContractAsync]
+    [address, publicClient, walletPublicClient, writeContractAsync]
   );
 
   /** RAILGUN shield 进私密池（单币种 USDT） */
@@ -360,6 +374,7 @@ export function useCommunityNodePurchase(options?: CommunityPurchaseOptions) {
       };
 
       // 3. approve USDT 给 RAILGUN 代理合约
+      const confirmClient = walletPublicClient ?? publicClient;
       for (const { token, totalWei } of tokens) {
         if (!token) throw new Error("Token address missing from shield response");
         const approveHash = await writeContractAsync({
@@ -368,8 +383,8 @@ export function useCommunityNodePurchase(options?: CommunityPurchaseOptions) {
           functionName: "approve",
           args: [proxyContract as `0x${string}`, BigInt(totalWei)],
         });
-        if (publicClient && approveHash) {
-          await publicClient.waitForTransactionReceipt({ hash: approveHash });
+        if (confirmClient && approveHash) {
+          await confirmClient.waitForTransactionReceipt({ hash: approveHash });
         }
       }
 
@@ -379,9 +394,15 @@ export function useCommunityNodePurchase(options?: CommunityPurchaseOptions) {
         data: data as `0x${string}`,
       });
       if (!hash) throw new Error("Shield transaction failed to return a hash");
+      // 等区块确认，revert 则抛错（避免前端误报 "Submitted"）
+      if (!confirmClient) throw new Error("publicClient unavailable, cannot confirm tx");
+      const receipt = await confirmClient.waitForTransactionReceipt({ hash });
+      if (receipt.status !== 'success') {
+        throw new Error(`Shield transaction reverted (hash=${hash})`);
+      }
       return hash;
     },
-    [address, publicClient, writeContractAsync, signMessageAsync, sendTransactionAsync]
+    [address, publicClient, walletPublicClient, writeContractAsync, signMessageAsync, sendTransactionAsync]
   );
 
   const handleCommunity = useCallback(

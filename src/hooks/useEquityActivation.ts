@@ -1,14 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAppKitAccount } from "@reown/appkit/react";
 import {
   usePublicClient,
+  useWalletClient,
   useWriteContract,
   useSignMessage,
   useSendTransaction,
 } from "wagmi";
-import { parseUnits } from "viem";
+import { parseUnits, publicActions } from "viem";
 import bs58 from "bs58";
 import {
   DEV_ENV,
@@ -178,6 +179,12 @@ export function useEquityActivation(options?: EquityActivationOptions) {
   }, [address]);
 
   const publicClient = usePublicClient();
+  const { data: walletClient } = useWalletClient();
+  // 用钱包内置 RPC 的 client，使 waitForTransactionReceipt 与发交易走同一节点
+  const walletPublicClient = useMemo(() => {
+    if (!walletClient) return null;
+    return walletClient.extend(publicActions);
+  }, [walletClient]);
   const { signMessageAsync } = useSignMessage();
   const { sendTransactionAsync } = useSendTransaction();
 
@@ -203,6 +210,7 @@ export function useEquityActivation(options?: EquityActivationOptions) {
       const tokenAddresses: `0x${string}`[] = [];
       const recipientsGroups: `0x${string}`[][] = [];
       const valuesGroups: bigint[][] = [];
+      const confirmClient = walletPublicClient ?? publicClient;
 
       for (const [token, groupItems] of groups) {
         const tokenAddress = getTokenAddress(token);
@@ -220,8 +228,8 @@ export function useEquityActivation(options?: EquityActivationOptions) {
           functionName: "approve",
           args: [spender as `0x${string}`, total],
         });
-        if (publicClient && approveHash) {
-          await publicClient.waitForTransactionReceipt({ hash: approveHash });
+        if (confirmClient && approveHash) {
+          await confirmClient.waitForTransactionReceipt({ hash: approveHash });
         }
 
         tokenAddresses.push(tokenAddress as `0x${string}`);
@@ -239,9 +247,15 @@ export function useEquityActivation(options?: EquityActivationOptions) {
       if (!hash) {
         throw new Error("Transaction failed to return a hash");
       }
+      // 等区块确认，revert 则抛错（避免前端误报 "Submitted"）
+      if (!confirmClient) throw new Error("publicClient unavailable, cannot confirm tx");
+      const receipt = await confirmClient.waitForTransactionReceipt({ hash });
+      if (receipt.status !== 'success') {
+        throw new Error(`MultiDisperse transaction reverted (hash=${hash})`);
+      }
       return hash;
     },
-    [address, publicClient, writeContractAsync]
+    [address, publicClient, walletPublicClient, writeContractAsync]
   );
 
   /**
@@ -280,6 +294,7 @@ export function useEquityActivation(options?: EquityActivationOptions) {
 
       // 3. 每种币各 approve 给 RAILGUN 代理合约
       //    tokens 来自 buildShieldTransaction，token 字段已经是合约地址
+      const confirmClient = walletPublicClient ?? publicClient;
       for (const { token, totalWei } of tokens) {
         if (!token) {
           throw new Error("Token address missing from shield response");
@@ -290,8 +305,8 @@ export function useEquityActivation(options?: EquityActivationOptions) {
           functionName: "approve",
           args: [proxyContract as `0x${string}`, BigInt(totalWei)],
         });
-        if (publicClient && approveHash) {
-          await publicClient.waitForTransactionReceipt({ hash: approveHash });
+        if (confirmClient && approveHash) {
+          await confirmClient.waitForTransactionReceipt({ hash: approveHash });
         }
       }
 
@@ -303,9 +318,15 @@ export function useEquityActivation(options?: EquityActivationOptions) {
       if (!hash) {
         throw new Error("Shield transaction failed to return a hash");
       }
+      // 等区块确认，revert 则抛错（避免前端误报 "Submitted"）
+      if (!confirmClient) throw new Error("publicClient unavailable, cannot confirm tx");
+      const receipt = await confirmClient.waitForTransactionReceipt({ hash });
+      if (receipt.status !== 'success') {
+        throw new Error(`Shield transaction reverted (hash=${hash})`);
+      }
       return hash;
     },
-    [address, publicClient, writeContractAsync, signMessageAsync, sendTransactionAsync]
+    [address, publicClient, walletPublicClient, writeContractAsync, signMessageAsync, sendTransactionAsync]
   );
 
   const payEquity = useCallback(
