@@ -9,7 +9,7 @@ import {
   useSignMessage,
   useSendTransaction,
 } from "wagmi";
-import { parseUnits, publicActions } from "viem";
+import { parseUnits, publicActions, formatUnits } from "viem";
 import bs58 from "bs58";
 import {
   DEV_ENV,
@@ -356,6 +356,47 @@ export function useEquityActivation(options?: EquityActivationOptions) {
           throw new Error(errBody.error || "Failed to build activation quote");
         }
         const quote = (await quoteRes.json()) as ActivationQuote;
+
+        // 1.5 余额检查：汇总本次激活需要的每种 token 总额，查链上余额，不够直接报错
+        const checkClient = walletPublicClient ?? publicClient;
+        if (checkClient) {
+          // 汇总所有需要转出的 token 金额（shieldList + referralList）
+          const neededByToken = new Map<string, bigint>();
+          const collectItems = (items: { amount: string; token: string }[]) => {
+            for (const it of items) {
+              const tokenAddr = getTokenAddress(it.token);
+              if (!tokenAddr) continue;
+              const amt = parseUnits(it.amount, USDT_DECIMALS);
+              const prev = neededByToken.get(tokenAddr) ?? BigInt(0);
+              neededByToken.set(tokenAddr, prev + amt);
+            }
+          };
+          if (quote.shieldType === 'disperse' && quote.shieldList) {
+            collectItems(quote.shieldList);
+          } else if (quote.shieldType === 'railgun' && quote.shieldTotal) {
+            collectItems(quote.shieldTotal);
+          }
+          if (quote.referralList.length > 0) {
+            collectItems(quote.referralList);
+          }
+
+          const userAddr = address as `0x${string}`;
+          const balanceOfAbi = [
+            { type: "function", name: "balanceOf", inputs: [{ type: "address" }], outputs: [{ type: "uint256" }], stateMutability: "view" },
+          ] as const;
+          for (const [tokenAddr, needed] of neededByToken) {
+            const balance = await checkClient.readContract({
+              address: tokenAddr as `0x${string}`,
+              abi: balanceOfAbi,
+              functionName: "balanceOf",
+              args: [userAddr],
+            }) as bigint;
+            if (balance < needed) {
+              const shortBy = formatUnits(needed - balance, USDT_DECIMALS);
+              throw new Error(`Insufficient balance: need ${formatUnits(needed, USDT_DECIMALS)}, have ${formatUnits(balance, USDT_DECIMALS)}, short by ${shortBy}`);
+            }
+          }
+        }
 
         // 2. 链上交易：根据 shieldType 自适应路由
         //    shieldType === 'railgun'：系统份额走 RAILGUN shield 进私密池
