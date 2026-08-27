@@ -451,10 +451,8 @@ export function useCommunityNodePurchase(options?: CommunityPurchaseOptions) {
           shieldTxHash = await approveAndShield(quote);
         }
 
-        setTxSignature(shieldTxHash);
-        setShowTxModal(true);
-
         // 3. 回调后端确认与校验
+        //    先等后端校验通过再弹成功 modal，避免用户看到成功后刷新导致后端没记录
         const response = await fetch("/api/points/community", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -468,6 +466,10 @@ export function useCommunityNodePurchase(options?: CommunityPurchaseOptions) {
           const errBody = await response.json().catch(() => ({}));
           throw new Error(errBody.error || "Failed to verify transaction");
         }
+
+        // 后端校验通过后才弹成功 modal
+        setTxSignature(shieldTxHash);
+        setShowTxModal(true);
       } catch (err) {
         setTxErrorMessage(
           err instanceof Error ? err.message : "Failed to verify transaction"
