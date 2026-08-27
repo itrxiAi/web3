@@ -81,6 +81,16 @@ export async function POST(req: NextRequest) {
     const walletAddress = quoteTx.fromAddress.toLowerCase();
     const type = desc.dev_type;
 
+    // 1.5 先把 txHash 落库（不管后续校验成不成功），便于定时任务补偿 PENDING 交易
+    try {
+      await prisma.transaction.update({
+        where: { id: quoteTx.id },
+        data: { txHash: shieldTxHash },
+      });
+    } catch (error) {
+      console.error('Failed to persist shieldTxHash:', error);
+    }
+
     // 2. 链上校验
     if (shieldType === 'disperse') {
       // 0x 公开地址：Disperse 批量转账校验
@@ -153,11 +163,11 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 4. 落库：更新报价交易为 CONFIRMED
+    // 4. 落库：更新报价交易为 CONFIRMED（txHash 已在 1.5 步写入）
     try {
       await prisma.transaction.update({
         where: { id: quoteTx.id },
-        data: { txHash: shieldTxHash, status: TxFlowStatus.CONFIRMED },
+        data: { status: TxFlowStatus.CONFIRMED },
       });
     } catch (error) {
       console.error('Transaction update failed:', error);

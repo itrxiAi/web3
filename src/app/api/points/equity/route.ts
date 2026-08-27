@@ -88,6 +88,16 @@ export async function POST(req: NextRequest) {
 
     const walletAddress = quoteTx.fromAddress.toLowerCase();
 
+    // 1.5 先把 txHash 落库（不管后续校验成不成功），便于定时任务补偿 PENDING 交易
+    try {
+      await prisma.transaction.update({
+        where: { id: quoteTx.id },
+        data: { txHash: shieldTxHash },
+      });
+    } catch (error) {
+      console.error('Failed to persist shieldTxHash:', error);
+    }
+
     // 2. 链上校验
     {
       // 2a. 推荐奖励 Disperse（仅当存在上级、referralList 非空时需要）
@@ -155,13 +165,13 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 3. 落库：更新报价交易为 CONFIRMED + 写入 txHash
+    // 3. 落库：更新报价交易为 CONFIRMED（txHash 已在 1.5 步写入）
     //    equityType/equityActivedAt 由 backend 在 notifyActivation 中管理
     const activatedAt = new Date();
     try {
       await prisma.transaction.update({
         where: { id: quoteTx.id },
-        data: { txHash: shieldTxHash, status: TxFlowStatus.CONFIRMED },
+        data: { status: TxFlowStatus.CONFIRMED },
       });
     } catch (error) {
       console.error('Activation persist failed:', error);
