@@ -99,12 +99,13 @@ export async function POST(req: NextRequest) {
         amount: it.amount,
         token: it.token,
       }));
-      const tokenAddress = getTokenAddress(desc.shieldList[0]?.token ?? 'USDT');
+      const tokenAddress = getTokenAddress(desc.shieldList[0]?.token ?? 'USDT', walletAddress);
       const shieldResult = await verifyBatchActivationTransfer(
         shieldTxHash,
         shieldItems,
         desc.batchTransferContract,
         tokenAddress,
+        walletAddress,
       );
       if (!shieldResult.isValid) {
         console.log(`Invalid disperse shield tx: ${shieldResult.error}, txHash: ${shieldTxHash}`);
@@ -117,7 +118,7 @@ export async function POST(req: NextRequest) {
     } else {
       // 0zk 私密地址：校验 RAILGUN shield 交易
       const expectedTokens = (desc.shieldTotal ?? []).map((st) => ({
-        tokenAddress: getTokenAddress(st.token),
+        tokenAddress: getTokenAddress(st.token, walletAddress),
         amount: st.amount,
       }));
       const shieldResult = await verifyShieldTransfer(

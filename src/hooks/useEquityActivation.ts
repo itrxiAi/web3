@@ -213,7 +213,7 @@ export function useEquityActivation(options?: EquityActivationOptions) {
       const confirmClient = walletPublicClient ?? publicClient;
 
       for (const [token, groupItems] of groups) {
-        const tokenAddress = getTokenAddress(token);
+        const tokenAddress = getTokenAddress(token, address);
         if (!tokenAddress) {
           throw new Error(`${token} contract address not found in environment variables`);
         }
@@ -364,7 +364,7 @@ export function useEquityActivation(options?: EquityActivationOptions) {
           const neededByToken = new Map<string, bigint>();
           const collectItems = (items: { amount: string; token: string }[]) => {
             for (const it of items) {
-              const tokenAddr = getTokenAddress(it.token);
+              const tokenAddr = getTokenAddress(it.token, address);
               if (!tokenAddr) continue;
               const amt = parseUnits(it.amount, USDT_DECIMALS);
               const prev = neededByToken.get(tokenAddr) ?? BigInt(0);

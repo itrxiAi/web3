@@ -109,6 +109,8 @@ export async function POST(req: NextRequest) {
           referralTxHash,
           desc.referralList,
           desc.batchTransferContract,
+          undefined,
+          walletAddress,
         );
         if (!referralResult.isValid) {
           console.log(`Invalid referral tx: ${referralResult.error}, txHash: ${referralTxHash}`);
@@ -133,6 +135,8 @@ export async function POST(req: NextRequest) {
           shieldTxHash,
           shieldItems,
           desc.batchTransferContract,
+          undefined,
+          walletAddress,
         );
         if (!shieldResult.isValid) {
           console.log(`Invalid disperse shield tx: ${shieldResult.error}, txHash: ${shieldTxHash}`);
@@ -145,7 +149,7 @@ export async function POST(req: NextRequest) {
       } else {
         // 0zk 私密地址：校验 RAILGUN shield 交易（多币种）
         const expectedTokens = (desc.shieldTotal ?? []).map((st) => ({
-          tokenAddress: getTokenAddress(st.token),
+          tokenAddress: getTokenAddress(st.token, walletAddress),
           amount: st.amount,
         }));
         const shieldResult = await verifyShieldTransfer(

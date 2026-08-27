@@ -308,6 +308,7 @@ export async function verifyBatchActivationTransfer(
   expectedList: ActivationTransferItem[],
   contractAddress: string,
   tokenAddress?: string,
+  walletAddress?: string,
 ): Promise<{ isValid: boolean; error?: string; fromAddress?: string }> {
   try {
     // 幂等：交易不可重复使用
@@ -346,7 +347,7 @@ export async function verifyBatchActivationTransfer(
     const tokenAddressSet = new Set<string>();
     if (isMultiToken) {
       for (const it of expectedList) {
-        if (it.token) tokenAddressSet.add(getTokenAddress(it.token).toLowerCase());
+        if (it.token) tokenAddressSet.add(getTokenAddress(it.token, walletAddress).toLowerCase());
       }
     }
     const singleTokenAddr = (tokenAddress || USDT_TOKEN_ADDRESS).toLowerCase();
@@ -380,7 +381,7 @@ export async function verifyBatchActivationTransfer(
     // 4. 比对转账列表（地址 + 金额，允许 0.01 误差）
     //    多币种模式：将 expected 中的 token 名称统一转为小写地址，与 actual 一致
     const normalizedExpected = isMultiToken
-      ? expectedList.map((it) => ({ ...it, token: getTokenAddress(it.token!).toLowerCase() }))
+      ? expectedList.map((it) => ({ ...it, token: getTokenAddress(it.token!, walletAddress).toLowerCase() }))
       : expectedList;
     if (!validateActivationTransferList(normalizedExpected, actual)) {
       return { isValid: false, error: 'Transfer list does not match' };

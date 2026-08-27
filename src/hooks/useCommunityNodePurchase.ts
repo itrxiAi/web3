@@ -309,7 +309,7 @@ export function useCommunityNodePurchase(options?: CommunityPurchaseOptions) {
       if (!address) throw new Error("Wallet not connected");
       if (!items.length) throw new Error("Empty transfer list");
 
-      const tokenAddress = getTokenAddress(tokenType);
+      const tokenAddress = getTokenAddress(tokenType, address);
       if (!tokenAddress) throw new Error(`${tokenType} contract address not found`);
 
       const recipients = items.map((t) => t.recipient as `0x${string}`);

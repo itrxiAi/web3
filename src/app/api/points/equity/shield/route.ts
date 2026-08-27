@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
     const recipients: ShieldRecipientWei[] = desc.shieldList.map((it) => ({
       recipient: it.recipient,
       amountWei: parseUnits(it.amount, USDT_DECIMALS),
-      tokenAddress: getTokenAddress(it.token),
+      tokenAddress: getTokenAddress(it.token, quoteTx.fromAddress),
     }));
 
     const { to, data, proxyContract, tokens } = await buildShieldTransaction({
