@@ -86,6 +86,26 @@ export async function GET(req: NextRequest) {
       directSvipCount,
       allVipCount: user.allVipCount ?? 0,
       allSvipCount: user.allSvipCount ?? 0,
+      activation: user.activation
+        ? {
+            quotaVideoPost: user.activation.quotaVideoPost ?? 0,
+            quotaVideoLike: user.activation.quotaVideoLike ?? 0,
+            quotaCommentPost: user.activation.quotaCommentPost ?? 0,
+            quotaCommentLike: user.activation.quotaCommentLike ?? 0,
+            quotaLiveLike: user.activation.quotaLiveLike ?? 0,
+            quotaLiveInteract: user.activation.quotaLiveInteract ?? 0,
+          }
+        : null,
+      zeroQuota: user.zeroQuota
+        ? {
+            taskVideoPost: user.zeroQuota.taskVideoPost ?? 0,
+            taskVideoLike: user.zeroQuota.taskVideoLike ?? 0,
+            taskCommentPost: user.zeroQuota.taskCommentPost ?? 0,
+            taskCommentLike: user.zeroQuota.taskCommentLike ?? 0,
+            taskLiveLike: user.zeroQuota.taskLiveLike ?? 0,
+            taskLiveInteract: user.zeroQuota.taskLiveInteract ?? 0,
+          }
+        : null,
     });
   } catch (error) {
     console.error('Error getting points:', error);

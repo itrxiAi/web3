@@ -6,7 +6,7 @@ import { useTranslations, useLocale } from "next-intl";
 import Image from "next/image";
 import Link from "next/link";
 import LoadingSpinner from "@/components/LoadingSpinner";
-import { EquityType, TokenType, TxFlowType, UserType } from "@prisma/client";
+import { EquityType, TokenType, TxFlowType } from "@prisma/client";
 import { VERIFIER_1, VERIFIER_2 } from "@/constants";
 import { generateOperationHash } from "@/utils/auth";
 import bs58 from "bs58";
@@ -19,6 +19,24 @@ import { RecommenderModal } from "@/components/ui/recommender-modal";
 import { truncateDecimals, truncateDecimalsStr } from "@/utils/common";
 import decimal from "decimal.js";
 import BorderCustom from "@/components/ui/border-custom";
+
+interface QuotaInfo {
+  quotaVideoPost?: number;
+  quotaVideoLike?: number;
+  quotaCommentPost?: number;
+  quotaCommentLike?: number;
+  quotaLiveLike?: number;
+  quotaLiveInteract?: number;
+}
+
+interface ZeroQuotaInfo {
+  taskVideoPost?: number;
+  taskVideoLike?: number;
+  taskCommentPost?: number;
+  taskCommentLike?: number;
+  taskLiveLike?: number;
+  taskLiveInteract?: number;
+}
 
 interface UserInfo {
   type: string | null;
@@ -40,6 +58,8 @@ interface UserInfo {
   directSvipCount?: number;
   allVipCount?: number;
   allSvipCount?: number;
+  activation?: QuotaInfo | null;
+  zeroQuota?: ZeroQuotaInfo | null;
 }
 
 interface DirectReferral {
@@ -107,6 +127,71 @@ function MyContent() {
     }
   };
 
+  // 每日收益（今日，按资产分别累计，排除提现及提现手续费）
+  const [earningsSummary, setEarningsSummary] = useState<{
+    hak: string;
+    usdt: string;
+  }>({ hak: "0.00", usdt: "0.00" });
+  const [showEarningsModal, setShowEarningsModal] = useState(false);
+  const [earningsEntries, setEarningsEntries] = useState<
+    Array<{
+      id: string;
+      bizType: string;
+      asset: string;
+      amount: string;
+      note?: string | null;
+      createdAt: string;
+    }>
+  >([]);
+  const [earningsCursor, setEarningsCursor] = useState<string | null>(null);
+  const [earningsLoading, setEarningsLoading] = useState(false);
+
+  const fetchEarningsSummary = async () => {
+    if (!address) return;
+    try {
+      const response = await fetch(
+        `/api/user/earnings/summary?address=${address}&range=today`
+      );
+      if (!response.ok) return;
+      const data = await response.json();
+      const items: Array<{ bizType: string; asset: string; amount: string }> =
+        Array.isArray(data) ? data : [];
+      const sumByAsset = (asset: string) =>
+        items
+          .filter(
+            (i) =>
+              i.asset === asset &&
+              i.bizType !== "WITHDRAW" &&
+              i.bizType !== "WITHDRAW_FEE"
+          )
+          .reduce((acc, i) => acc + Number(i.amount || 0), 0)
+          .toFixed(2);
+      setEarningsSummary({ hak: sumByAsset("HAK"), usdt: sumByAsset("USDT") });
+    } catch (error) {
+      console.error("Error fetching earnings summary:", error);
+    }
+  };
+
+  const fetchEarningsEntries = async (cursor?: string | null) => {
+    if (!address) return;
+    try {
+      setEarningsLoading(true);
+      const qs = new URLSearchParams({ address, limit: "50" });
+      if (cursor) qs.set("cursor", cursor);
+      const response = await fetch(`/api/user/earnings/entries?${qs.toString()}`);
+      if (response.ok) {
+        const data = await response.json();
+        const items = data?.items ?? [];
+        setEarningsEntries((prev) => (cursor ? [...prev, ...items] : items));
+        setEarningsCursor(data?.nextCursor ?? null);
+      }
+    } catch (error) {
+      console.error("Error fetching earnings entries:", error);
+    } finally {
+      setEarningsLoading(false);
+    }
+  };
+
   // Fetch direct referrals
   const fetchDirects = async () => {
     if (!address) return;
@@ -126,6 +211,7 @@ function MyContent() {
       setToAddress(address);
       fetchDirects();
       fetchBalance();
+      fetchEarningsSummary();
     }
   }, [address]);
 
@@ -512,63 +598,57 @@ function MyContent() {
     },
   ];
 
-  // Benefits data for the grid
-  const benefitsData = [
+  // 配额：激活配额优先，未激活时回退到零撸任务配额
+  const quotaItems = [
     {
-      key: "fee_dividend",
-      label: t("fee_dividend"),
-      icon: "$",
+      key: "video",
+      label: t("quota_video"),
+      value:
+        userInfo?.activation?.quotaVideoPost ??
+        userInfo?.zeroQuota?.taskVideoPost ??
+        0,
     },
     {
-      key: "task_pack",
-      label: t("task_pack"),
-      icon: "◉",
-    }/* ,
-    {
-      key: "team_level_t2",
-      label: t("team_level_t2"),
-      icon: "T2",
+      key: "like",
+      label: t("quota_like"),
+      value:
+        userInfo?.activation?.quotaVideoLike ??
+        userInfo?.zeroQuota?.taskVideoLike ??
+        0,
     },
     {
-      key: "ad_revenue",
-      label: t("ad_revenue"),
-      icon: "◈",
-    }, */
+      key: "comment",
+      label: t("quota_comment"),
+      value:
+        userInfo?.activation?.quotaCommentPost ??
+        userInfo?.zeroQuota?.taskCommentPost ??
+        0,
+    },
+    {
+      key: "comment_like",
+      label: t("quota_comment_like"),
+      value:
+        userInfo?.activation?.quotaCommentLike ??
+        userInfo?.zeroQuota?.taskCommentLike ??
+        0,
+    },
+    {
+      key: "live_like",
+      label: t("quota_live_like"),
+      value:
+        userInfo?.activation?.quotaLiveLike ??
+        userInfo?.zeroQuota?.taskLiveLike ??
+        0,
+    },
+    {
+      key: "live_interact",
+      label: t("quota_live_interact"),
+      value:
+        userInfo?.activation?.quotaLiveInteract ??
+        userInfo?.zeroQuota?.taskLiveInteract ??
+        0,
+    },
   ];
-
-  function BenefitCircleIcon({ iconKey, label, isActivated }: { iconKey: string; label: string; isActivated: boolean }) {
-    let iconSrc = "";
-    if (iconKey === "fee_dividend") iconSrc = "/imgs/my/3.png";
-    else if (iconKey === "task_pack") iconSrc = "/imgs/my/2.png";
-    else if (iconKey === "team_level_t2") iconSrc = "/imgs/my/4.png";
-    else if (iconKey === "ad_revenue") iconSrc = "/imgs/my/5.png";
-
-    return (
-      <div className="flex flex-col items-center gap-2">
-        <div
-          style={{
-            width: 56,
-            height: 56,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          {iconSrc && (
-            <Image 
-              src={iconSrc} 
-              alt={label} 
-              width={26} 
-              height={26} 
-              className={`object-contain transition-opacity ${isActivated ? 'opacity-100' : 'opacity-50'}`}
-              style={{ filter: isActivated ? 'none' : 'brightness(0.6)' }}
-            />
-          )}
-        </div>
-        <p className={`text-xs text-center leading-tight ${isActivated ? 'text-white' : 'text-gray-400'}`}>{label}</p>
-      </div>
-    );
-  }
 
   return (
     <div className="flex flex-col h-full">
@@ -784,25 +864,68 @@ function MyContent() {
               }}
             >
               {/* Section header */}
-              <div className="flex items-center mb-5">
-
+              <div className="flex items-center justify-between mb-5">
                 <h2 className="text-sm font-bold text-white">
                   {t("my_benefits")}
                 </h2>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEarningsEntries([]);
+                    setEarningsCursor(null);
+                    setShowEarningsModal(true);
+                    fetchEarningsEntries(null);
+                  }}
+                  className="text-xs font-medium text-white px-3 py-1 rounded-md"
+                  style={{ background: "rgba(255, 255, 255, 0.2)" }}
+                >
+                  {t("details")}
+                </button>
               </div>
 
-              {/* Row 1: 3 items */}
-              <div className="flex justify-around mb-5">
-                {benefitsData.map((benefit) => (
-                  <BenefitCircleIcon 
-                    key={benefit.key} 
-                    iconKey={benefit.key} 
-                    label={benefit.label} 
-                    isActivated={userInfo?.type === UserType.COMMUNITY || false}
-                  />
+              {/* Daily earnings */}
+              <div className="flex items-center justify-between mb-5">
+                <p className="text-xs text-white/80">{t("daily_earnings")}</p>
+                <div className="flex items-center gap-4">
+                  <span className="text-sm font-bold text-white">
+                    {earningsSummary.usdt} USDT
+                  </span>
+                  <span className="text-sm font-bold text-white">
+                    {earningsSummary.hak} HAK
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Quota Section */}
+          <div className="mb-8">
+            <div
+              className="p-5"
+              style={{
+                opacity: 0.78,
+                borderRadius: "15px",
+                backgroundImage: "linear-gradient(0deg, #e30e10 0%, #690a71 100%)",
+              }}
+            >
+              <h2 className="text-sm font-bold text-white mb-4">
+                {t("my_quota")}
+              </h2>
+              <div className="grid grid-cols-3 gap-4">
+                {quotaItems.map((item) => (
+                  <div
+                    key={item.key}
+                    className="flex flex-col items-center gap-1"
+                  >
+                    <span className="text-xl font-bold text-white">
+                      {item.value}
+                    </span>
+                    <span className="text-xs text-white/70 text-center">
+                      {item.label}
+                    </span>
+                  </div>
                 ))}
               </div>
-
             </div>
           </div>
 
@@ -1117,6 +1240,76 @@ function MyContent() {
                     {t("confirm")}
                   </button>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* Earnings Details Modal */}
+          {showEarningsModal && (
+            <div
+              className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4"
+              onClick={(e) => {
+                if (e.target === e.currentTarget) setShowEarningsModal(false);
+              }}
+            >
+              <div className="bg-black p-4 rounded-xl w-[95%] max-w-md border-2 border-blue-500 max-h-[80vh] flex flex-col">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-bold text-white">
+                    {t("earnings_details")}
+                  </h3>
+                  <button
+                    onClick={() => setShowEarningsModal(false)}
+                    className="text-gray-400 hover:text-white"
+                    aria-label="Close"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-[1fr_80px_90px] gap-2 text-xs text-white/60 pb-2 border-b border-white/20">
+                  <div>{t("time")}</div>
+                  <div className="text-center">{t("type")}</div>
+                  <div className="text-right">{t("amount")}</div>
+                </div>
+
+                <div className="flex-1 overflow-y-auto">
+                  {earningsEntries.length === 0 && !earningsLoading && (
+                    <p className="text-center text-xs text-white/60 py-6">
+                      {t("no_data")}
+                    </p>
+                  )}
+                  {earningsEntries.map((entry) => (
+                    <div
+                      key={entry.id}
+                      className="grid grid-cols-[1fr_80px_90px] gap-2 py-2 text-xs text-white border-b border-white/10"
+                    >
+                      <div className="truncate">
+                        {new Date(entry.createdAt).toLocaleString()}
+                      </div>
+                      <div className="text-center truncate" title={entry.bizType}>
+                        {entry.bizType}
+                      </div>
+                      <div className="text-right">
+                        {truncateDecimals(Number(entry.amount))} {entry.asset}
+                      </div>
+                    </div>
+                  ))}
+                  {earningsLoading && (
+                    <p className="text-center text-xs text-white/60 py-3">
+                      {t("loading")}
+                    </p>
+                  )}
+                </div>
+
+                {earningsCursor && !earningsLoading && (
+                  <button
+                    onClick={() => fetchEarningsEntries(earningsCursor)}
+                    className="mt-3 text-xs text-white py-2 rounded-md"
+                    style={{ background: "rgba(255, 255, 255, 0.2)" }}
+                  >
+                    {t("load_more")}
+                  </button>
+                )}
               </div>
             </div>
           )}
