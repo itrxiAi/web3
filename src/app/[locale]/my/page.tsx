@@ -96,7 +96,7 @@ function MyContent() {
   const [cashOutAmount, setCashOutAmount] = useState("0.00");
   const [toAddress, setToAddress] = useState<string>("");
   const [cashOutTokenType, setCashOutTokenType] = useState<TokenType>(
-    TokenType.USDT
+    TokenType.HAK
   );
   // app backend 余额（HAK / USDT）
   const [balance, setBalance] = useState<{ HAK: string; USDT: string }>({
@@ -823,6 +823,7 @@ function MyContent() {
                       triggerWalletConnect();
                       return;
                     }
+                    setCashOutTokenType(TokenType.HAK);
                     setCashOutAmount("0.00");
                     setWithdrawError("");
                     setWithdrawResult("");
