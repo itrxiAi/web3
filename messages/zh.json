@@ -506,6 +506,8 @@
     "my_proclaim": "公告",
     "version": "版本",
     "cash_out": "提现",
+    "balance": "余额",
+    "withdraw_self_only": "提现只能提到本人地址",
     "internal_transfer": "闪兑（敬请期待）",
     "token_type": "代币类型",
     "destination": "目标地址",

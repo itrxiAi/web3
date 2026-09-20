@@ -490,6 +490,8 @@
     "my_proclaim": "Announcements",
     "version": "Version",
     "cash_out": "Withdraw",
+    "balance": "Balance",
+    "withdraw_self_only": "Withdrawal can only be sent to your own address",
     "internal_transfer": "Flash Exchange (Coming Soon)",
     "token_type": "Token Type",
     "destination": "Destination Address",

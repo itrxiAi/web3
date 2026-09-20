@@ -78,6 +78,34 @@ function MyContent() {
   const [cashOutTokenType, setCashOutTokenType] = useState<TokenType>(
     TokenType.USDT
   );
+  // app backend 余额（HAK / USDT）
+  const [balance, setBalance] = useState<{ HAK: string; USDT: string }>({
+    HAK: "0",
+    USDT: "0",
+  });
+
+  // 当前所选提现资产的可用余额
+  const currentBalance =
+    cashOutTokenType === TokenType.HAK ? balance.HAK : balance.USDT;
+  const currentAsset = cashOutTokenType === TokenType.HAK ? "HAK" : "USDT";
+  // 与 app backend 提现规则保持一致的最低提现金额
+  const minWithdrawAmount = cashOutTokenType === TokenType.HAK ? 10 : 5;
+
+  const fetchBalance = async () => {
+    if (!address) return;
+    try {
+      const response = await fetch(`/api/user/balance?address=${address}`);
+      if (response.ok) {
+        const data = await response.json();
+        setBalance({
+          HAK: String(data?.HAK?.amount ?? "0"),
+          USDT: String(data?.USDT?.amount ?? "0"),
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching balance:", error);
+    }
+  };
 
   // Fetch direct referrals
   const fetchDirects = async () => {
@@ -97,6 +125,7 @@ function MyContent() {
     if (address) {
       setToAddress(address);
       fetchDirects();
+      fetchBalance();
     }
   }, [address]);
 
@@ -242,16 +271,10 @@ function MyContent() {
     }
   };
 
-  const withdrawPoints = async (
-    info: {
-      operationType: TxFlowType;
-      amount: number;
-      walletAddress: string;
-      timestamp: number;
-      tokenType: string;
-    },
-    signature: string
-  ) => {
+  const withdrawPoints = async (info: {
+    amount: number;
+    tokenType: TokenType;
+  }) => {
     if (!address) {
       setError("Wallet not connected");
       return;
@@ -261,23 +284,30 @@ function MyContent() {
       setLoading(true);
       setWithdrawError(null);
 
-      const response = await fetch("/api/points/withdraw", {
+      const response = await fetch("/api/user/withdraw", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ ...info, signature }),
+        body: JSON.stringify({
+          address,
+          asset: info.tokenType === TokenType.HAK ? "HAK" : "USDT",
+          amount: String(info.amount),
+        }),
       });
 
+      const data = await response.json().catch(() => ({}));
       if (!response.ok) {
-        const error = await response.json();
-        setWithdrawError(tErrors(error.error));
+        setWithdrawError(
+          data?.message ||
+            tErrors(data?.code || data?.error || ErrorCode.OPERATION_FAILED)
+        );
         return;
       }
 
-      const { success } = await response.json();
       setWithdrawResult("success");
-      // Refresh points after withdrawing
+      // Refresh balance and user info after withdrawing
+      fetchBalance();
       fetchUserInfo();
     } catch (err) {
       setError(err instanceof Error ? err.message : ErrorCode.SERVER_ERROR);
@@ -375,38 +405,19 @@ function MyContent() {
     try {
       setError(null);
 
-      if (!address || !signMessageAsync) {
-        setError("Please connect your wallet first");
-        return;
-      }
-
-      const points = parseFloat(cashOutAmount);
-      if (isNaN(points)) {
-        setError("Please enter a valid positive number");
-        return;
-      }
-
       if (!address) {
         setError("Please connect your wallet first");
         return;
       }
 
-      const info = {
-        operationType:
-          transferMode === "cashout" ? TxFlowType.WITHDRAW : TxFlowType.WITHDRAW,
-        amount: points,
-        tokenType: cashOutTokenType,
-        walletAddress: address,
-        description: toAddress,
-        timestamp: Date.now(),
-      };
-      const hash = await generateOperationHash(info);
-      const signature = await signMessageAsync({ message: hash });
-      if (transferMode === "cashout") {
-        await withdrawPoints(info, signature);
-      } else {
-        await transferPoints(info, signature);
+      const points = parseFloat(cashOutAmount);
+      if (isNaN(points) || points <= 0) {
+        setWithdrawError(tErrors(ErrorCode.INVALID_AMOUNT));
+        return;
       }
+
+      // 提现只能提到本人地址，目标地址由服务端固定为当前钱包地址
+      await withdrawPoints({ amount: points, tokenType: cashOutTokenType });
       //setShowCashOutModal(false);
     } catch (err) {
       console.log(
@@ -711,7 +722,7 @@ function MyContent() {
             </div>
           )}
 
-          {/* VIP/SVIP Referral Counts Section */}
+          {/* Balance & Withdraw Section */}
           <div className="mb-8">
             <div
               className="p-5"
@@ -721,22 +732,42 @@ function MyContent() {
                 backgroundImage: "linear-gradient(0deg, #e30e10 0%, #690a71 100%)",
               }}
             >
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-sm font-bold text-white">
+                  {t("balance")}
+                </h2>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!address) {
+                      triggerWalletConnect();
+                      return;
+                    }
+                    setCashOutAmount("0.00");
+                    setWithdrawError("");
+                    setWithdrawResult("");
+                    setShowCashOutModal(true);
+                  }}
+                  className="text-xs font-medium text-white px-3 py-1 rounded-md"
+                  style={{
+                    background: "rgba(255, 255, 255, 0.2)",
+                  }}
+                >
+                  {t("cash_out")}
+                </button>
+              </div>
               <div className="flex flex-col gap-4">
                 <div className="flex items-center justify-between">
-                  <p className="text-xs text-white/80">{t("direct_vip")}</p>
-                  <p className="text-2xl font-bold text-white">{userInfo?.directVipCount ?? 0}</p>
+                  <p className="text-xs text-white/80">USDT</p>
+                  <p className="text-2xl font-bold text-white">
+                    {truncateDecimals(Number(balance.USDT || 0))}
+                  </p>
                 </div>
                 <div className="flex items-center justify-between">
-                  <p className="text-xs text-white/80">{t("direct_svip")}</p>
-                  <p className="text-2xl font-bold text-white">{userInfo?.directSvipCount ?? 0}</p>
-                </div>
-                <div className="flex items-center justify-between">
-                  <p className="text-xs text-white/80">{t("all_vip")}</p>
-                  <p className="text-2xl font-bold text-white">{userInfo?.allVipCount ?? 0}</p>
-                </div>
-                <div className="flex items-center justify-between">
-                  <p className="text-xs text-white/80">{t("all_svip")}</p>
-                  <p className="text-2xl font-bold text-white">{userInfo?.allSvipCount ?? 0}</p>
+                  <p className="text-xs text-white/80">HAK</p>
+                  <p className="text-2xl font-bold text-white">
+                    {truncateDecimals(Number(balance.HAK || 0))}
+                  </p>
                 </div>
               </div>
             </div>
@@ -845,20 +876,18 @@ function MyContent() {
                   </h3>
                   <div
                     style={{ background: "rgba(255, 255, 255, 0.4)" }}
-                    className=" rounded-lg p-1"
+                    className=" rounded-lg p-3 text-sm break-all"
                   >
-                    <textarea
-                      value={toAddress}
-                      onChange={(e) => setToAddress(e.target.value)}
-                      placeholder="Enter wallet address"
-                      className="w-full bg-transparent  outline-none border-none focus:ring-0 text-sm resize-none"
-                      rows={2}
-                      style={{
-                        whiteSpace: "pre-wrap",
-                        color: "rgba(255, 255, 255, 0.6)",
-                      }}
-                    />
+                    <span style={{ color: "rgba(255, 255, 255, 0.85)" }}>
+                      {toAddress || address || "--"}
+                    </span>
                   </div>
+                  <p
+                    className="text-xs mt-1"
+                    style={{ color: "rgba(255, 255, 255, 0.6)" }}
+                  >
+                    {t("withdraw_self_only")}
+                  </p>
                 </div>
 
                 {/* Transfer Amount Section */}
@@ -920,7 +949,7 @@ function MyContent() {
                           setShowTokenTypeDropdown(false);
                         }}
                       >
-                        TXT
+                        HAK
                       </div>
                     </div>
                   )}
@@ -942,15 +971,8 @@ function MyContent() {
                           if (!/^\d*\.?\d*$/.test(value) && value !== "")
                             return;
 
-                          const maxAmount =
-                            transferMode === "internal"
-                              ? cashOutTokenType === TokenType.USDT
-                                ? userInfo?.usdt_points
-                                : userInfo?.token_points
-                              : cashOutTokenType === TokenType.USDT
-                                ? userInfo?.usdt_points
-                                : userInfo?.token_points;
-                          if (maxAmount !== undefined && value !== "") {
+                          const maxAmount = Number(currentBalance || 0);
+                          if (value !== "") {
                             const numValue = parseFloat(value);
                             if (isNaN(numValue)) {
                               setCashOutAmount("");
@@ -976,18 +998,8 @@ function MyContent() {
                       />
                       <button
                         onClick={() => {
-                          if (!userInfo) return;
-                          let maxAmount =
-                            (cashOutTokenType === TokenType.USDT
-                              ? userInfo?.usdt_points
-                              : userInfo?.token_points) || 0;
-                          if (transferMode === "internal") {
-                            maxAmount =
-                              (cashOutTokenType === TokenType.USDT
-                                ? userInfo?.usdt_points
-                                : userInfo?.token_points) || 0;
-                          }
-                          if (maxAmount !== undefined && maxAmount > 0) {
+                          const maxAmount = Number(currentBalance || 0);
+                          if (maxAmount > 0) {
                             setCashOutAmount(truncateDecimalsStr(maxAmount));
                           }
                         }}
@@ -999,29 +1011,7 @@ function MyContent() {
                     <div className="flex justify-between items-center mt-2 text-sm text-white px-2">
                       <span>{t("token_withdrawable")}</span>
                       <span>
-                        {transferMode === "cashout"
-                          ? cashOutTokenType === TokenType.USDT
-                            ? userInfo
-                              ? `${truncateDecimals(
-                                Number(userInfo.usdt_points || 0)
-                              )} USDT`
-                              : "0.00 USDT"
-                            : userInfo
-                              ? `${truncateDecimals(
-                                Number(userInfo.token_points || 0)
-                              )} TXT`
-                              : "0.00 TXT"
-                          : cashOutTokenType === TokenType.USDT
-                            ? userInfo
-                              ? `${truncateDecimals(
-                                Number(userInfo.usdt_points || 0)
-                              )} USDT`
-                              : "0.00 USDT"
-                            : userInfo
-                              ? `${truncateDecimals(
-                                Number(userInfo.token_points || 0)
-                              )} TXT`
-                              : "0.00 TXT"}
+                        {`${truncateDecimals(Number(currentBalance || 0))} ${currentAsset}`}
                       </span>
                     </div>
                   </div>
@@ -1051,11 +1041,7 @@ function MyContent() {
                           className="text-white text-xs"
                           style={{ color: "rgba(255, 255, 255, 0.6)" }}
                         >
-                          {cashOutTokenType === TokenType.HAK
-                            ? `${minCashOutAmountToken} TXT(Fee: ~${withdrawTokenFeeRatio * 100
-                            }%)`
-                            : `${minCashOutAmountUsdt} USDT(Fee: ~${withdrawTokenFeeRatio * 100
-                            }%)`}
+                          {`${minWithdrawAmount} ${currentAsset}`}
                         </span>
                       </div>
                     </div>
@@ -1094,13 +1080,7 @@ function MyContent() {
                     onClick={async () => {
                       if (isWithdrawing) return;
 
-                      let minAmount =
-                        cashOutTokenType === TokenType.HAK
-                          ? minCashOutAmountToken
-                          : minCashOutAmountUsdt;
-                      if (transferMode === "internal") {
-                        minAmount = 0;
-                      }
+                      const minAmount = minWithdrawAmount;
 
                       if (
                         parseFloat(cashOutAmount) < minAmount ||
