@@ -60,6 +60,10 @@ interface UserInfo {
   allSvipCount?: number;
   activation?: QuotaInfo | null;
   zeroQuota?: ZeroQuotaInfo | null;
+  performance?: number;
+  teamLevel?: string;
+  teamSize?: number;
+  directCount?: number;
 }
 
 interface DirectReferral {
@@ -67,6 +71,7 @@ interface DirectReferral {
   address: string;
   equityType: string;
   consensusAmount: number;
+  performance: number;
   activatedAt: string | null;
 }
 
@@ -302,6 +307,11 @@ function MyContent() {
           equityType: (data.equityType as EquityType | null) ?? null,
           cards: Number(data.cards ?? 0),
           points: Number(data.points ?? 0),
+          performance: Number(data.performance ?? 0),
+          teamLevel: data.teamLevel ?? 'NONE',
+          teamSize: Number(data.teamSize ?? 0),
+          directCount: Number(data.directCount ?? 0),
+          superior: data.superior ?? null,
         };
 
         setUserInfo(parsedData);
@@ -779,7 +789,7 @@ function MyContent() {
                   <div className="grid grid-cols-[60px_1fr_120px] gap-2 text-xs text-white/70 pb-2 border-b border-white/20">
                     <div>{t("direct_sequence")}</div>
                     <div>{t("direct_address")}</div>
-                    <div className="text-right">{t("early_consensus")}</div>
+                    <div className="text-right">{t("performance")}</div>
                   </div>
                   {/* Table Rows - Real data from API */}
                   {directs.map((direct) => {
@@ -793,7 +803,9 @@ function MyContent() {
                       <div key={direct.sequence} className="grid grid-cols-[60px_1fr_120px] gap-2 text-xs text-white py-2">
                         <div>{direct.sequence}</div>
                         <div>{formatAddress(direct.address)}</div>
-                        <div className="text-right">{direct.consensusAmount}</div>
+                        <div className="text-right">
+                          {truncateDecimals(Number(direct.performance ?? 0))}
+                        </div>
                       </div>
                     );
                   })}
@@ -926,6 +938,66 @@ function MyContent() {
                     </span>
                   </div>
                 ))}
+              </div>
+            </div>
+          </div>
+
+          {/* My Team Section */}
+          <div className="mb-8">
+            <div
+              className="p-5"
+              style={{
+                opacity: 0.78,
+                borderRadius: "15px",
+                backgroundImage: "linear-gradient(0deg, #e30e10 0%, #690a71 100%)",
+              }}
+            >
+              <h2 className="text-sm font-bold text-white mb-4">
+                {t("my_team")}
+              </h2>
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-white/70">{t("my_package")}</span>
+                  <span className="text-sm font-bold text-white">
+                    {userInfo?.equityType ?? t("unactivated")}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-white/70">{t("team_level")}</span>
+                  <span className="text-sm font-bold text-white">
+                    {userInfo?.teamLevel && userInfo.teamLevel !== "NONE"
+                      ? userInfo.teamLevel
+                      : "--"}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-white/70">{t("referrer")}</span>
+                  <span className="text-sm font-bold text-white">
+                    {userInfo?.superior_referral_code ??
+                      (userInfo?.superior && userInfo.superior.length > 12
+                        ? `${userInfo.superior.slice(0, 6)}...${userInfo.superior.slice(-4)}`
+                        : userInfo?.superior) ??
+                      "--"}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-white/70">{t("direct_count")}</span>
+                  <span className="text-sm font-bold text-white">
+                    {userInfo?.directCount ?? 0}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-white/70">{t("team_size")}</span>
+                  <span className="text-sm font-bold text-white">
+                    {userInfo?.teamSize ?? 0}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-white/70">{t("my_performance")}</span>
+                  <span className="text-sm font-bold text-white">
+                    {truncateDecimals(Number(userInfo?.performance ?? 0))} USDT
+                  </span>
+                </div>
               </div>
             </div>
           </div>

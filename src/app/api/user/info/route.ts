@@ -32,6 +32,10 @@ export async function GET(req: NextRequest) {
           id: null,
           referral_code: null,
           superior_referral_code: null,
+          superior: null,
+          teamLevel: 'NONE',
+          teamSize: 0,
+          directCount: 0,
           type: null,
           level: 0,
           performance: new decimal(0),
@@ -59,10 +63,13 @@ export async function GET(req: NextRequest) {
     const data = await response.json();
     const user = data.data?.user ?? data.user;
     const directInvitees = data.data?.directInvitees ?? data.directInvitees ?? [];
+    const directInviteeCount =
+      data.data?.directInviteeCount ?? data.directInviteeCount ?? directInvitees.length;
 
-    const superior_referral_code = user.ancestors?.length
-      ? user.ancestors[user.ancestors.length - 1]?.shortCode ?? null
+    const superiorAncestor = user.ancestors?.length
+      ? user.ancestors[user.ancestors.length - 1]
       : null;
+    const superior_referral_code = superiorAncestor?.shortCode ?? null;
 
     const directVipCount = directInvitees.filter((d: any) => d.nodeType === 'VERIFIER1').length;
     const directSvipCount = directInvitees.filter((d: any) => d.nodeType === 'VERIFIER2').length;
@@ -71,6 +78,10 @@ export async function GET(req: NextRequest) {
       id: user.id,
       referral_code: user.shortCode,
       superior_referral_code,
+      superior: superiorAncestor?.address ?? null,
+      teamLevel: user.teamLevel ?? 'NONE',
+      teamSize: user.teamSize ?? 0,
+      directCount: directInviteeCount,
       type: user.nodeType,
       level: 0,
       performance: new decimal(user.performance ?? 0),

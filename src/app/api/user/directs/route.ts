@@ -55,6 +55,7 @@ export async function GET(req: NextRequest) {
         equityType: direct.activation?.package ?? null,
         cards: direct.hakcard ?? 0,
         consensusAmount,
+        performance: Number(direct.performance ?? 0),
         activatedAt: direct.activation?.activatedAt ?? null,
       };
     });
